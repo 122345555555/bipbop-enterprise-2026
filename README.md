@@ -1,7 +1,7 @@
-# BipBop Enterprise 5.0 Final
+# BipBop Enterprise 5.1 Importer Finale
 
-Centro di comando Amazon definitivo.
+Patch completa sopra 5.0 Final.
 
-Esegui in Supabase:
+Corregge riconoscimento report Amazon Ads in italiano, compreso Sponsored Brands Ad Groups.
 
-sql/schema_enterprise_5_0_final.sql
+Non cambia database: usa ancora tabelle bb50_*.
