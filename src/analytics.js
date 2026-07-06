@@ -8,7 +8,8 @@ window.BBAnalytics = {
     ["sponsored_display","Sponsored Display","opzionale"],
     ["search_terms","Search Terms","consigliato"],
     ["orders","Report ordini","consigliato"],
-    ["inventory","Inventario","consigliato"]
+    ["inventory","Inventario","consigliato"],
+    ["brand_analytics","Brand Analytics","consigliato"]
   ],
   label(type){ const r=this.reportDefs.find(x=>x[0]===type); return r?r[1]:type; },
   calc(samples){
@@ -88,4 +89,18 @@ window.BBAnalytics = {
       return {term,spend,sales,clicks,acos:sales?spend/sales*100:NaN,roas:spend?sales/spend:NaN};
     }).filter(x=>x.term).sort((a,b)=>b.spend-a.spend).slice(0,100);
   }
+,
+  brandAnalyticsRows(samples){
+    const rows=samples.brand_analytics||[];
+    return rows.map(r=>{
+      const query=BBUtils.pick(r,["Query di ricerca","Search Query","Search term"])||"";
+      const volume=BBUtils.num(BBUtils.pick(r,["Volume delle query di ricerca","Search Query Volume","Volume"]));
+      const impTotal=BBUtils.num(BBUtils.pick(r,["Impressioni: numero totale","Impressions: Total Count"]));
+      const brandImpShare=BBUtils.num(BBUtils.pick(r,["Impressioni: % quota del marchio","Impressions: Brand Share %"]));
+      const clickShare=BBUtils.num(BBUtils.pick(r,["Clic: % quota del marchio","Clicks: Brand Share %"]));
+      const purchaseShare=BBUtils.num(BBUtils.pick(r,["Acquisti: % quota del marchio","Purchases: Brand Share %"]));
+      return {query,volume,impTotal,brandImpShare,clickShare,purchaseShare};
+    }).filter(x=>x.query).sort((a,b)=>b.volume-a.volume).slice(0,100);
+  }
+
 };

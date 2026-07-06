@@ -47,6 +47,13 @@ window.BBRender = {
     const kr=BBAnalytics.keywordRows(s.samples);
     BBUtils.el("keywordBox").innerHTML=kr.length?'<table><tr><th>Keyword / Search Term</th><th>Spesa</th><th>Vendite</th><th>Click</th><th>ACOS</th><th>ROAS</th></tr>'+kr.map(r=>'<tr><td>'+r.term+'</td><td>'+BBUtils.euro(r.spend)+'</td><td>'+BBUtils.euro(r.sales)+'</td><td>'+r.clicks+'</td><td>'+BBUtils.pct(r.acos)+'</td><td>'+(Number.isFinite(r.roas)?r.roas.toFixed(2):"—")+'</td></tr>').join("")+'</table>':'<div class="action">Importa Search Terms per vedere le keyword.</div>';
 
+    
+    const ba=BBAnalytics.brandAnalyticsRows ? BBAnalytics.brandAnalyticsRows(s.samples) : [];
+    const baEl=BBUtils.el("brandAnalyticsBox");
+    if(baEl){
+      baEl.innerHTML=ba.length?'<table><tr><th>Query</th><th>Volume</th><th>Impression totali</th><th>Quota impression brand</th><th>Quota click brand</th><th>Quota acquisti brand</th></tr>'+ba.map(r=>'<tr><td>'+r.query+'</td><td>'+r.volume+'</td><td>'+r.impTotal+'</td><td>'+BBUtils.pct(r.brandImpShare)+'</td><td>'+BBUtils.pct(r.clickShare)+'</td><td>'+BBUtils.pct(r.purchaseShare)+'</td></tr>').join("")+'</table>':'<div class="action">Importa Brand Analytics – Performance query di ricerca.</div>';
+    }
+
     BBUtils.el("profitBox").innerHTML='<div class="grid3">'+[
       ["Ricavi",BBUtils.euro(c.sales)],["Commissioni Amazon",BBUtils.euro(c.amazonFees)],["Ads",BBUtils.euro(c.ads)],["Profitto stimato",BBUtils.euro(c.profit)],["Margine",BBUtils.pct(c.margin)],["TACOS",BBUtils.pct(c.tacos)]
     ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div><p class="hint">La sezione è AI-ready: i costi interni potranno essere collegati per arrivare al profitto netto reale.</p>';

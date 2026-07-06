@@ -1,23 +1,20 @@
-# BipBop Enterprise 7.0 Final
+# BipBop Enterprise 7.1 Smart Parser
 
-Release definitiva con Amazon Smart Parser 7.0.
+Patch compatibile con 7.0: migliora il parser senza cambiare l'architettura.
 
-## Caratteristiche
-- Parser CSV / TSV / TXT
-- Separatore automatico: comma, punto e virgola, TAB, pipe
-- Encoding UTF-8, UTF-16, ANSI
-- Storico completo
-- Duplicati esclusi dai dati attivi
-- Più file dello stesso tipo sommati correttamente
-- Dashboard Executive
-- Sales, Advertising, ASIN, Keyword, Profit Center
-- Growth Plan e Alert Center
-- Database AI-ready
+## Nuovo supporto
+- Righe introduttive Amazon: `Nota:`, `Marchio=`, metadati Brand Analytics
+- Statement / Fatture Ads con nota iniziale
+- Brand Analytics – Performance query di ricerca
+- Header non sempre alla prima riga
+- Separatore automatico mantenuto: comma, punto e virgola, TAB, pipe
 
 ## Supabase
-Esegui:
-sql/schema_enterprise_7_0_final.sql
+Se hai già eseguito lo schema 7.0, non devi rieseguire nulla.
+
+Se vuoi installare da zero:
+sql/schema_enterprise_7_1_smart_parser.sql
 
 ## Diagnostica
-Deve comparire:
+La diagnostica resta:
 SOLO TABELLE BB70 FINAL

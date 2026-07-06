@@ -1,13 +1,12 @@
 ISTRUZIONI
 
 1. Carica tutti i file su GitHub: bipbop-enterprise-2026.
-2. Esegui in Supabase:
-   sql/schema_enterprise_7_0_final.sql
-3. Apri il sito.
-4. Vai in Setup e inserisci Supabase URL e Publishable Key.
-5. Vai in Diagnostica: deve comparire SOLO TABELLE BB70 FINAL.
-6. Importa i CSV Amazon.
+2. Non serve SQL se hai già installato la 7.0.
+3. Attendi il deploy Vercel.
+4. Fai Cmd+Shift+R.
+5. Reimporta:
+   - IT_Performance_delle_query_di_ricerca_Visualizzazione_marchio...
+   - statement 20250706 to 20260706.csv
 
-Duplicati:
-- File identico: registrato in archivio ma NON sommato.
-- File diverso dello stesso tipo: importato e sommato.
+Il primo verrà riconosciuto come Brand Analytics.
+Il secondo come Fatture Ads.

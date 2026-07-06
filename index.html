@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop Enterprise 7.0 Final</title>
+  <title>BipBop Enterprise 7.1 Smart Parser</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -11,7 +11,7 @@
   <aside>
     <div class="brand">
       <div class="logo">B</div>
-      <div><b>BipBop</b><small>Enterprise 7.0 Final</small></div>
+      <div><b>BipBop</b><small>Enterprise 7.1 Smart Parser</small></div>
     </div>
     <button class="nav active" data-view="executive">📊 Executive</button>
     <button class="nav" data-view="import">📥 Import Amazon</button>
@@ -19,6 +19,7 @@
     <button class="nav" data-view="advertising">📈 Advertising</button>
     <button class="nav" data-view="asin">📦 ASIN</button>
     <button class="nav" data-view="keyword">🔎 Keyword</button>
+    <button class="nav" data-view="brandanalytics">🏷️ Brand Analytics</button>
     <button class="nav" data-view="profit">💰 Profit Center</button>
     <button class="nav" data-view="growth">🚀 Growth Plan</button>
     <button class="nav" data-view="alerts">🚨 Alert Center</button>
@@ -31,7 +32,7 @@
     <header>
       <div>
         <h1 id="pageTitle">Executive</h1>
-        <p>Enterprise 7.0 Final: Amazon Smart Parser, storico completo, KPI e Growth Plan.</p>
+        <p>Enterprise 7.1 Smart Parser: Amazon Smart Parser, storico completo, KPI e Growth Plan.</p>
       </div>
       <div>
         <span id="cloudBadge" class="badge bad">Cloud non collegato</span>
@@ -74,6 +75,7 @@
     <section id="advertising" class="view"><div class="card"><h3>Advertising Intelligence</h3><div id="adsBox"></div><div id="adsFilesBox"></div></div></section>
     <section id="asin" class="view"><div class="card"><h3>ASIN Intelligence</h3><div id="asinBox"></div></div></section>
     <section id="keyword" class="view"><div class="card"><h3>Keyword Intelligence</h3><div id="keywordBox"></div></div></section>
+    <section id="brandanalytics" class="view"><div class="card"><h3>Brand Analytics – Performance query di ricerca</h3><div id="brandAnalyticsBox"></div></div></section>
     <section id="profit" class="view"><div class="card"><h3>Profit Center</h3><div id="profitBox"></div></div></section>
     <section id="growth" class="view"><div class="card"><h3>Growth Plan operativo</h3><div id="growthBox"></div></div></section>
     <section id="alerts" class="view"><div class="card"><h3>Alert Center</h3><div id="alertsBox"></div></div></section>
@@ -105,12 +107,12 @@
     </section>
   </main>
 
-  <script src="config.js?v=7.0"></script>
-  <script src="src/utils.js?v=7.0"></script>
-  <script src="src/parser.js?v=7.0"></script>
-  <script src="src/storage.js?v=7.0"></script>
-  <script src="src/analytics.js?v=7.0"></script>
-  <script src="src/render.js?v=7.0"></script>
-  <script src="src/app.js?v=7.0"></script>
+  <script src="config.js?v=7.1"></script>
+  <script src="src/utils.js?v=7.1"></script>
+  <script src="src/parser.js?v=7.1"></script>
+  <script src="src/storage.js?v=7.1"></script>
+  <script src="src/analytics.js?v=7.1"></script>
+  <script src="src/render.js?v=7.1"></script>
+  <script src="src/app.js?v=7.1"></script>
 </body>
 </html>
