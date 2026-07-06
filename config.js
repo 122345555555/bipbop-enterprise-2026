@@ -1,4 +1,1 @@
-window.BIPBOP_CONFIG = {
-  version: "BipBop Enterprise 4.0 Stable",
-  storageKey: "bb40_config"
-};
+window.BIPBOP_CONFIG={version:"BipBop Enterprise 5.0 Final",storageKey:"bb50_config",rulesKey:"bb50_rules"};

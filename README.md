@@ -1,21 +1,7 @@
-# BipBop Enterprise 4.0 Stable
+# BipBop Enterprise 5.0 Final
 
-Release stabile, rifatta per evitare blocchi del menu e problemi JavaScript.
+Centro di comando Amazon definitivo.
 
-## Include
-- Menu sempre funzionante
-- Setup Supabase
-- Import CSV Amazon drag & drop
-- Riconoscimento report
-- Archivio report
-- Dashboard
-- Growth Plan
-- ASIN
-- Ads
-- Profitto
-- Avvisi
-- Diagnostica BB40
+Esegui in Supabase:
 
-## Supabase
-Esegui:
-sql/schema_enterprise_4_0_stable.sql
+sql/schema_enterprise_5_0_final.sql
