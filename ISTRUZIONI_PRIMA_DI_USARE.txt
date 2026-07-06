@@ -1,0 +1,33 @@
+ISTRUZIONI OPERATIVE
+
+1. Crea un nuovo repository GitHub:
+   bipbop-enterprise-2026
+
+2. Carica tutti i file di questa cartella.
+
+3. Crea un nuovo progetto Vercel.
+   Non riutilizzare il progetto vecchio.
+
+4. Collega Vercel al nuovo repository:
+   bipbop-enterprise-2026
+
+5. Impostazioni Vercel:
+   Framework: Other
+   Build command: vuoto
+   Output directory: vuoto oppure .
+   Install command: vuoto
+
+6. In Supabase esegui:
+   sql/schema_v13_report_center.sql
+
+7. Apri il sito nuovo.
+
+8. Vai in Setup e inserisci:
+   - Supabase Project URL
+   - Anon/Public Key
+
+9. Vai in Diagnostica.
+   Deve comparire:
+   SOLO TABELLE bb13
+
+10. Solo dopo iniziamo a importare i report Amazon uno alla volta.

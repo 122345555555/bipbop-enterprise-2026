@@ -1,0 +1,1 @@
+window.BIPBOP_CONFIG={version:"BipBop v13 Report Center",storageKey:"bb13_config"};
