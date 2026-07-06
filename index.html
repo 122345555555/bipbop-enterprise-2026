@@ -3,99 +3,34 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop v13 Report Center</title>
+  <title>BipBop v14 Report Importer</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <aside>
-    <div class="brand">
-      <div class="logo">B</div>
-      <div><b>BipBop</b><small>v13 Report Center</small></div>
-    </div>
-
+    <div class="brand"><div class="logo">B</div><div><b>BipBop</b><small>v14 Report Importer</small></div></div>
     <button class="nav active" data-view="dashboard">📊 Dashboard</button>
     <button class="nav" data-view="import">📥 Import Amazon</button>
+    <button class="nav" data-view="reports">📁 Report caricati</button>
     <button class="nav" data-view="diagnostic">🧪 Diagnostica</button>
-    <button class="nav" data-view="profit">💰 Profitto</button>
-    <button class="nav" data-view="ads">📈 Ads</button>
-    <button class="nav" data-view="asin">📦 ASIN</button>
     <button class="nav" data-view="setup">⚙️ Setup</button>
   </aside>
-
   <main>
     <header>
-      <div>
-        <h1 id="pageTitle">Dashboard</h1>
-        <p>Versione 13 isolata: legge solo tabelle <b>bb13_*</b>.</p>
-      </div>
-      <div>
-        <span id="cloudBadge" class="badge bad">Cloud non collegato</span>
-        <button id="refreshBtn">Aggiorna</button>
-      </div>
+      <div><h1 id="pageTitle">Dashboard</h1><p>v14: importa e conserva i report Amazon senza perdere colonne.</p></div>
+      <div><span id="cloudBadge" class="badge bad">Cloud non collegato</span><button id="refreshBtn">Aggiorna</button></div>
     </header>
-
     <section id="dashboard" class="view active">
-      <div class="hero">
-        <div class="circle">13</div>
-        <div>
-          <h2 id="headline">Nessun report importato</h2>
-          <p>Importa i report Amazon dalla sezione Import Amazon.</p>
-        </div>
-      </div>
+      <div class="hero"><div class="circle">14</div><div><h2 id="headline">Report Center pulito</h2><p id="subtitle">Importa i CSV Amazon uno alla volta.</p></div></div>
       <div id="kpis" class="kpis"></div>
-      <div class="grid2">
-        <div class="card"><h3>Composizione economica</h3><canvas id="economyChart"></canvas></div>
-        <div class="card"><h3>Top ASIN</h3><canvas id="asinChart"></canvas></div>
-      </div>
+      <div class="card"><h3>Stato report necessari</h3><div id="missingBox"></div></div>
     </section>
-
-    <section id="import" class="view">
-      <div class="card">
-        <h3>Import Amazon</h3>
-        <p class="hint">Ogni import sostituisce solo la propria tabella. Le vecchie tabelle products/campaigns non vengono lette.</p>
-
-        <div class="import-grid">
-          <div class="import-box"><h4>1. Transazioni Amazon</h4><input id="file_transactions" type="file" accept=".csv"><button data-import="transactions">Importa</button></div>
-          <div class="import-box"><h4>2. Fatture pubblicità</h4><input id="file_ad_invoices" type="file" accept=".csv"><button data-import="ad_invoices">Importa</button></div>
-          <div class="import-box"><h4>3. Sponsored Products</h4><input id="file_sp" type="file" accept=".csv"><button data-import="sponsored_products">Importa</button></div>
-          <div class="import-box"><h4>4. Sponsored Brands</h4><input id="file_sb" type="file" accept=".csv"><button data-import="sponsored_brands">Importa</button></div>
-          <div class="import-box"><h4>5. Sponsored Display</h4><input id="file_sd" type="file" accept=".csv"><button data-import="sponsored_display">Importa</button></div>
-          <div class="import-box"><h4>6. Search Terms</h4><input id="file_search_terms" type="file" accept=".csv"><button data-import="search_terms">Importa</button></div>
-          <div class="import-box"><h4>7. Business Report</h4><input id="file_business" type="file" accept=".csv"><button data-import="business_report">Importa</button></div>
-          <div class="import-box"><h4>8. Inventario</h4><input id="file_inventory" type="file" accept=".csv"><button data-import="inventory">Importa</button></div>
-          <div class="import-box"><h4>9. Costi BipBop</h4><input id="file_costs" type="file" accept=".csv"><button data-import="costs">Importa</button></div>
-          <div class="import-box danger"><h4>Reset v13</h4><button id="clearBtn" class="dangerBtn">Svuota tabelle bb13</button></div>
-        </div>
-
-        <div id="importLog" class="log">Pronto per importare.</div>
-      </div>
-    </section>
-
-    <section id="diagnostic" class="view">
-      <div class="card"><h3>Diagnostica v13</h3><div id="diagnosticBox"></div></div>
-      <div class="card"><h3>Errori</h3><pre id="errorBox">Nessun errore.</pre></div>
-    </section>
-
-    <section id="profit" class="view"><div class="card"><h3>Profitto per ASIN</h3><div id="profitTable"></div></div></section>
-    <section id="ads" class="view"><div class="card"><h3>Ads</h3><div id="adsTable"></div></div></section>
-    <section id="asin" class="view"><div class="card"><h3>ASIN</h3><div id="asinTable"></div></div></section>
-
-    <section id="setup" class="view">
-      <div class="card">
-        <h3>Setup Supabase</h3>
-        <label>Project URL Supabase</label>
-        <input id="supabaseUrl" placeholder="https://xxxx.supabase.co">
-        <label>Anon / Public Key</label>
-        <textarea id="supabaseKey" placeholder="sb_publishable... oppure anon key"></textarea>
-        <button id="saveSetup">Salva configurazione</button>
-      </div>
-    </section>
+    <section id="import" class="view"><div class="card"><h3>Import Amazon guidato</h3><p class="hint">Ogni file viene salvato in Supabase in formato grezzo. La struttura originale del CSV resta disponibile.</p><div class="import-grid" id="importGrid"></div><div id="importLog" class="log">Pronto.</div></div></section>
+    <section id="reports" class="view"><div class="card"><h3>Report caricati</h3><div id="reportsTable"></div></div></section>
+    <section id="diagnostic" class="view"><div class="card"><h3>Diagnostica v14</h3><div id="diagnosticBox"></div></div><div class="card"><h3>Errori</h3><pre id="errorBox">Nessun errore.</pre></div></section>
+    <section id="setup" class="view"><div class="card"><h3>Setup Supabase</h3><label>Project URL Supabase</label><input id="supabaseUrl" placeholder="https://xxxx.supabase.co"><label>Anon / Public Key</label><textarea id="supabaseKey" placeholder="sb_publishable... oppure anon key"></textarea><button id="saveSetup">Salva configurazione</button><p class="hint">La configurazione resta salvata solo nel browser.</p></div></section>
   </main>
-
-  <script src="config.js?v=13"></script>
-  <script src="supabase.js?v=13"></script>
-  <script src="app.js?v=13"></script>
+  <script src="config.js?v=14"></script><script src="supabase.js?v=14"></script><script src="app.js?v=14"></script>
 </body>
 </html>

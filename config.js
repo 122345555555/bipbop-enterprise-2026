@@ -1,1 +1,1 @@
-window.BIPBOP_CONFIG={version:"BipBop v13 Report Center",storageKey:"bb13_config"};
+window.BIPBOP_CONFIG={version:"BipBop v14 Report Importer",storageKey:"bb14_config"};
