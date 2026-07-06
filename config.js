@@ -1,5 +1,5 @@
 window.BIPBOP_CONFIG = {
-  version: "BipBop Enterprise 6.0 Scalable Importer",
-  storageKey: "bb60_config",
-  rulesKey: "bb60_rules"
+  version: "BipBop Enterprise 7.0 Final",
+  storageKey: "bb70_config",
+  rulesKey: "bb70_rules"
 };

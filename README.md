@@ -1,21 +1,23 @@
-# BipBop Enterprise 6.0 Scalable Importer
+# BipBop Enterprise 7.0 Final
 
-Questa versione risolve il problema dei file simili.
+Release definitiva con Amazon Smart Parser 7.0.
 
-## Regola importante
-
-- Puoi importare più file dello stesso tipo, ad esempio 2 Sponsored Brands.
-- I file diversi vengono sommati nei dati attivi.
-- Lo stesso file identico viene riconosciuto come duplicato e NON viene sommato.
-
-## Tabelle
-
-Usa solo:
-- bb60_import_log
-- bb60_raw_reports
-- bb60_settings
+## Caratteristiche
+- Parser CSV / TSV / TXT
+- Separatore automatico: comma, punto e virgola, TAB, pipe
+- Encoding UTF-8, UTF-16, ANSI
+- Storico completo
+- Duplicati esclusi dai dati attivi
+- Più file dello stesso tipo sommati correttamente
+- Dashboard Executive
+- Sales, Advertising, ASIN, Keyword, Profit Center
+- Growth Plan e Alert Center
+- Database AI-ready
 
 ## Supabase
+Esegui:
+sql/schema_enterprise_7_0_final.sql
 
-Esegui una volta:
-sql/schema_enterprise_6_0_scalable_importer.sql
+## Diagnostica
+Deve comparire:
+SOLO TABELLE BB70 FINAL

@@ -2,12 +2,12 @@ ISTRUZIONI
 
 1. Carica tutti i file su GitHub: bipbop-enterprise-2026.
 2. Esegui in Supabase:
-   sql/schema_enterprise_6_0_scalable_importer.sql
+   sql/schema_enterprise_7_0_final.sql
 3. Apri il sito.
-4. Vai in Setup e reinserisci Supabase URL e Publishable Key.
-5. Vai in Diagnostica: deve comparire SOLO TABELLE BB60 SCALABLE.
-6. Importa tutti i CSV.
+4. Vai in Setup e inserisci Supabase URL e Publishable Key.
+5. Vai in Diagnostica: deve comparire SOLO TABELLE BB70 FINAL.
+6. Importa i CSV Amazon.
 
 Duplicati:
 - File identico: registrato in archivio ma NON sommato.
-- File diverso dello stesso tipo/campagna: importato e sommato.
+- File diverso dello stesso tipo: importato e sommato.

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop Enterprise 6.0 Scalable Importer</title>
+  <title>BipBop Enterprise 7.0 Final</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -11,14 +11,15 @@
   <aside>
     <div class="brand">
       <div class="logo">B</div>
-      <div><b>BipBop</b><small>Enterprise 6.0 Scalable</small></div>
+      <div><b>BipBop</b><small>Enterprise 7.0 Final</small></div>
     </div>
-    <button class="nav active" data-view="dashboard">📊 Executive</button>
+    <button class="nav active" data-view="executive">📊 Executive</button>
     <button class="nav" data-view="import">📥 Import Amazon</button>
     <button class="nav" data-view="sales">💶 Sales</button>
-    <button class="nav" data-view="ads">📈 Advertising</button>
+    <button class="nav" data-view="advertising">📈 Advertising</button>
     <button class="nav" data-view="asin">📦 ASIN</button>
-    <button class="nav" data-view="keywords">🔎 Keyword</button>
+    <button class="nav" data-view="keyword">🔎 Keyword</button>
+    <button class="nav" data-view="profit">💰 Profit Center</button>
     <button class="nav" data-view="growth">🚀 Growth Plan</button>
     <button class="nav" data-view="alerts">🚨 Alert Center</button>
     <button class="nav" data-view="archive">📁 Archivio</button>
@@ -30,55 +31,56 @@
     <header>
       <div>
         <h1 id="pageTitle">Executive</h1>
-        <p>Enterprise 6.0: import multi-file, campagne multiple, duplicati esclusi dai dati attivi.</p>
+        <p>Enterprise 7.0 Final: Amazon Smart Parser, storico completo, KPI e Growth Plan.</p>
       </div>
       <div>
         <span id="cloudBadge" class="badge bad">Cloud non collegato</span>
-        <button id="refreshBtn">Aggiorna</button>
+        <button id="refreshBtn">Aggiorna dati</button>
       </div>
     </header>
 
-    <section id="dashboard" class="view active">
+    <section id="executive" class="view active">
       <div class="hero">
-        <div class="circle">6.0</div>
+        <div class="circle">7.0</div>
         <div>
-          <h2 id="headline">Centro di comando Amazon pronto</h2>
-          <p id="subline">Puoi importare più file dello stesso tipo. I duplicati non vengono sommati.</p>
+          <h2 id="headline">Amazon Growth Engine pronto</h2>
+          <p id="subline">Importa i report Amazon per generare KPI, alert e priorità operative.</p>
         </div>
       </div>
       <div id="kpis" class="kpis"></div>
       <div class="grid2">
+        <div class="card"><h3>Priorità operative</h3><div id="topActions"></div></div>
         <div class="card"><h3>Completezza dati</h3><div id="dataHealth"></div></div>
-        <div class="card"><h3>Priorità immediate</h3><div id="topActions"></div></div>
       </div>
     </section>
 
     <section id="import" class="view">
       <div class="card">
-        <h3>Import Amazon scalabile</h3>
-        <p class="hint">Trascina insieme tutti i CSV. Puoi caricare più file Sponsored Brands, Sponsored Products, Search Terms, ecc. Il sistema li conserva separati e li somma nei dati attivi.</p>
+        <h3>Import universale 7.0 <span class="pill green">Smart Parser attivo</span></h3>
+        <p class="hint">Trascina insieme CSV, TSV o TXT Amazon. Il parser riconosce separatore, encoding e tipo report. I duplicati non vengono sommati nei dati attivi.</p>
         <div id="dropZone" class="dropzone">
-          <b>Trascina qui tutti i report CSV</b>
-          <span>Business Report, Transazioni, Fatture Ads, SP, SB, SD, Search Terms, Ordini, Inventario</span>
-          <input id="multiFile" type="file" accept=".csv,.txt" multiple hidden>
+          <b>Trascina qui tutti i report Amazon</b>
+          <span>CSV, TSV, TXT — UTF-8, UTF-16, ANSI</span>
+          <input id="multiFile" type="file" accept=".csv,.txt,.tsv" multiple hidden>
         </div>
         <button id="selectFilesBtn">Seleziona file</button>
         <button id="clearImportLogBtn" class="secondaryBtn">Pulisci log</button>
         <div id="importLog" class="log">Pronto.</div>
       </div>
-      <div class="card"><h3>Stato report attivi</h3><div id="statusGrid" class="import-grid"></div></div>
+      <div class="card"><h3>Report attivi in database</h3><div id="statusGrid" class="import-grid"></div></div>
     </section>
 
-    <section id="sales" class="view"><div class="card"><h3>Sales & Profit</h3><div id="salesBox"></div></div></section>
-    <section id="ads" class="view"><div class="card"><h3>Advertising Intelligence</h3><div id="adsBox"></div><div id="adsFilesBox"></div></div></section>
+    <section id="sales" class="view"><div class="card"><h3>Sales</h3><div id="salesBox"></div></div></section>
+    <section id="advertising" class="view"><div class="card"><h3>Advertising Intelligence</h3><div id="adsBox"></div><div id="adsFilesBox"></div></div></section>
     <section id="asin" class="view"><div class="card"><h3>ASIN Intelligence</h3><div id="asinBox"></div></div></section>
-    <section id="keywords" class="view"><div class="card"><h3>Keyword Intelligence</h3><div id="keywordsBox"></div></div></section>
+    <section id="keyword" class="view"><div class="card"><h3>Keyword Intelligence</h3><div id="keywordBox"></div></div></section>
+    <section id="profit" class="view"><div class="card"><h3>Profit Center</h3><div id="profitBox"></div></div></section>
     <section id="growth" class="view"><div class="card"><h3>Growth Plan operativo</h3><div id="growthBox"></div></div></section>
     <section id="alerts" class="view"><div class="card"><h3>Alert Center</h3><div id="alertsBox"></div></div></section>
-    <section id="archive" class="view"><div class="card"><h3>Archivio report</h3><div id="archiveTable"></div></div></section>
+    <section id="archive" class="view"><div class="card"><h3>Archivio import</h3><div id="archiveTable"></div></div></section>
 
     <section id="diagnostic" class="view">
-      <div class="card"><h3>Diagnostica 6.0</h3><div id="diagnosticBox"></div></div>
+      <div class="card"><h3>Diagnostica 7.0</h3><div id="diagnosticBox"></div></div>
       <div class="card"><h3>Errori</h3><pre id="errorBox">Nessun errore.</pre></div>
     </section>
 
@@ -103,8 +105,12 @@
     </section>
   </main>
 
-  <script src="config.js?v=6.0"></script>
-  <script src="supabase.js?v=6.0"></script>
-  <script src="app.js?v=6.0"></script>
+  <script src="config.js?v=7.0"></script>
+  <script src="src/utils.js?v=7.0"></script>
+  <script src="src/parser.js?v=7.0"></script>
+  <script src="src/storage.js?v=7.0"></script>
+  <script src="src/analytics.js?v=7.0"></script>
+  <script src="src/render.js?v=7.0"></script>
+  <script src="src/app.js?v=7.0"></script>
 </body>
 </html>
