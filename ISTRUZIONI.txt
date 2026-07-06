@@ -1,9 +1,9 @@
-ISTRUZIONI RAPIDE
+ISTRUZIONI
 
-1. Carica tutto su GitHub: bipbop-enterprise-2026
-2. In Supabase esegui:
-   sql/schema_enterprise_3_0_growth_engine.sql
+1. Carica tutti i file su GitHub: bipbop-enterprise-2026
+2. Esegui in Supabase:
+   sql/schema_enterprise_4_0_stable.sql
 3. Apri il sito
-4. Vai in Setup e reinserisci Supabase URL e Publishable Key
-5. Vai in Diagnostica: deve comparire SOLO TABELLE BB30 GROWTH ENGINE
-6. Vai in Import automatico e trascina i CSV Amazon
+4. Vai in Setup e inserisci Project URL e Publishable Key
+5. Vai in Diagnostica: deve comparire SOLO TABELLE BB40 STABLE
+6. Vai in Import Amazon e carica i CSV

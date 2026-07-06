@@ -1,10 +1,71 @@
-(function(){window.BipBopSupabase={
-getConfig(){return JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.storageKey)||"{}")},
-saveConfig(c){localStorage.setItem(window.BIPBOP_CONFIG.storageKey,JSON.stringify(c))},
-getClient(){const c=this.getConfig();return c.url&&c.key&&window.supabase?window.supabase.createClient(c.url,c.key):null},
-async replaceReport(type,fileName,headers,rows,fingerprint,period){const s=this.getClient();if(!s)throw new Error("Supabase non configurato.");const dup=await s.from("bb30_import_log").select("*").eq("fingerprint",fingerprint).limit(1);if(dup.error)throw new Error(dup.error.message);const wasDuplicate=(dup.data||[]).length>0;const del=await s.from("bb30_raw_reports").delete().eq("report_type",type);if(del.error)throw new Error("delete report: "+del.error.message);const meta={report_type:type,file_name:fileName,row_count:rows.length,headers,fingerprint,is_duplicate:wasDuplicate,period_start:period?.start||null,period_end:period?.end||null,imported_at:new Date().toISOString()};const insMeta=await s.from("bb30_import_log").insert([meta]).select().single();if(insMeta.error)throw new Error("import log: "+insMeta.error.message);for(let i=0;i<rows.length;i+=500){const payload=rows.slice(i,i+500).map((row,j)=>({report_type:type,file_name:fileName,row_index:i+j+1,row_data:row,fingerprint}));const ins=await s.from("bb30_raw_reports").insert(payload);if(ins.error)throw new Error("insert rows: "+ins.error.message)}return {meta:insMeta.data,wasDuplicate}},
-async listReports(){const s=this.getClient();if(!s)throw new Error("Supabase non configurato.");const r=await s.from("bb30_import_log").select("*").order("imported_at",{ascending:false}).limit(500);if(r.error)throw new Error(r.error.message);return r.data||[]},
-async countReport(type){const s=this.getClient();if(!s)throw new Error("Supabase non configurato.");const r=await s.from("bb30_raw_reports").select("id",{count:"exact",head:true}).eq("report_type",type);if(r.error)throw new Error(r.error.message);return r.count||0},
-async sampleReport(type,limit=5000){const s=this.getClient();if(!s)throw new Error("Supabase non configurato.");const r=await s.from("bb30_raw_reports").select("row_data").eq("report_type",type).limit(limit);if(r.error)throw new Error(r.error.message);return (r.data||[]).map(x=>x.row_data)},
-async clearReport(type){const s=this.getClient();if(!s)throw new Error("Supabase non configurato.");const r=await s.from("bb30_raw_reports").delete().eq("report_type",type);if(r.error)throw new Error(r.error.message)}
-};})();
+window.BipBopDB = {
+  config() {
+    try { return JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.storageKey) || "{}"); }
+    catch(e) { return {}; }
+  },
+  saveConfig(cfg) {
+    localStorage.setItem(window.BIPBOP_CONFIG.storageKey, JSON.stringify(cfg || {}));
+  },
+  client() {
+    const cfg = this.config();
+    if (!cfg.url || !cfg.key || !window.supabase) return null;
+    return window.supabase.createClient(cfg.url, cfg.key);
+  },
+  async insertReport(type, fileName, headers, rows, fingerprint) {
+    const db = this.client();
+    if (!db) throw new Error("Supabase non configurato.");
+    const duplicateCheck = await db.from("bb40_import_log").select("id").eq("fingerprint", fingerprint).limit(1);
+    if (duplicateCheck.error) throw new Error(duplicateCheck.error.message);
+    const isDuplicate = (duplicateCheck.data || []).length > 0;
+
+    const del = await db.from("bb40_raw_reports").delete().eq("report_type", type);
+    if (del.error) throw new Error(del.error.message);
+
+    const meta = {
+      report_type: type,
+      file_name: fileName,
+      row_count: rows.length,
+      headers: headers,
+      fingerprint: fingerprint,
+      is_duplicate: isDuplicate,
+      imported_at: new Date().toISOString()
+    };
+
+    const insLog = await db.from("bb40_import_log").insert([meta]).select().single();
+    if (insLog.error) throw new Error(insLog.error.message);
+
+    for (let i = 0; i < rows.length; i += 500) {
+      const chunk = rows.slice(i, i + 500).map((row, j) => ({
+        report_type: type,
+        file_name: fileName,
+        row_index: i + j + 1,
+        row_data: row,
+        fingerprint: fingerprint
+      }));
+      const insRows = await db.from("bb40_raw_reports").insert(chunk);
+      if (insRows.error) throw new Error(insRows.error.message);
+    }
+    return { isDuplicate };
+  },
+  async listLog() {
+    const db = this.client();
+    if (!db) throw new Error("Supabase non configurato.");
+    const r = await db.from("bb40_import_log").select("*").order("imported_at", { ascending: false }).limit(500);
+    if (r.error) throw new Error(r.error.message);
+    return r.data || [];
+  },
+  async countType(type) {
+    const db = this.client();
+    if (!db) throw new Error("Supabase non configurato.");
+    const r = await db.from("bb40_raw_reports").select("id", { count: "exact", head: true }).eq("report_type", type);
+    if (r.error) throw new Error(r.error.message);
+    return r.count || 0;
+  },
+  async sample(type) {
+    const db = this.client();
+    if (!db) throw new Error("Supabase non configurato.");
+    const r = await db.from("bb40_raw_reports").select("row_data").eq("report_type", type).limit(5000);
+    if (r.error) throw new Error(r.error.message);
+    return (r.data || []).map(x => x.row_data);
+  }
+};

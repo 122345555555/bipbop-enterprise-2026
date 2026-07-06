@@ -1,1 +1,4 @@
-window.BIPBOP_CONFIG={version:"BipBop Enterprise 3.0 Growth Engine",storageKey:"bb30_config",rulesKey:"bb30_rules"};
+window.BIPBOP_CONFIG = {
+  version: "BipBop Enterprise 4.0 Stable",
+  storageKey: "bb40_config"
+};

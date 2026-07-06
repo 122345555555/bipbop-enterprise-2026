@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop Enterprise 3.0 Growth Engine</title>
+  <title>BipBop Enterprise 4.0 Stable</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -11,10 +11,14 @@
   <aside>
     <div class="brand">
       <div class="logo">B</div>
-      <div><b>BipBop</b><small>Enterprise 3.0 Growth Engine</small></div>
+      <div>
+        <b>BipBop</b>
+        <small>Enterprise 4.0 Stable</small>
+      </div>
     </div>
+
     <button class="nav active" data-view="dashboard">📊 Dashboard</button>
-    <button class="nav" data-view="import">📥 Import automatico</button>
+    <button class="nav" data-view="import">📥 Import Amazon</button>
     <button class="nav" data-view="reports">📁 Archivio report</button>
     <button class="nav" data-view="growth">🚀 Growth Plan</button>
     <button class="nav" data-view="asin">📦 ASIN</button>
@@ -29,7 +33,7 @@
     <header>
       <div>
         <h1 id="pageTitle">Dashboard</h1>
-        <p>Release 3.0: import report Amazon, analisi economica, Ads e suggerimenti operativi.</p>
+        <p>Release 4.0 stabile: moduli separati, import report Amazon, Growth Plan e diagnostica robusta.</p>
       </div>
       <div>
         <span id="cloudBadge" class="badge bad">Cloud non collegato</span>
@@ -39,10 +43,10 @@
 
     <section id="dashboard" class="view active">
       <div class="hero">
-        <div class="circle">3.0</div>
+        <div class="circle">4.0</div>
         <div>
-          <h2 id="headline">Amazon Growth Engine pronto</h2>
-          <p id="subtitle">Importa i report. Il sistema calcola solo i dati verificabili e ti indica le priorità operative.</p>
+          <h2 id="dashboardTitle">Centro di comando pronto</h2>
+          <p id="dashboardSub">Configura Supabase, poi importa i report Amazon.</p>
         </div>
       </div>
       <div id="kpis" class="kpis"></div>
@@ -54,34 +58,49 @@
 
     <section id="import" class="view">
       <div class="card">
-        <h3>Import automatico Amazon</h3>
-        <p class="hint">Trascina più CSV insieme. Il sistema riconosce il tipo report, controlla duplicati e aggiorna i dati attivi.</p>
+        <h3>Import Amazon automatico</h3>
+        <p class="hint">Trascina uno o più CSV. Il sistema prova a riconoscere il tipo report e lo salva in Supabase.</p>
         <div id="dropZone" class="dropzone">
           <b>Trascina qui i CSV Amazon</b>
-          <span>oppure clicca per selezionare più file</span>
+          <span>oppure clicca per selezionare i file</span>
           <input id="multiFile" type="file" accept=".csv,.txt" multiple hidden>
         </div>
-        <div class="toolbar">
-          <button id="selectFilesBtn">Seleziona file</button>
-          <button id="clearImportLogBtn" class="secondaryBtn">Pulisci log a video</button>
-        </div>
+        <button id="selectFilesBtn">Seleziona file</button>
+        <button id="clearImportLogBtn" class="secondaryBtn">Pulisci log</button>
         <div id="importLog" class="log">Pronto.</div>
       </div>
       <div class="card">
         <h3>Stato report</h3>
-        <div id="importStatusGrid" class="import-grid"></div>
+        <div id="statusGrid" class="import-grid"></div>
       </div>
     </section>
 
-    <section id="reports" class="view"><div class="card"><h3>Archivio report</h3><div id="reportsTable"></div></div></section>
-    <section id="growth" class="view"><div class="card"><h3>Growth Plan</h3><div id="growthBox"></div></div></section>
-    <section id="asin" class="view"><div class="card"><h3>ASIN</h3><div id="asinBox"></div></div></section>
-    <section id="ads" class="view"><div class="card"><h3>Ads Intelligence</h3><div id="adsBox"></div></div></section>
-    <section id="profit" class="view"><div class="card"><h3>Profitto reale</h3><div id="profitBox"></div></div></section>
-    <section id="alerts" class="view"><div class="card"><h3>Avvisi automatici</h3><div id="alertsBox"></div></div></section>
+    <section id="reports" class="view">
+      <div class="card"><h3>Archivio report</h3><div id="reportsTable"></div></div>
+    </section>
+
+    <section id="growth" class="view">
+      <div class="card"><h3>Growth Plan</h3><div id="growthBox"></div></div>
+    </section>
+
+    <section id="asin" class="view">
+      <div class="card"><h3>ASIN</h3><div id="asinBox"></div></div>
+    </section>
+
+    <section id="ads" class="view">
+      <div class="card"><h3>Ads Intelligence</h3><div id="adsBox"></div></div>
+    </section>
+
+    <section id="profit" class="view">
+      <div class="card"><h3>Profitto reale</h3><div id="profitBox"></div></div>
+    </section>
+
+    <section id="alerts" class="view">
+      <div class="card"><h3>Avvisi automatici</h3><div id="alertsBox"></div></div>
+    </section>
 
     <section id="diagnostic" class="view">
-      <div class="card"><h3>Diagnostica 3.0</h3><div id="diagnosticBox"></div></div>
+      <div class="card"><h3>Diagnostica 4.0</h3><div id="diagnosticBox"></div></div>
       <div class="card"><h3>Errori</h3><pre id="errorBox">Nessun errore.</pre></div>
     </section>
 
@@ -90,25 +109,16 @@
         <h3>Setup Supabase</h3>
         <label>Project URL Supabase</label>
         <input id="supabaseUrl" placeholder="https://xxxx.supabase.co">
-        <label>Anon / Public Key</label>
+        <label>Publishable / Anon Key</label>
         <textarea id="supabaseKey" placeholder="sb_publishable... oppure anon key"></textarea>
         <button id="saveSetup">Salva configurazione</button>
-        <p class="hint">La configurazione resta salvata solo nel browser.</p>
-      </div>
-      <div class="card">
-        <h3>Parametri decisionali</h3>
-        <div class="grid2">
-          <div><label>TACOS massimo desiderato %</label><input id="targetTacos" type="number" value="15"></div>
-          <div><label>Margine minimo desiderato %</label><input id="targetMargin" type="number" value="25"></div>
-        </div>
-        <button id="saveRules">Salva regole locali</button>
-        <p class="hint">Servono per generare suggerimenti più coerenti con BipBop.</p>
+        <p class="hint">La configurazione viene salvata solo nel browser.</p>
       </div>
     </section>
   </main>
 
-  <script src="config.js?v=3.0"></script>
-  <script src="supabase.js?v=3.0"></script>
-  <script src="app.js?v=3.0"></script>
+  <script src="config.js?v=4.0"></script>
+  <script src="supabase.js?v=4.0"></script>
+  <script src="app.js?v=4.0"></script>
 </body>
 </html>

@@ -1,161 +1,300 @@
-(function(){
-const $=id=>document.getElementById(id);
-const REPORTS=[
-["business_report","Business Report","Vendite, sessioni, conversioni","obbligatorio",["ordered product sales","sessions","unit session percentage","asin","sku","buy box"]],
-["orders","Report ordini","Ordini e quantità vendute","consigliato",["order-id","purchase-date","sku","quantity-purchased","item-price"]],
-["transactions","Transazioni / pagamenti","Commissioni, rimborsi, accrediti","obbligatorio",["stato della transazione","tipo di transazione","numero di ordine","commissioni amazon","totale (eur)"]],
-["ad_invoices","Fatture Ads","Spesa pubblicitaria reale fatturata","obbligatorio",["invoice","fattura","paid amount","importo pagato","advertising","payment"]],
-["sponsored_products","Sponsored Products","Campagne SP","consigliato",["campaign name","spend","sales","acos","impressions","clicks","cpc"]],
-["sponsored_brands","Sponsored Brands","Campagne SB","consigliato",["campaign name","spend","sales","brand","impressions","clicks"]],
-["sponsored_display","Sponsored Display","Campagne SD","opzionale",["campaign name","spend","sales","display","impressions","clicks"]],
-["search_terms","Search Terms","Termini di ricerca","consigliato",["customer search term","search term","keyword","clicks","spend","7 day total sales"]],
-["inventory","Inventario","Stock e SKU","consigliato",["sku","available","afn","mfn","inventory","fulfillable"]],
-["product_costs","Costi BipBop","Produzione, packaging, spedizione","obbligatorio",["asin","sku","costo","cost","produzione","spedizione","packaging"]]
-];
-let state={reports:[],counts:{},samples:{},latest:{},errors:[]};
-const eur=v=>new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(Number(v||0));
-const pct=v=>Number.isFinite(v)?v.toFixed(1)+"%":"non disponibile";
-function rules(){return JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.rulesKey)||'{"targetTacos":15,"targetMargin":25}')}
-function num(v){if(v==null||v==="")return 0;let s=String(v).replace(/\u00a0/g," ").replace(/€/g,"").replace(/\s/g,"").trim();if(s.includes(",")&&s.includes("."))s=s.replace(/\./g,"").replace(",",".");else if(s.includes(","))s=s.replace(",",".");const m=s.match(/-?\d+(\.\d+)?/);return m?Number(m[0]):0}
-function pick(row,names){const keys=Object.keys(row||{});for(const name of names){const f=keys.find(k=>k.toLowerCase().trim()===name.toLowerCase().trim());if(f&&row[f]!==""&&row[f]!=null)return row[f]}return""}
-function findKey(row,frags){const keys=Object.keys(row||{});return keys.find(k=>frags.some(f=>k.toLowerCase().includes(f)))}
-function label(type){return (REPORTS.find(r=>r[0]===type)||[type,type])[1]}
-function fmtDate(d){try{return new Date(d).toLocaleString("it-IT")}catch(e){return""}}
-function normalize(s){return String(s||"").toLowerCase().trim()}
-async function sha256(text){const data=new TextEncoder().encode(text);const hash=await crypto.subtle.digest("SHA-256",data);return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("")}
-function parseCSV(text){const rows=[];let row=[],cur="",q=false;for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];if(c=='"'&&q&&n=='"'){cur+='"';i++;continue}if(c=='"'){q=!q;continue}if(c==','&&!q){row.push(cur);cur='';continue}if((c=='\n'||c=='\r')&&!q){if(c=='\r'&&n=='\n')i++;row.push(cur);cur='';if(row.some(x=>String(x).trim()!=''))rows.push(row);row=[];continue}cur+=c}row.push(cur);if(row.some(x=>String(x).trim()!=''))rows.push(row);let hi=0,max=0;rows.forEach((r,i)=>{if(r.length>max){max=r.length;hi=i}});const headers=rows[hi].map((h,i)=>String(h||'').trim()||'col_'+(i+1));const data=rows.slice(hi+1).map(r=>{const o={};headers.forEach((h,i)=>o[h]=r[i]??'');return o}).filter(o=>Object.values(o).some(v=>String(v).trim()!=''));return{headers,data}}}
+(function () {
+"use strict";
 
-function readFile(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||""));r.onerror=()=>rej(r.error);r.readAsText(file,"UTF-8")})}
-function detectReport(headers,fileName){
- const h=headers.map(normalize).join(" | ");let best=null,score=-1;
- for(const r of REPORTS){let s=0;for(const k of r[4]) if(h.includes(normalize(k))) s++; if(normalize(fileName).includes(r[0].replace("_"," "))) s+=1; if(s>score){score=s;best=r}}
- return score>0?best[0]:"unknown";
+const REPORTS = [
+  { type:"business_report", name:"Business Report", need:"obbligatorio", keys:["ordered product sales","sessions","unit session percentage","asin","sku"] },
+  { type:"transactions", name:"Transazioni / pagamenti", need:"obbligatorio", keys:["stato della transazione","tipo di transazione","numero di ordine","commissioni amazon","totale (eur)"] },
+  { type:"ad_invoices", name:"Fatture Ads", need:"obbligatorio", keys:["invoice","fattura","paid amount","importo pagato","advertising"] },
+  { type:"sponsored_products", name:"Sponsored Products", need:"consigliato", keys:["campaign name","spend","sales","acos","impressions","clicks"] },
+  { type:"sponsored_brands", name:"Sponsored Brands", need:"consigliato", keys:["campaign name","spend","sales","brand","impressions","clicks"] },
+  { type:"sponsored_display", name:"Sponsored Display", need:"opzionale", keys:["campaign name","spend","sales","display","impressions","clicks"] },
+  { type:"search_terms", name:"Search Terms", need:"consigliato", keys:["customer search term","search term","keyword","clicks","spend"] },
+  { type:"orders", name:"Report ordini", need:"consigliato", keys:["order-id","purchase-date","sku","quantity-purchased"] },
+  { type:"inventory", name:"Inventario", need:"consigliato", keys:["sku","available","inventory","fulfillable"] },
+  { type:"product_costs", name:"Costi BipBop", need:"obbligatorio", keys:["asin","sku","costo","cost","produzione","spedizione"] }
+];
+
+const state = { log: [], counts: {}, samples: {}, latest: {}, errors: [] };
+
+function el(id) { return document.getElementById(id); }
+function euro(v) { return new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(Number(v || 0)); }
+function n(v) {
+  if (v === null || v === undefined || v === "") return 0;
+  let s = String(v).replace(/\u00a0/g," ").replace(/€/g,"").replace(/\s/g,"").trim();
+  if (s.includes(",") && s.includes(".")) s = s.replace(/\./g,"").replace(",",".");
+  else if (s.includes(",")) s = s.replace(",",".");
+  const m = s.match(/-?\d+(\.\d+)?/);
+  return m ? Number(m[0]) : 0;
 }
-function extractPeriod(fileName){
- const m=String(fileName).match(/(\d{2})[_-](\d{2})[_-](\d{4}).*?(\d{2})[_-](\d{2})[_-](\d{4})/);
- if(!m)return{};
- return {start:`${m[3]}-${m[2]}-${m[1]}`,end:`${m[6]}-${m[5]}-${m[4]}`};
+function pct(v) { return Number.isFinite(v) ? v.toFixed(1) + "%" : "—"; }
+function low(s) { return String(s || "").toLowerCase().trim(); }
+function label(type) { const r = REPORTS.find(x => x.type === type); return r ? r.name : type; }
+function pick(row, names) {
+  const keys = Object.keys(row || {});
+  for (const name of names) {
+    const found = keys.find(k => low(k) === low(name));
+    if (found && row[found] !== "" && row[found] !== null && row[found] !== undefined) return row[found];
+  }
+  return "";
 }
-function latestByType(){state.latest={};for(const r of state.reports){if(!state.latest[r.report_type])state.latest[r.report_type]=r}}
-async function importFiles(files){
- let out=[];$("importLog").innerHTML="";
- for(const file of files){
-  try{
-   $("importLog").innerHTML+=`<div>⏳ Leggo ${file.name}...</div>`;
-   const text=await readFile(file);
-   const fp=await sha256(file.name+"|"+file.size+"|"+text.slice(0,3000));
-   const parsed=parseCSV(text);
-   const type=detectReport(parsed.headers,file.name);
-   if(type==="unknown"){out.push(`⚠️ ${file.name}: tipo report non riconosciuto.`);continue}
-   const period=extractPeriod(file.name);
-   const r=await window.BipBopSupabase.replaceReport(type,file.name,parsed.headers,parsed.data,fp,period);
-   out.push(`✅ ${file.name}: ${label(type)}, ${parsed.data.length} righe, ${parsed.headers.length} colonne${r.wasDuplicate?" — duplicato rilevato":""}.`);
-  }catch(e){out.push(`❌ ${file.name}: ${e.message||e}`)}
- }
- $("importLog").innerHTML=out.map(x=>`<div>${x}</div>`).join("");
- await refresh();
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cur = "", q = false;
+  for (let i=0;i<text.length;i++) {
+    const c = text[i], nx = text[i+1];
+    if (c === '"' && q && nx === '"') { cur += '"'; i++; continue; }
+    if (c === '"') { q = !q; continue; }
+    if (c === "," && !q) { row.push(cur); cur = ""; continue; }
+    if ((c === "\n" || c === "\r") && !q) {
+      if (c === "\r" && nx === "\n") i++;
+      row.push(cur); cur = "";
+      if (row.some(x => String(x).trim() !== "")) rows.push(row);
+      row = [];
+      continue;
+    }
+    cur += c;
+  }
+  row.push(cur);
+  if (row.some(x => String(x).trim() !== "")) rows.push(row);
+  if (!rows.length) return { headers: [], data: [] };
+  let headerIndex = 0, maxCols = 0;
+  rows.forEach((r,i) => { if (r.length > maxCols) { maxCols = r.length; headerIndex = i; } });
+  const headers = rows[headerIndex].map((h,i) => String(h || "").trim() || ("col_" + (i+1)));
+  const data = rows.slice(headerIndex + 1).map(r => {
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = r[i] || "");
+    return obj;
+  }).filter(o => Object.values(o).some(v => String(v).trim() !== ""));
+  return { headers, data };
 }
-function renderStatusGrid(){
- $("importStatusGrid").innerHTML=REPORTS.map(([type,name,desc,need])=>{
-  const l=state.latest[type],c=state.counts[type]||0,ok=c>0;
-  return `<div class="import-box ${ok?"ok":"missing"}"><h4>${name}</h4><p class="hint">${desc}</p><p><span class="pill">${need}</span></p><div class="meta"><div><b>Stato:</b> ${ok?"🟢 Importato":"🔴 Mancante"}</div><div><b>File:</b> ${l?.file_name||"—"}</div><div><b>Righe attive:</b> ${c}</div><div><b>Colonne:</b> ${Array.isArray(l?.headers)?l.headers.length:"—"}</div><div><b>Periodo:</b> ${l?.period_start||"—"} ${l?.period_end?"→ "+l.period_end:""}</div><div><b>Ultimo import:</b> ${l?fmtDate(l.imported_at):"—"}</div><div><b>Duplicato:</b> ${l?.is_duplicate?"sì":"no"}</div></div></div>`
- }).join("");
+function readFile(file) {
+  return new Promise((resolve,reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || ""));
+    r.onerror = () => reject(r.error);
+    r.readAsText(file, "UTF-8");
+  });
 }
-async function refresh(){
- try{
-  const cfg=window.BipBopSupabase.getConfig();
-  $("cloudBadge").textContent=cfg.url&&cfg.key?"Cloud configurato":"Cloud non collegato";
-  $("cloudBadge").className="badge "+(cfg.url&&cfg.key?"ok":"bad");
-  if(!cfg.url||!cfg.key){render();return}
-  state.reports=await window.BipBopSupabase.listReports();
-  state.counts={};state.samples={};
-  for(const [type] of REPORTS){state.counts[type]=await window.BipBopSupabase.countReport(type);if(state.counts[type]>0)state.samples[type]=await window.BipBopSupabase.sampleReport(type,5000)}
-  latestByType();render();
- }catch(e){err(e)}
+async function hashText(text) {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,"0")).join("");
 }
-function calc(){
- const br=state.samples.business_report||[],tx=state.samples.transactions||[],adsInv=state.samples.ad_invoices||[],costs=state.samples.product_costs||[],sp=state.samples.sponsored_products||[],sb=state.samples.sponsored_brands||[],sd=state.samples.sponsored_display||[],st=state.samples.search_terms||[];
- const brSales=br.reduce((a,r)=>a+num(pick(r,["Ordered Product Sales","Vendite prodotto ordinate","Sales","Vendite"])),0);
- const txTotal=tx.reduce((a,r)=>a+num(pick(r,["Totale (EUR)","Total (EUR)","Total","Totale"])),0);
- const sales=brSales||Math.max(txTotal,0);
- const amazonFees=tx.reduce((a,r)=>a+num(pick(r,["Commissioni Amazon","Amazon fees","commissioni"])),0);
- const adsInvoice=adsInv.reduce((a,r)=>a+num(pick(r,["Importo pagato (convertito)","Paid Amount","Amount Paid","Totale","Total","Importo"])),0);
- const adsReports=[...sp,...sb,...sd];
- const adsSpendReport=adsReports.reduce((a,r)=>a+num(pick(r,["Spend","Spesa","Cost","Costo"])),0);
- const ads=adsInvoice||adsSpendReport;
- const adsSales=adsReports.reduce((a,r)=>a+num(pick(r,["Sales","7 Day Total Sales","14 Day Total Sales","Vendite"])),0);
- const clicks=adsReports.reduce((a,r)=>a+num(pick(r,["Clicks","Clic"])),0);
- const impressions=adsReports.reduce((a,r)=>a+num(pick(r,["Impressions","Impressioni"])),0);
- const orders=adsReports.reduce((a,r)=>a+num(pick(r,["Orders","Ordini","7 Day Total Orders"])),0);
- const costsTot=costs.reduce((a,r)=>a+num(pick(r,["Costo totale","Total cost","Costo","Cost","production_cost","Costo produzione"])),0);
- const profit=sales+amazonFees-ads-costsTot;
- const tacos=sales?ads/sales*100:NaN;
- const roas=ads?adsSales/ads:NaN;
- const acos=adsSales?ads/adsSales*100:NaN;
- const ctr=impressions?clicks/impressions*100:NaN;
- const cpc=clicks?ads/clicks:NaN;
- return{sales,amazonFees,ads,adsInvoice,adsSpendReport,adsSales,clicks,impressions,orders,costsTot,profit,tacos,roas,acos,ctr,cpc,searchTerms:st.length};
+function detect(headers, fileName) {
+  const h = headers.map(low).join(" | ");
+  let best = { type:"unknown", score:0 };
+  REPORTS.forEach(r => {
+    let score = 0;
+    r.keys.forEach(k => { if (h.includes(low(k))) score++; });
+    if (low(fileName).includes(r.type.replace("_"," "))) score++;
+    if (score > best.score) best = { type:r.type, score };
+  });
+  return best.score ? best.type : "unknown";
 }
-function asinRows(){
- const br=state.samples.business_report||[],tx=state.samples.transactions||[];
- const map=new Map();
- for(const r of br){
-  const asin=pick(r,["ASIN","Parent ASIN","Child ASIN"])||"N/D";
-  const title=pick(r,["Title","Titolo","Product Name","Nome prodotto"])||"";
-  const sales=num(pick(r,["Ordered Product Sales","Sales","Vendite prodotto ordinate","Vendite"]));
-  const units=num(pick(r,["Units Ordered","Unità ordinate","Units","Quantità"]));
-  const sessions=num(pick(r,["Sessions","Sessioni"]));
-  const cr=num(pick(r,["Unit Session Percentage","Conversion Rate","Tasso conversione"]));
-  const obj=map.get(asin)||{asin,title,sales:0,units:0,sessions:0,cr:0};
-  obj.sales+=sales;obj.units+=units;obj.sessions+=sessions;obj.cr=Math.max(obj.cr,cr);map.set(asin,obj);
- }
- for(const r of tx){
-  const details=pick(r,["Dettagli prodotto","Product Details","Title"])||"";
-  const asin=(String(details).match(/B0[A-Z0-9]{8}/)||["N/D"])[0];
-  const obj=map.get(asin)||{asin,title:details,sales:0,units:0,sessions:0,cr:0};
-  obj.sales+=Math.max(num(pick(r,["Totale (EUR)","Total (EUR)","Totale"])),0);map.set(asin,obj);
- }
- return [...map.values()].sort((a,b)=>b.sales-a.sales).slice(0,50);
+
+async function importFiles(files) {
+  const logLines = [];
+  for (const file of files) {
+    try {
+      const text = await readFile(file);
+      const parsed = parseCSV(text);
+      const type = detect(parsed.headers, file.name);
+      if (type === "unknown") {
+        logLines.push("⚠️ " + file.name + ": tipo report non riconosciuto.");
+        continue;
+      }
+      const fingerprint = await hashText(file.name + "|" + file.size + "|" + text.slice(0,3000));
+      const result = await window.BipBopDB.insertReport(type, file.name, parsed.headers, parsed.data, fingerprint);
+      logLines.push("✅ " + file.name + ": " + label(type) + ", " + parsed.data.length + " righe, " + parsed.headers.length + " colonne" + (result.isDuplicate ? " — duplicato rilevato" : "") + ".");
+    } catch (err) {
+      logLines.push("❌ " + file.name + ": " + (err.message || err));
+      state.errors.push(String(err.message || err));
+    }
+  }
+  el("importLog").innerHTML = logLines.map(x => "<div>" + x + "</div>").join("");
+  await refresh();
 }
-function recommendations(){
- const c=calc(),r=rules(),list=[];
- if(!state.counts.business_report)list.push(["red","Importa Business Report","Senza Business Report non possiamo leggere conversione, sessioni e vendite per ASIN."]);
- if(!state.counts.transactions)list.push(["red","Importa Transazioni","Serve per commissioni Amazon, rimborsi e totale economico reale."]);
- if(!state.counts.ad_invoices)list.push(["yellow","Importa Fatture Ads","È il dato più affidabile per la spesa pubblicitaria reale, più sicuro dei report campagna."]);
- if(!state.counts.product_costs)list.push(["yellow","Importa Costi BipBop","Senza costi produzione/spedizione il profitto netto è solo provvisorio."]);
- if(Number.isFinite(c.tacos) && c.tacos>r.targetTacos)list.push(["red","TACOS troppo alto",`TACOS ${pct(c.tacos)} sopra il target ${r.targetTacos}%. Riduci CPC/campagne non profittevoli o aumenta conversione.`]);
- if(Number.isFinite(c.roas) && c.roas<2)list.push(["red","ROAS basso",`ROAS ${c.roas.toFixed(2)}. Verifica keyword con click e zero ordini.`]);
- if(Number.isFinite(c.ctr) && c.ctr<0.25)list.push(["yellow","CTR basso",`CTR Ads ${pct(c.ctr)}. Migliora immagine principale, prezzo o pertinenza keyword.`]);
- if(c.profit<0 && c.sales>0)list.push(["red","Profitto negativo",`Profitto stimato ${eur(c.profit)}. Controlla prezzi, Ads e costi per ASIN.`]);
- if(c.sales>0 && list.length<4)list.push(["green","Base dati utilizzabile","Puoi iniziare ad analizzare ASIN, Ads e margini con i report caricati."]);
- return list;
+
+function calc() {
+  const br = state.samples.business_report || [];
+  const tx = state.samples.transactions || [];
+  const adsInv = state.samples.ad_invoices || [];
+  const adsRows = [...(state.samples.sponsored_products || []), ...(state.samples.sponsored_brands || []), ...(state.samples.sponsored_display || [])];
+  const costs = state.samples.product_costs || [];
+
+  const brSales = br.reduce((a,r) => a + n(pick(r,["Ordered Product Sales","Vendite prodotto ordinate","Sales","Vendite"])), 0);
+  const txTotal = tx.reduce((a,r) => a + n(pick(r,["Totale (EUR)","Total (EUR)","Total","Totale"])), 0);
+  const sales = brSales || Math.max(txTotal, 0);
+
+  const amazonFees = tx.reduce((a,r) => a + n(pick(r,["Commissioni Amazon","Amazon fees","commissioni"])), 0);
+  const adsInvoice = adsInv.reduce((a,r) => a + n(pick(r,["Importo pagato (convertito)","Paid Amount","Amount Paid","Totale","Total","Importo"])), 0);
+  const adsSpend = adsRows.reduce((a,r) => a + n(pick(r,["Spend","Spesa","Cost","Costo"])), 0);
+  const adsSales = adsRows.reduce((a,r) => a + n(pick(r,["Sales","7 Day Total Sales","14 Day Total Sales","Vendite"])), 0);
+  const clicks = adsRows.reduce((a,r) => a + n(pick(r,["Clicks","Clic"])), 0);
+  const impressions = adsRows.reduce((a,r) => a + n(pick(r,["Impressions","Impressioni"])), 0);
+  const ads = adsInvoice || adsSpend;
+  const costsTotal = costs.reduce((a,r) => a + n(pick(r,["Costo totale","Total cost","Costo","Cost","production_cost","Costo produzione"])), 0);
+
+  const profit = sales + amazonFees - ads - costsTotal;
+  return {
+    sales, amazonFees, ads, adsSales, clicks, impressions, costsTotal, profit,
+    tacos: sales ? ads / sales * 100 : NaN,
+    acos: adsSales ? ads / adsSales * 100 : NaN,
+    roas: ads ? adsSales / ads : NaN,
+    ctr: impressions ? clicks / impressions * 100 : NaN,
+    cpc: clicks ? ads / clicks : NaN
+  };
 }
-function render(){
- const imported=REPORTS.filter(([t])=>(state.counts[t]||0)>0).length,totalRows=Object.values(state.counts).reduce((a,b)=>a+(b||0),0),c=calc(),recs=recommendations();
- $("headline").textContent=imported?`${imported} report importati`:"Amazon Growth Engine pronto";
- $("subtitle").textContent=imported?"Analisi pronta sui dati caricati.":"Trascina i CSV Amazon in Import automatico.";
- $("kpis").innerHTML=[["Report",imported+" / "+REPORTS.length],["Righe",totalRows],["Vendite",c.sales?eur(c.sales):"non disponibili"],["Profitto",c.sales?eur(c.profit):"non calcolabile"],["Ads",c.ads?eur(c.ads):"non disponibili"],["TACOS",pct(c.tacos)],["ROAS",Number.isFinite(c.roas)?c.roas.toFixed(2):"non disponibile"],["CTR",pct(c.ctr)]].map(x=>`<div class="kpi"><small>${x[0]}</small><strong>${x[1]}</strong></div>`).join("");
- $("requiredBox").innerHTML=REPORTS.map(([t,n,d,need])=>{const ok=(state.counts[t]||0)>0;return `<div class="action"><b>${n}</b><br>${ok?`<span class="status-ok">✓ importato</span> — ${state.counts[t]} righe`:`<span class="${need==="obbligatorio"?"status-missing":"status-warn"}">${need==="obbligatorio"?"mancante obbligatorio":"mancante"}</span>`}</div>`}).join("");
- $("actionBox").innerHTML=recs.slice(0,6).map(x=>`<div class="action ${x[0]}"><b>${x[1]}</b><br>${x[2]}</div>`).join("");
- $("growthBox").innerHTML=`<div class="grid3">${recs.map(x=>`<div class="action ${x[0]}"><b>${x[1]}</b><br>${x[2]}</div>`).join("")}</div>`;
- $("reportsTable").innerHTML=state.reports.length?`<table><tr><th>Report</th><th>File</th><th>Periodo</th><th>Righe</th><th>Colonne</th><th>Duplicato</th><th>Importato</th></tr>${state.reports.map(r=>`<tr><td><span class="pill">${label(r.report_type)}</span></td><td>${r.file_name||""}</td><td>${r.period_start||"—"} ${r.period_end?"→ "+r.period_end:""}</td><td>${r.row_count||0}</td><td>${Array.isArray(r.headers)?r.headers.length:""}</td><td>${r.is_duplicate?"sì":"no"}</td><td>${fmtDate(r.imported_at)}</td></tr>`).join("")}</table>`:`<div class="action">Nessun report importato.</div>`;
- const ar=asinRows();$("asinBox").innerHTML=ar.length?`<table><tr><th>ASIN</th><th>Titolo</th><th>Vendite</th><th>Unità</th><th>Sessioni</th><th>Conv.</th></tr>${ar.map(r=>`<tr><td>${r.asin}</td><td>${r.title||""}</td><td>${eur(r.sales)}</td><td>${r.units||""}</td><td>${r.sessions||""}</td><td>${r.cr?String(r.cr).replace(".",",")+"%":"—"}</td></tr>`).join("")}</table>`:`<div class="action">Importa Business Report o Transazioni per vedere gli ASIN.</div>`;
- $("adsBox").innerHTML=`<div class="grid3"><div class="kpi"><small>Spesa Ads</small><strong>${c.ads?eur(c.ads):"—"}</strong></div><div class="kpi"><small>Vendite attribuite Ads</small><strong>${c.adsSales?eur(c.adsSales):"—"}</strong></div><div class="kpi"><small>ACOS</small><strong>${pct(c.acos)}</strong></div><div class="kpi"><small>ROAS</small><strong>${Number.isFinite(c.roas)?c.roas.toFixed(2):"—"}</strong></div><div class="kpi"><small>CPC</small><strong>${Number.isFinite(c.cpc)?eur(c.cpc):"—"}</strong></div><div class="kpi"><small>CTR</small><strong>${pct(c.ctr)}</strong></div></div>`;
- $("profitBox").innerHTML=`<div class="grid3"><div class="kpi"><small>Vendite</small><strong>${c.sales?eur(c.sales):"—"}</strong></div><div class="kpi"><small>Commissioni Amazon</small><strong>${c.amazonFees?eur(c.amazonFees):"—"}</strong></div><div class="kpi"><small>Ads</small><strong>${c.ads?eur(c.ads):"—"}</strong></div><div class="kpi"><small>Costi BipBop</small><strong>${c.costsTot?eur(c.costsTot):"—"}</strong></div><div class="kpi"><small>Profitto stimato</small><strong>${c.sales?eur(c.profit):"—"}</strong></div><div class="kpi"><small>Margine</small><strong>${c.sales?pct(c.profit/c.sales*100):"—"}</strong></div></div><p class="hint">Il profitto diventa affidabile solo con Business Report, Transazioni, Fatture Ads e Costi BipBop.</p>`;
- $("alertsBox").innerHTML=recs.map(x=>`<div class="action ${x[0]}">🚨 <b>${x[1]}</b><br>${x[2]}</div>`).join("");
- $("diagnosticBox").innerHTML=`<div class="action"><b>SOLO TABELLE BB30 GROWTH ENGINE</b><br>Import log: ${state.reports.length}<br>Raw rows: ${totalRows}<br>Report configurati: ${REPORTS.length}<br>Storage: ${window.BIPBOP_CONFIG.storageKey}</div>`;
- $("errorBox").textContent=state.errors.length?state.errors.join("\n"):"Nessun errore.";renderStatusGrid();
+function recommendations(c) {
+  const out = [];
+  if (!state.counts.business_report) out.push(["red","Importa Business Report","Serve per capire vendite, sessioni, conversione e ASIN."]);
+  if (!state.counts.transactions) out.push(["red","Importa Transazioni","Serve per leggere commissioni Amazon e totale economico reale."]);
+  if (!state.counts.ad_invoices) out.push(["yellow","Importa Fatture Ads","Serve per la spesa pubblicitaria reale fatturata."]);
+  if (!state.counts.product_costs) out.push(["yellow","Importa Costi BipBop","Senza costi produzione/spedizione il profitto resta provvisorio."]);
+  if (Number.isFinite(c.tacos) && c.tacos > 15) out.push(["red","TACOS alto","TACOS " + pct(c.tacos) + ": controlla CPC, keyword e conversione."]);
+  if (Number.isFinite(c.ctr) && c.ctr < 0.25) out.push(["yellow","CTR basso","CTR " + pct(c.ctr) + ": migliora immagine principale o pertinenza keyword."]);
+  if (c.sales > 0 && c.profit < 0) out.push(["red","Profitto negativo","Profitto stimato " + euro(c.profit) + ": rivedi prezzi, Ads e costi."]);
+  if (!out.length) out.push(["green","Base pronta","I report principali sono presenti. Si può passare all’analisi dettagliata."]);
+  return out;
 }
-function err(e){state.errors.push(String(e?.message||e));render();console.error(e)}
-function init(){
- document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));b.classList.add("active");$(b.dataset.view).classList.add("active");$("pageTitle").textContent=b.textContent.replace(/[📊📥📁🚀📦📈💰🚨🧪⚙️]/g,"").trim()});
- $("refreshBtn").onclick=refresh;$("selectFilesBtn").onclick=()=>$("multiFile").click();$("multiFile").onchange=e=>importFiles([...e.target.files]);$("clearImportLogBtn").onclick=()=>$("importLog").innerHTML="Pronto.";
- const dz=$("dropZone");dz.onclick=()=>$("multiFile").click();["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add("drag")}));["dragleave","drop"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove("drag")}));dz.addEventListener("drop",e=>importFiles([...e.dataTransfer.files].filter(f=>f.name.toLowerCase().match(/\.(csv|txt)$/))));
- const cfg=window.BipBopSupabase.getConfig();$("supabaseUrl").value=cfg.url||"";$("supabaseKey").value=cfg.key||"";
- const ru=rules();$("targetTacos").value=ru.targetTacos;$("targetMargin").value=ru.targetMargin;
- $("saveSetup").onclick=()=>{window.BipBopSupabase.saveConfig({url:$("supabaseUrl").value.trim(),key:$("supabaseKey").value.trim()});alert("Configurazione salvata");refresh()};
- $("saveRules").onclick=()=>{localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({targetTacos:num($("targetTacos").value),targetMargin:num($("targetMargin").value)}));alert("Regole salvate");render()};
- refresh();
+function asinRows() {
+  const br = state.samples.business_report || [];
+  const tx = state.samples.transactions || [];
+  const map = new Map();
+
+  br.forEach(r => {
+    const asin = pick(r,["ASIN","Parent ASIN","Child ASIN"]) || "N/D";
+    const title = pick(r,["Title","Titolo","Product Name","Nome prodotto"]) || "";
+    const obj = map.get(asin) || { asin, title, sales:0, units:0, sessions:0, cr:0 };
+    obj.sales += n(pick(r,["Ordered Product Sales","Sales","Vendite prodotto ordinate","Vendite"]));
+    obj.units += n(pick(r,["Units Ordered","Unità ordinate","Units","Quantità"]));
+    obj.sessions += n(pick(r,["Sessions","Sessioni"]));
+    obj.cr = Math.max(obj.cr, n(pick(r,["Unit Session Percentage","Conversion Rate","Tasso conversione"])));
+    map.set(asin,obj);
+  });
+  tx.forEach(r => {
+    const details = pick(r,["Dettagli prodotto","Product Details","Title"]) || "";
+    const m = String(details).match(/B0[A-Z0-9]{8}/);
+    const asin = m ? m[0] : "N/D";
+    const obj = map.get(asin) || { asin, title:details, sales:0, units:0, sessions:0, cr:0 };
+    obj.sales += Math.max(n(pick(r,["Totale (EUR)","Total (EUR)","Totale"])), 0);
+    map.set(asin,obj);
+  });
+  return Array.from(map.values()).sort((a,b) => b.sales - a.sales).slice(0,50);
 }
-if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+
+async function refresh() {
+  try {
+    const cfg = window.BipBopDB.config();
+    el("cloudBadge").textContent = cfg.url && cfg.key ? "Cloud configurato" : "Cloud non collegato";
+    el("cloudBadge").className = "badge " + (cfg.url && cfg.key ? "ok" : "bad");
+
+    if (!cfg.url || !cfg.key) {
+      render();
+      return;
+    }
+
+    state.log = await window.BipBopDB.listLog();
+    state.counts = {};
+    state.samples = {};
+    state.latest = {};
+    for (const r of REPORTS) {
+      state.counts[r.type] = await window.BipBopDB.countType(r.type);
+      if (state.counts[r.type] > 0) state.samples[r.type] = await window.BipBopDB.sample(r.type);
+    }
+    state.log.forEach(r => { if (!state.latest[r.report_type]) state.latest[r.report_type] = r; });
+    render();
+  } catch (err) {
+    state.errors.push(String(err.message || err));
+    render();
+  }
+}
+
+function render() {
+  const c = calc();
+  const imported = REPORTS.filter(r => (state.counts[r.type] || 0) > 0).length;
+  const totalRows = Object.values(state.counts).reduce((a,b) => a + (b || 0), 0);
+  const recs = recommendations(c);
+
+  el("dashboardTitle").textContent = imported ? imported + " report importati" : "Centro di comando pronto";
+  el("dashboardSub").textContent = imported ? "Dati disponibili per le prime analisi." : "Configura Supabase, poi importa i report Amazon.";
+
+  el("kpis").innerHTML = [
+    ["Report", imported + " / " + REPORTS.length],
+    ["Righe", totalRows],
+    ["Vendite", c.sales ? euro(c.sales) : "—"],
+    ["Profitto", c.sales ? euro(c.profit) : "—"],
+    ["Ads", c.ads ? euro(c.ads) : "—"],
+    ["TACOS", pct(c.tacos)],
+    ["ROAS", Number.isFinite(c.roas) ? c.roas.toFixed(2) : "—"],
+    ["CTR", pct(c.ctr)]
+  ].map(x => '<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("");
+
+  el("requiredBox").innerHTML = REPORTS.map(r => {
+    const ok = (state.counts[r.type] || 0) > 0;
+    return '<div class="action"><b>'+r.name+'</b><br>' + (ok ? '<span class="status-ok">✓ importato</span> — '+state.counts[r.type]+' righe' : '<span class="'+(r.need==="obbligatorio"?'status-missing':'status-warn')+'">'+(r.need==="obbligatorio"?'mancante obbligatorio':'mancante')+'</span>') + '</div>';
+  }).join("");
+
+  el("actionBox").innerHTML = recs.slice(0,6).map(r => '<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("");
+  el("growthBox").innerHTML = '<div class="grid3">' + recs.map(r => '<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("") + '</div>';
+
+  el("statusGrid").innerHTML = REPORTS.map(r => {
+    const ok = (state.counts[r.type] || 0) > 0;
+    const l = state.latest[r.type];
+    return '<div class="import-box '+(ok?'ok':'missing')+'"><h4>'+r.name+'</h4><p><span class="pill">'+r.need+'</span></p><div><b>Stato:</b> '+(ok?'🟢 Importato':'🔴 Mancante')+'</div><div><b>File:</b> '+(l && l.file_name ? l.file_name : '—')+'</div><div><b>Righe:</b> '+(state.counts[r.type] || 0)+'</div><div><b>Colonne:</b> '+(l && Array.isArray(l.headers) ? l.headers.length : '—')+'</div></div>';
+  }).join("");
+
+  el("reportsTable").innerHTML = state.log.length ? '<table><tr><th>Report</th><th>File</th><th>Righe</th><th>Colonne</th><th>Duplicato</th><th>Importato</th></tr>' + state.log.map(r => '<tr><td><span class="pill">'+label(r.report_type)+'</span></td><td>'+r.file_name+'</td><td>'+r.row_count+'</td><td>'+(Array.isArray(r.headers)?r.headers.length:'')+'</td><td>'+(r.is_duplicate?'sì':'no')+'</td><td>'+new Date(r.imported_at).toLocaleString("it-IT")+'</td></tr>').join("") + '</table>' : '<div class="action">Nessun report importato.</div>';
+
+  const rows = asinRows();
+  el("asinBox").innerHTML = rows.length ? '<table><tr><th>ASIN</th><th>Titolo</th><th>Vendite</th><th>Unità</th><th>Sessioni</th><th>Conv.</th></tr>' + rows.map(r => '<tr><td>'+r.asin+'</td><td>'+r.title+'</td><td>'+euro(r.sales)+'</td><td>'+r.units+'</td><td>'+r.sessions+'</td><td>'+(r.cr?r.cr+'%':'—')+'</td></tr>').join("") + '</table>' : '<div class="action">Importa Business Report o Transazioni.</div>';
+
+  el("adsBox").innerHTML = '<div class="grid3"><div class="kpi"><small>Spesa Ads</small><strong>'+ (c.ads?euro(c.ads):"—") +'</strong></div><div class="kpi"><small>ACOS</small><strong>'+pct(c.acos)+'</strong></div><div class="kpi"><small>ROAS</small><strong>'+(Number.isFinite(c.roas)?c.roas.toFixed(2):"—")+'</strong></div><div class="kpi"><small>CPC</small><strong>'+(Number.isFinite(c.cpc)?euro(c.cpc):"—")+'</strong></div><div class="kpi"><small>CTR</small><strong>'+pct(c.ctr)+'</strong></div></div>';
+
+  el("profitBox").innerHTML = '<div class="grid3"><div class="kpi"><small>Vendite</small><strong>'+(c.sales?euro(c.sales):"—")+'</strong></div><div class="kpi"><small>Commissioni</small><strong>'+(c.amazonFees?euro(c.amazonFees):"—")+'</strong></div><div class="kpi"><small>Ads</small><strong>'+(c.ads?euro(c.ads):"—")+'</strong></div><div class="kpi"><small>Costi BipBop</small><strong>'+(c.costsTotal?euro(c.costsTotal):"—")+'</strong></div><div class="kpi"><small>Profitto stimato</small><strong>'+(c.sales?euro(c.profit):"—")+'</strong></div><div class="kpi"><small>Margine</small><strong>'+(c.sales?pct(c.profit/c.sales*100):"—")+'</strong></div></div>';
+
+  el("alertsBox").innerHTML = recs.map(r => '<div class="action '+r[0]+'">🚨 <b>'+r[1]+'</b><br>'+r[2]+'</div>').join("");
+
+  el("diagnosticBox").innerHTML = '<div class="action"><b>SOLO TABELLE BB40 STABLE</b><br>Import log: '+state.log.length+'<br>Raw rows: '+totalRows+'<br>Report configurati: '+REPORTS.length+'<br>Storage: '+window.BIPBOP_CONFIG.storageKey+'</div>';
+  el("errorBox").textContent = state.errors.length ? state.errors.join("\\n") : "Nessun errore.";
+}
+
+function show(view) {
+  document.querySelectorAll(".nav").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+  document.querySelectorAll(".view").forEach(s => s.classList.toggle("active", s.id === view));
+  const active = document.querySelector('.nav[data-view="'+view+'"]');
+  if (active) el("pageTitle").textContent = active.textContent.replace(/[📊📥📁🚀📦📈💰🚨🧪⚙️]/g,"").trim();
+}
+
+function bind() {
+  document.querySelectorAll(".nav").forEach(b => b.addEventListener("click", () => show(b.dataset.view)));
+  el("refreshBtn").addEventListener("click", refresh);
+  el("selectFilesBtn").addEventListener("click", () => el("multiFile").click());
+  el("multiFile").addEventListener("change", e => importFiles(Array.from(e.target.files)));
+  el("clearImportLogBtn").addEventListener("click", () => el("importLog").textContent = "Pronto.");
+
+  const dz = el("dropZone");
+  dz.addEventListener("click", () => el("multiFile").click());
+  ["dragenter","dragover"].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add("drag"); }));
+  ["dragleave","drop"].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove("drag"); }));
+  dz.addEventListener("drop", e => {
+    const files = Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().match(/\\.(csv|txt)$/));
+    importFiles(files);
+  });
+
+  const cfg = window.BipBopDB.config();
+  el("supabaseUrl").value = cfg.url || "";
+  el("supabaseKey").value = cfg.key || "";
+  el("saveSetup").addEventListener("click", () => {
+    window.BipBopDB.saveConfig({ url: el("supabaseUrl").value.trim(), key: el("supabaseKey").value.trim() });
+    alert("Configurazione salvata");
+    refresh();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  bind();
+  render();
+  refresh();
+});
 })();
