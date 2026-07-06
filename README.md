@@ -1,7 +1,21 @@
-# BipBop Enterprise 5.1 Importer Finale
+# BipBop Enterprise 6.0 Scalable Importer
 
-Patch completa sopra 5.0 Final.
+Questa versione risolve il problema dei file simili.
 
-Corregge riconoscimento report Amazon Ads in italiano, compreso Sponsored Brands Ad Groups.
+## Regola importante
 
-Non cambia database: usa ancora tabelle bb50_*.
+- Puoi importare più file dello stesso tipo, ad esempio 2 Sponsored Brands.
+- I file diversi vengono sommati nei dati attivi.
+- Lo stesso file identico viene riconosciuto come duplicato e NON viene sommato.
+
+## Tabelle
+
+Usa solo:
+- bb60_import_log
+- bb60_raw_reports
+- bb60_settings
+
+## Supabase
+
+Esegui una volta:
+sql/schema_enterprise_6_0_scalable_importer.sql

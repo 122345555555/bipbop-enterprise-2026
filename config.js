@@ -1,1 +1,5 @@
-window.BIPBOP_CONFIG={version:"BipBop Enterprise 5.0 Final",storageKey:"bb50_config",rulesKey:"bb50_rules"};
+window.BIPBOP_CONFIG = {
+  version: "BipBop Enterprise 6.0 Scalable Importer",
+  storageKey: "bb60_config",
+  rulesKey: "bb60_rules"
+};
