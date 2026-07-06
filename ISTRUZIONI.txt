@@ -1,6 +1,22 @@
-ISTRUZIONI
+FIX Sponsored Brands italiano
 
-1. Carica tutti i file su GitHub: bipbop-enterprise-2026
-2. Esegui in Supabase: sql/schema_enterprise_5_0_final.sql
-3. Vai in Setup e inserisci Supabase URL e Publishable Key
-4. In Diagnostica deve comparire: SOLO TABELLE BB50 FINAL
+Problema:
+Il file Sponsored_Brands_ad_groups_06_07_2026.csv non veniva riconosciuto perché ha intestazioni italiane:
+- Nome del gruppo di annunci
+- Impressioni
+- Clic
+- Costo totale
+- Vendite
+- Costo pubblicitario delle vendite (ACOS)
+- ROAS
+
+Cosa fare:
+1. Su GitHub apri il repository bipbop-enterprise-2026.
+2. Sostituisci solo il file app.js con quello di questa patch.
+3. Commit consigliato:
+   Fix riconoscimento Sponsored Brands italiano
+4. Attendi il deploy Vercel.
+5. Riapri il sito con Cmd+Shift+R.
+6. Importa di nuovo il CSV Sponsored Brands.
+
+Non devi eseguire nessuno script SQL.
