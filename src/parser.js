@@ -104,7 +104,7 @@ window.BBParser = {
     if(fn.includes("business report") || fn.includes("report aziendale")) return "business_report";
     if(fn.includes("transaction") || fn.includes("transazioni") || fn.includes("pagamenti")) return "transactions";
     if(fn.includes("invoice") || fn.includes("fattura") || fn.includes("statement")) return "ad_invoices";
-    if(fn.includes("inventory") || fn.includes("inventario")) return "inventory";
+    if(fn.includes("inventory") || fn.includes("inventario") || fn.includes("tutte le offerte") || fn.includes("all listings")) return "inventory";
     if(fn.includes("order") || fn.includes("ordini")) return "orders";
 
     if(this.hasAny(h,["volume delle query di ricerca","impressioni: numero totale","clic: % quota del marchio","acquisti: % quota del marchio","search query volume"])) return "brand_analytics";
@@ -115,6 +115,7 @@ window.BBParser = {
     if(this.hasAny(h,["invoice","fattura","paid amount","importo pagato"]) && this.hasAny(h,["advertising","pubblicità","ads","statement","account"])) return "ad_invoices";
     if(this.hasAny(h,["order-id","purchase-date","quantity-purchased","item-price"])) return "orders";
     if(this.hasAny(h,["fulfillable","available","inventory","afn","mfn"]) && h.includes("sku")) return "inventory";
+    if(this.hasAny(h,["item-name","item-description","listing-id","seller-sku","asin1","product-id","fulfillment-channel","merchant-shipping-group","status"]) && this.hasAny(h,["quantity","price","seller-sku"])) return "inventory";
     if(this.hasAny(h,["customer search term","termine di ricerca","search term"])) return "search_terms";
 
     const looksAds = this.hasAny(h,["impressions","impressioni","viewable impressions"]) && this.hasAny(h,["clicks","clic","click"]) && this.hasAny(h,["spend","spesa","cost","costo totale","vendite","sales","roas","acos"]);

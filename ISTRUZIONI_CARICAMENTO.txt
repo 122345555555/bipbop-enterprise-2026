@@ -1,42 +1,33 @@
-COME CARICARE QUESTI FILE SU GITHUB
+HOTFIX CACHE + REPORT DI TUTTE LE OFFERTE
 
-Repository:
-122345555555/bipbop-enterprise-2026
-
-Sostituisci questi file nel repository GitHub:
+Sostituisci questi 2 file nel repository GitHub:
 
 1. index.html
    Va nella cartella principale del repo.
 
-2. style.css
-   Va nella cartella principale del repo.
-
-3. src/app.js
+2. src/parser.js
    Va nella cartella src.
 
-4. src/parser.js
-   Va nella cartella src.
+Perche serve anche index.html:
+- il browser/Vercel potrebbe usare ancora src/parser.js?v=1.0
+- questo file cambia gli script a ?v=1.1
+- cosi l'app e costretta a scaricare il parser aggiornato
 
-5. src/render.js
-   Va nella cartella src.
+Cosa risolve:
+- riconosce "Report di tutte le offerte"
+- lo mette in Inventario
+- riconosce anche "All Listings"
 
-6. src/storage.js
-   Va nella cartella src.
+Dopo il commit GitHub:
+1. aspetta il deploy Vercel
+2. apri l'app
+3. fai Cmd + Shift + R
+4. vai su Import Amazon
+5. ricarica il report
 
-7. src/utils.js
-   Va nella cartella src.
+Destinazione corretta:
+Inventario
 
-Dopo averli caricati:
-- fai commit su GitHub
-- aspetta il deploy Vercel
-- apri l'app
-- fai Cmd + Shift + R
-
-Cosa cambia:
-- compare il menu "Destinazione import" in Import Amazon
-- puoi scegliere manualmente dove importare un report
-- in Archivio compare "Elimina" per rimuovere report caricati male
-- il parser distingue meglio Brand Analytics, Search Terms e report Ads
-
-Nota:
-Il file "Performance_delle_query_di_ricerca_Visualizzazione_marchio" deve stare in Brand Analytics.
+Se ancora non va:
+- in Import Amazon scegli manualmente "Inventario" nel menu Destinazione import
+- poi ricarica il file
