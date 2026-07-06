@@ -1,1 +1,1 @@
-window.BIPBOP_CONFIG={version:"BipBop Enterprise 2026 Definitiva",storageKey:"bb_enterprise_2026_definitiva"};
+window.BIPBOP_CONFIG={version:"BipBop Enterprise 2.0",storageKey:"bb20_config"};

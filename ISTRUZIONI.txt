@@ -1,21 +1,8 @@
 ISTRUZIONI
 
-1. Carica tutti i file nel repository:
-   bipbop-enterprise-2026
-
-2. Vercel pubblicherà automaticamente.
-
-3. In Supabase esegui:
-   sql/schema_enterprise_definitiva.sql
-
-4. Apri il sito.
-
-5. Vai in Setup e reinserisci:
-   - Project URL Supabase
-   - Publishable key
-
-6. Vai in Diagnostica.
-   Deve comparire:
-   SOLO TABELLE DEFINITIVE
-
-7. Poi importa i report Amazon da Import Amazon.
+1. Carica tutto su GitHub: bipbop-enterprise-2026
+2. Esegui in Supabase: sql/schema_enterprise_2_0.sql
+3. Apri il sito
+4. Vai in Setup e reinserisci Supabase URL e Publishable key
+5. Vai in Diagnostica: deve comparire SOLO TABELLE BB20 ENTERPRISE
+6. Vai in Import automatico e trascina i CSV Amazon

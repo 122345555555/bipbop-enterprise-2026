@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop Enterprise 2026 Definitiva</title>
+  <title>BipBop Enterprise 2.0</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -11,12 +11,11 @@
   <aside>
     <div class="brand">
       <div class="logo">B</div>
-      <div><b>BipBop</b><small>Enterprise 2026 Definitiva</small></div>
+      <div><b>BipBop</b><small>Enterprise 2.0</small></div>
     </div>
-
     <button class="nav active" data-view="dashboard">📊 Dashboard</button>
-    <button class="nav" data-view="import">📥 Import Amazon</button>
-    <button class="nav" data-view="reports">📁 Report caricati</button>
+    <button class="nav" data-view="import">📥 Import automatico</button>
+    <button class="nav" data-view="reports">📁 Archivio report</button>
     <button class="nav" data-view="asin">📦 ASIN</button>
     <button class="nav" data-view="ads">📈 Ads</button>
     <button class="nav" data-view="profit">💰 Profitto</button>
@@ -29,7 +28,7 @@
     <header>
       <div>
         <h1 id="pageTitle">Dashboard</h1>
-        <p>Versione definitiva: dati Amazon importati, tracciabili e separati per report.</p>
+        <p>Release 2.0: report Amazon importati automaticamente e calcoli separati per fonte.</p>
       </div>
       <div>
         <span id="cloudBadge" class="badge bad">Cloud non collegato</span>
@@ -39,83 +38,50 @@
 
     <section id="dashboard" class="view active">
       <div class="hero">
-        <div class="circle">€</div>
+        <div class="circle">2.0</div>
         <div>
-          <h2 id="headline">Dashboard pronta</h2>
-          <p id="subtitle">Importa i report Amazon. I calcoli vengono mostrati solo quando i dati sono disponibili.</p>
+          <h2 id="headline">Centro di comando pronto</h2>
+          <p id="subtitle">Trascina i report Amazon. Il sistema li riconosce, li archivia e calcola solo ciò che può verificare.</p>
         </div>
       </div>
-
       <div id="kpis" class="kpis"></div>
-
       <div class="grid2">
-        <div class="card">
-          <h3>Stato report principali</h3>
-          <div id="requiredBox"></div>
-        </div>
-        <div class="card">
-          <h3>Azioni consigliate</h3>
-          <div id="actionBox"></div>
-        </div>
+        <div class="card"><h3>Completezza dati</h3><div id="requiredBox"></div></div>
+        <div class="card"><h3>Azioni consigliate</h3><div id="actionBox"></div></div>
       </div>
     </section>
 
     <section id="import" class="view">
       <div class="card">
-        <h3>Import Amazon guidato</h3>
-        <p class="hint">
-          Carica un report alla volta. Ogni nuovo import sostituisce il report precedente dello stesso tipo,
-          ma conserva lo storico dell’importazione.
-        </p>
-        <div class="import-grid" id="importGrid"></div>
+        <h3>Import automatico</h3>
+        <p class="hint">Trascina qui uno o più CSV Amazon. Il sistema riconosce il tipo report e sostituisce il report attivo dello stesso tipo.</p>
+        <div id="dropZone" class="dropzone">
+          <b>Trascina qui i CSV</b>
+          <span>oppure clicca per selezionare più file</span>
+          <input id="multiFile" type="file" accept=".csv" multiple hidden>
+        </div>
+        <div class="toolbar">
+          <button id="selectFilesBtn">Seleziona file</button>
+          <button id="clearImportLogBtn" class="secondaryBtn">Pulisci log a video</button>
+        </div>
         <div id="importLog" class="log">Pronto.</div>
       </div>
-    </section>
 
-    <section id="reports" class="view">
       <div class="card">
-        <h3>Report caricati</h3>
-        <div id="reportsTable"></div>
+        <h3>Stato report</h3>
+        <div id="importStatusGrid" class="import-grid"></div>
       </div>
     </section>
 
-    <section id="asin" class="view">
-      <div class="card">
-        <h3>ASIN</h3>
-        <div id="asinBox" class="action">Disponibile dopo l’import di Business Report o Transazioni.</div>
-      </div>
-    </section>
-
-    <section id="ads" class="view">
-      <div class="card">
-        <h3>Analisi Ads</h3>
-        <div id="adsBox"></div>
-      </div>
-    </section>
-
-    <section id="profit" class="view">
-      <div class="card">
-        <h3>Profitto</h3>
-        <div id="profitBox"></div>
-      </div>
-    </section>
-
-    <section id="alerts" class="view">
-      <div class="card">
-        <h3>Avvisi automatici</h3>
-        <div id="alertsBox"></div>
-      </div>
-    </section>
+    <section id="reports" class="view"><div class="card"><h3>Archivio report</h3><div id="reportsTable"></div></div></section>
+    <section id="asin" class="view"><div class="card"><h3>ASIN</h3><div id="asinBox"></div></div></section>
+    <section id="ads" class="view"><div class="card"><h3>Ads</h3><div id="adsBox"></div></div></section>
+    <section id="profit" class="view"><div class="card"><h3>Profitto reale</h3><div id="profitBox"></div></div></section>
+    <section id="alerts" class="view"><div class="card"><h3>Avvisi automatici</h3><div id="alertsBox"></div></div></section>
 
     <section id="diagnostic" class="view">
-      <div class="card">
-        <h3>Diagnostica definitiva</h3>
-        <div id="diagnosticBox"></div>
-      </div>
-      <div class="card">
-        <h3>Errori</h3>
-        <pre id="errorBox">Nessun errore.</pre>
-      </div>
+      <div class="card"><h3>Diagnostica 2.0</h3><div id="diagnosticBox"></div></div>
+      <div class="card"><h3>Errori</h3><pre id="errorBox">Nessun errore.</pre></div>
     </section>
 
     <section id="setup" class="view">
@@ -131,8 +97,8 @@
     </section>
   </main>
 
-  <script src="config.js?v=definitiva"></script>
-  <script src="supabase.js?v=definitiva"></script>
-  <script src="app.js?v=definitiva"></script>
+  <script src="config.js?v=2.0"></script>
+  <script src="supabase.js?v=2.0"></script>
+  <script src="app.js?v=2.0"></script>
 </body>
 </html>
