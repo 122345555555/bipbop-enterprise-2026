@@ -1,28 +1,22 @@
-AGGIUNTA VISTA INVENTARIO / CATALOGO OFFERTE
+HOTFIX INVENTARIO PULITO
 
 Sostituisci questi file nel repository GitHub:
 
 1. index.html
-   Va nella cartella principale del repo.
-
-2. src/app.js
-   Va nella cartella src.
-
-3. src/analytics.js
-   Va nella cartella src.
-
-4. src/parser.js
-   Va nella cartella src.
-
-5. src/render.js
-   Va nella cartella src.
+2. style.css
+3. src/app.js
+4. src/analytics.js
+5. src/parser.js
+6. src/render.js
+7. src/utils.js
 
 Cosa cambia:
-- aggiunge la voce "Inventario" nel menu laterale
-- crea una schermata "Inventario / Catalogo offerte"
+- aggiunge la sezione "Inventario" nel menu laterale
 - mostra SKU, ASIN, prodotto, prezzo, quantita, stato e canale
-- calcola SKU attivi, quantita totale e valore listino
-- mantiene il riconoscimento del "Report di tutte le offerte"
+- tronca i nomi prodotto troppo lunghi
+- evita che la descrizione enorme rompa la tabella
+- compatta la tabella inventario
+- aggiorna la cache degli script a v1.2
 
 Dopo il commit GitHub:
 1. aspetta il deploy Vercel
@@ -30,4 +24,4 @@ Dopo il commit GitHub:
 3. fai Cmd + Shift + R
 4. vai su Inventario
 
-Il report "Report di tutte le offerte" alimenta questa nuova schermata.
+Il report "Report di tutte le offerte" alimenta questa schermata.

@@ -21,6 +21,10 @@ window.BBUtils = {
       "'":"&#39;"
     }[ch]));
   },
+  short(value,max=120){
+    const s=String(value ?? "").replace(/\s+/g," ").trim();
+    return s.length>max ? s.slice(0,max-1).trim()+"…" : s;
+  },
   pick(row,names){
     const keys=Object.keys(row||{});
     for(const name of names){

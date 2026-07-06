@@ -52,7 +52,7 @@ window.BBRender = {
         ["SKU attivi",ir.length],
         ["Quantità totale",ir.reduce((a,r)=>a+(r.quantity||0),0)],
         ["Valore listino",BBUtils.euro(ir.reduce((a,r)=>a+((r.price||0)*(r.quantity||0)),0))]
-      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><table><tr><th>SKU</th><th>ASIN</th><th>Prodotto</th><th>Prezzo</th><th>Quantità</th><th>Stato</th><th>Canale</th></tr>'+ir.map(r=>'<tr><td>'+h(r.sku)+'</td><td>'+h(r.asin)+'</td><td>'+h(r.title)+'</td><td>'+h(BBUtils.euro(r.price))+'</td><td>'+h(r.quantity)+'</td><td>'+h(r.status)+'</td><td>'+h(r.channel)+'</td></tr>').join("")+'</table>':'<div class="action">Importa il Report di tutte le offerte per vedere SKU, ASIN, prezzo, quantità e stato.</div>';
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><table class="compact-table"><tr><th>SKU</th><th>ASIN</th><th>Prodotto</th><th>Prezzo</th><th>Quantità</th><th>Stato</th><th>Canale</th></tr>'+ir.map(r=>'<tr><td>'+h(r.sku)+'</td><td>'+h(r.asin)+'</td><td class="product-cell">'+h(r.title)+'</td><td>'+h(BBUtils.euro(r.price))+'</td><td>'+h(r.quantity)+'</td><td>'+h(r.status)+'</td><td>'+h(r.channel)+'</td></tr>').join("")+'</table>':'<div class="action">Importa il Report di tutte le offerte per vedere SKU, ASIN, prezzo, quantità e stato.</div>';
     }
 
     const kr=BBAnalytics.keywordRows(s.samples);
