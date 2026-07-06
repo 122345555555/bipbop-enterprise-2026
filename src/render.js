@@ -45,6 +45,16 @@ window.BBRender = {
     const ar=BBAnalytics.asinRows(s.samples);
     BBUtils.el("asinBox").innerHTML=ar.length?'<table><tr><th>ASIN</th><th>Titolo</th><th>Vendite</th><th>Unità</th><th>Sessioni</th><th>Conv.</th></tr>'+ar.map(r=>'<tr><td>'+h(r.asin)+'</td><td>'+h(r.title)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(r.sessions)+'</td><td>'+h(r.cr?r.cr+"%":"—")+'</td></tr>').join("")+'</table>':'<div class="action">Importa Business Report o Transazioni.</div>';
 
+    const ir=BBAnalytics.inventoryRows ? BBAnalytics.inventoryRows(s.samples) : [];
+    const invEl=BBUtils.el("inventoryBox");
+    if(invEl){
+      invEl.innerHTML=ir.length?'<div class="grid3">'+[
+        ["SKU attivi",ir.length],
+        ["Quantità totale",ir.reduce((a,r)=>a+(r.quantity||0),0)],
+        ["Valore listino",BBUtils.euro(ir.reduce((a,r)=>a+((r.price||0)*(r.quantity||0)),0))]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><table><tr><th>SKU</th><th>ASIN</th><th>Prodotto</th><th>Prezzo</th><th>Quantità</th><th>Stato</th><th>Canale</th></tr>'+ir.map(r=>'<tr><td>'+h(r.sku)+'</td><td>'+h(r.asin)+'</td><td>'+h(r.title)+'</td><td>'+h(BBUtils.euro(r.price))+'</td><td>'+h(r.quantity)+'</td><td>'+h(r.status)+'</td><td>'+h(r.channel)+'</td></tr>').join("")+'</table>':'<div class="action">Importa il Report di tutte le offerte per vedere SKU, ASIN, prezzo, quantità e stato.</div>';
+    }
+
     const kr=BBAnalytics.keywordRows(s.samples);
     BBUtils.el("keywordBox").innerHTML=kr.length?'<table><tr><th>Keyword / Search Term</th><th>Spesa</th><th>Vendite</th><th>Click</th><th>ACOS</th><th>ROAS</th></tr>'+kr.map(r=>'<tr><td>'+h(r.term)+'</td><td>'+h(BBUtils.euro(r.spend))+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.clicks)+'</td><td>'+h(BBUtils.pct(r.acos))+'</td><td>'+h(Number.isFinite(r.roas)?r.roas.toFixed(2):"—")+'</td></tr>').join("")+'</table>':'<div class="action">Importa Search Terms per vedere le keyword.</div>';
 

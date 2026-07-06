@@ -1,33 +1,33 @@
-HOTFIX CACHE + REPORT DI TUTTE LE OFFERTE
+AGGIUNTA VISTA INVENTARIO / CATALOGO OFFERTE
 
-Sostituisci questi 2 file nel repository GitHub:
+Sostituisci questi file nel repository GitHub:
 
 1. index.html
    Va nella cartella principale del repo.
 
-2. src/parser.js
+2. src/app.js
    Va nella cartella src.
 
-Perche serve anche index.html:
-- il browser/Vercel potrebbe usare ancora src/parser.js?v=1.0
-- questo file cambia gli script a ?v=1.1
-- cosi l'app e costretta a scaricare il parser aggiornato
+3. src/analytics.js
+   Va nella cartella src.
 
-Cosa risolve:
-- riconosce "Report di tutte le offerte"
-- lo mette in Inventario
-- riconosce anche "All Listings"
+4. src/parser.js
+   Va nella cartella src.
+
+5. src/render.js
+   Va nella cartella src.
+
+Cosa cambia:
+- aggiunge la voce "Inventario" nel menu laterale
+- crea una schermata "Inventario / Catalogo offerte"
+- mostra SKU, ASIN, prodotto, prezzo, quantita, stato e canale
+- calcola SKU attivi, quantita totale e valore listino
+- mantiene il riconoscimento del "Report di tutte le offerte"
 
 Dopo il commit GitHub:
 1. aspetta il deploy Vercel
 2. apri l'app
 3. fai Cmd + Shift + R
-4. vai su Import Amazon
-5. ricarica il report
+4. vai su Inventario
 
-Destinazione corretta:
-Inventario
-
-Se ancora non va:
-- in Import Amazon scegli manualmente "Inventario" nel menu Destinazione import
-- poi ricarica il file
+Il report "Report di tutte le offerte" alimenta questa nuova schermata.

@@ -90,6 +90,19 @@ window.BBAnalytics = {
     }).filter(x=>x.term).sort((a,b)=>b.spend-a.spend).slice(0,100);
   }
 ,
+  inventoryRows(samples){
+    const rows=samples.inventory||[];
+    return rows.map(r=>{
+      const sku=BBUtils.pick(r,["seller-sku","SKU","sku"])||"";
+      const asin=BBUtils.pick(r,["asin1","ASIN","asin","product-id"])||"";
+      const title=BBUtils.pick(r,["item-name","Title","Titolo","Product Name","Nome prodotto"])||"";
+      const price=BBUtils.num(BBUtils.pick(r,["price","Prezzo","Your Price"]));
+      const quantity=BBUtils.num(BBUtils.pick(r,["quantity","Quantità","available","fulfillable"]));
+      const status=BBUtils.pick(r,["status","Stato"])||"";
+      const channel=BBUtils.pick(r,["fulfillment-channel","Fulfillment Channel","Canale"])||"";
+      return {sku,asin,title,price,quantity,status,channel};
+    }).filter(x=>x.sku||x.asin||x.title).sort((a,b)=>a.title.localeCompare(b.title)).slice(0,500);
+  },
   brandAnalyticsRows(samples){
     const rows=samples.brand_analytics||[];
     return rows.map(r=>{
