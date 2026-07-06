@@ -59,8 +59,13 @@ window.BBRender = {
     ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div><p class="hint">La sezione è AI-ready: i costi interni potranno essere collegati per arrivare al profitto netto reale.</p>';
 
     BBUtils.el("growthBox").innerHTML='<div class="grid3">'+rs.map(r=>'<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("")+'</div>';
+
+    const decisionEl=BBUtils.el("decisionBox");
+    if(decisionEl){
+      decisionEl.innerHTML=rs.map((r,i)=>'<div class="action '+r[0]+'"><b>Priorità '+(i+1)+' — '+r[1]+'</b><br><b>Perché:</b> '+r[2]+'<br><b>Azione consigliata:</b> '+(r[1].includes("Business Report")?"Importa il Business Report per sbloccare analisi ASIN e conversione.":r[1].includes("Transazioni")?"Importa Transazioni per calcolare commissioni e profitto reale.":r[1].includes("Fatture")?"Importa o usa i report Ads per riconciliare la spesa pubblicitaria.":r[1].includes("TACOS")?"Riduci budget sulle campagne meno efficienti o migliora conversione della scheda.":r[1].includes("ACOS")?"Analizza keyword/campagne con spesa alta e vendite basse.":r[1].includes("CTR")?"Testa nuova immagine principale, titolo e creatività Sponsored Brand.":"Procedi con questa priorità prima delle ottimizzazioni secondarie.")+'</div>').join("");
+    }
     BBUtils.el("alertsBox").innerHTML=rs.map(r=>'<div class="action '+r[0]+'">🚨 <b>'+r[1]+'</b><br>'+r[2]+'</div>').join("");
-    BBUtils.el("diagnosticBox").innerHTML='<div class="action"><b>SOLO TABELLE BB70 FINAL</b><br>Report files: '+s.files.length+'<br>Raw rows attive: '+totalRows+'<br>Report configurati: '+BBAnalytics.reportDefs.length+'<br>Storage: '+window.BIPBOP_CONFIG.storageKey+'</div>';
+    BBUtils.el("diagnosticBox").innerHTML='<div class="action"><b>SOLO TABELLE BB100 GROWTH ENGINE</b><br>Report files: '+s.files.length+'<br>Raw rows attive: '+totalRows+'<br>Report configurati: '+BBAnalytics.reportDefs.length+'<br>Storage: '+window.BIPBOP_CONFIG.storageKey+'</div>';
     BBUtils.el("errorBox").textContent=s.errors.length?s.errors.join("\\n"):"Nessun errore.";
   }
 };

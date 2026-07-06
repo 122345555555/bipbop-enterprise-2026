@@ -1,12 +1,14 @@
 ISTRUZIONI
 
-1. Carica tutti i file su GitHub: bipbop-enterprise-2026.
-2. Non serve SQL se hai già installato la 7.0.
+1. Carica tutti i file su GitHub nel repository bipbop-enterprise-2026.
+2. Esegui in Supabase:
+   sql/schema_bipbop_enterprise_2026_v1_0.sql
 3. Attendi il deploy Vercel.
-4. Fai Cmd+Shift+R.
-5. Reimporta:
-   - IT_Performance_delle_query_di_ricerca_Visualizzazione_marchio...
-   - statement 20250706 to 20260706.csv
+4. Apri il sito e fai Cmd+Shift+R.
+5. Vai in Setup e inserisci Supabase URL e Publishable Key.
+6. Vai in Diagnostica: deve comparire SOLO TABELLE BB100 GROWTH ENGINE.
+7. Importa i report Amazon.
 
-Il primo verrà riconosciuto come Brand Analytics.
-Il secondo come Fatture Ads.
+Nota:
+questa versione usa un nuovo spazio dati bb100_.
+I dati delle vecchie release restano in Supabase ma non vengono letti da questa versione.

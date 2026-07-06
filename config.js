@@ -1,5 +1,5 @@
 window.BIPBOP_CONFIG = {
-  version: "BipBop Enterprise 7.1 Smart Parser",
-  storageKey: "bb70_config",
-  rulesKey: "bb70_rules"
+  version: "BipBop Enterprise 2026 v1.0 Growth Engine",
+  storageKey: "bb100_config",
+  rulesKey: "bb100_rules"
 };

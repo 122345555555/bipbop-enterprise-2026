@@ -1,20 +1,38 @@
-# BipBop Enterprise 7.1 Smart Parser
+# BipBop Enterprise 2026 v1.0 Growth Engine
 
-Patch compatibile con 7.0: migliora il parser senza cambiare l'architettura.
+Versione stabile del centro di comando Amazon per BipBop.
 
-## Nuovo supporto
-- Righe introduttive Amazon: `Nota:`, `Marchio=`, metadati Brand Analytics
-- Statement / Fatture Ads con nota iniziale
-- Brand Analytics – Performance query di ricerca
-- Header non sempre alla prima riga
-- Separatore automatico mantenuto: comma, punto e virgola, TAB, pipe
+## Include
+- Amazon Smart Parser
+- Import storico e deduplicato
+- Executive Dashboard
+- Sales Intelligence
+- Advertising Intelligence
+- ASIN Intelligence
+- Keyword Intelligence
+- Brand Analytics
+- Profit Center
+- Growth Plan
+- AI Decision Center
+- Alert Center
+- Diagnostica
+
+## Database definitivo
+Usa tabelle con prefisso:
+
+- bb100_report_files
+- bb100_import_log
+- bb100_raw_rows
+- bb100_ai_decisions
+- bb100_cost_rules
+- bb100_settings
 
 ## Supabase
-Se hai già eseguito lo schema 7.0, non devi rieseguire nulla.
+Esegui:
 
-Se vuoi installare da zero:
-sql/schema_enterprise_7_1_smart_parser.sql
+sql/schema_bipbop_enterprise_2026_v1_0.sql
 
 ## Diagnostica
-La diagnostica resta:
-SOLO TABELLE BB70 FINAL
+Deve comparire:
+
+SOLO TABELLE BB100 GROWTH ENGINE
