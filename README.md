@@ -1,25 +1,28 @@
-# BipBop Enterprise 2.0
+# BipBop Enterprise 3.0 Growth Engine
 
-Release unica Enterprise.
+Release completa per iniziare a usare i dati Amazon per decisioni operative.
 
 ## Include
-
 - Import automatico drag & drop
-- Selezione multipla CSV
-- Riconoscimento tipo report
+- Riconoscimento report Amazon
+- Import multiplo
 - Controllo duplicati
-- Archivio import
-- Dashboard base
-- Pagine ASIN, Ads, Profitto, Avvisi
-- Diagnostica
-- Tabelle definitive bb20_*
+- Periodo da nome file
+- Dashboard
+- Growth Plan
+- ASIN
+- Ads Intelligence
+- Profitto stimato
+- Avvisi automatici
+- Diagnostica BB30
 
 ## Supabase
+Eseguire:
+sql/schema_enterprise_3_0_growth_engine.sql
 
-Esegui una volta:
-
-sql/schema_enterprise_2_0.sql
-
-## Vercel
-
-Carica tutto su GitHub. Vercel pubblica automaticamente.
+## Uso
+1. Carica tutti i file su GitHub.
+2. Attendi deploy Vercel.
+3. Esegui lo schema SQL.
+4. Apri il sito, Setup, inserisci URL e Publishable Key.
+5. Trascina i report Amazon in Import automatico.
