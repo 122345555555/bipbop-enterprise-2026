@@ -12,6 +12,15 @@ window.BBUtils = {
     return m ? Number(m[0]) : 0;
   },
   pct(v){ return Number.isFinite(v) ? v.toFixed(1)+"%" : "—"; },
+  html(value){
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
+    }[ch]));
+  },
   pick(row,names){
     const keys=Object.keys(row||{});
     for(const name of names){

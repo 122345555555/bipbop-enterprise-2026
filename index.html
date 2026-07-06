@@ -60,6 +60,21 @@
       <div class="card">
         <h3>Import universale v1.0 <span class="pill green">Smart Parser attivo</span></h3>
         <p class="hint">Trascina insieme CSV, TSV o TXT Amazon. Il parser riconosce separatore, encoding e tipo report. I duplicati non vengono sommati nei dati attivi.</p>
+        <label>Destinazione import</label>
+        <select id="reportTypeOverride">
+          <option value="">Riconoscimento automatico</option>
+          <option value="business_report">Business Report</option>
+          <option value="transactions">Transazioni / Pagamenti</option>
+          <option value="ad_invoices">Fatture Ads</option>
+          <option value="sponsored_products">Sponsored Products</option>
+          <option value="sponsored_brands">Sponsored Brands</option>
+          <option value="sponsored_display">Sponsored Display</option>
+          <option value="search_terms">Search Terms</option>
+          <option value="orders">Report ordini</option>
+          <option value="inventory">Inventario</option>
+          <option value="brand_analytics">Brand Analytics</option>
+        </select>
+        <p class="hint">Se un report finisce nella sezione sbagliata, eliminalo dall'Archivio, scegli qui la sezione corretta e ricaricalo.</p>
         <div id="dropZone" class="dropzone">
           <b>Trascina qui tutti i report Amazon</b>
           <span>CSV, TSV, TXT — UTF-8, UTF-16, ANSI</span>

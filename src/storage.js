@@ -13,7 +13,7 @@ window.BBStorage = {
     const db=this.client();
     if(!db) throw new Error("Supabase non configurato.");
 
-    const dup=await db.from("bb100_report_files").select("id").eq("fingerprint",fingerprint).limit(1);
+    const dup=await db.from("bb100_report_files").select("id").eq("fingerprint",fingerprint).eq("report_type",reportType).limit(1);
     if(dup.error) throw new Error(dup.error.message);
     const isDuplicate=(dup.data||[]).length>0;
 
@@ -75,5 +75,15 @@ window.BBStorage = {
     const r=await db.from("bb100_raw_rows").select("row_data,file_name,source").eq("report_type",type).limit(20000);
     if(r.error) throw new Error(r.error.message);
     return (r.data||[]).map(x=>({...x.row_data,__file_name:x.file_name,__source:x.source}));
+  },
+  async deleteFile(fileId){
+    const db=this.client();
+    if(!db) throw new Error("Supabase non configurato.");
+    const delRows=await db.from("bb100_raw_rows").delete().eq("file_id",fileId);
+    if(delRows.error) throw new Error(delRows.error.message);
+    const delLog=await db.from("bb100_import_log").delete().eq("file_id",fileId);
+    if(delLog.error) throw new Error(delLog.error.message);
+    const delFile=await db.from("bb100_report_files").delete().eq("id",fileId);
+    if(delFile.error) throw new Error(delFile.error.message);
   }
 };

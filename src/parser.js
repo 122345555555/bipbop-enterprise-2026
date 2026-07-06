@@ -97,7 +97,17 @@ window.BBParser = {
     const h=headers.map(x=>BBUtils.low(x)).join(" | ");
     const fn=BBUtils.flat(fileName);
 
-    if(this.hasAny(h,["query di ricerca","cerca punteggio query","volume delle query di ricerca","impressioni: numero totale","clic: % quota del marchio","acquisti: % quota del marchio"])) return "brand_analytics";
+    if(fn.includes("brand analytics") || fn.includes("performance delle query") || fn.includes("performance query") || fn.includes("visualizzazione marchio")) return "brand_analytics";
+    if(fn.includes("sponsored brands") || fn.includes("sponsored brand") || fn.includes("marche sponsorizzate")) return "sponsored_brands";
+    if(fn.includes("sponsored products") || fn.includes("sponsored product") || fn.includes("prodotti sponsorizzati")) return "sponsored_products";
+    if(fn.includes("sponsored display") || fn.includes("display sponsorizzato")) return "sponsored_display";
+    if(fn.includes("business report") || fn.includes("report aziendale")) return "business_report";
+    if(fn.includes("transaction") || fn.includes("transazioni") || fn.includes("pagamenti")) return "transactions";
+    if(fn.includes("invoice") || fn.includes("fattura") || fn.includes("statement")) return "ad_invoices";
+    if(fn.includes("inventory") || fn.includes("inventario")) return "inventory";
+    if(fn.includes("order") || fn.includes("ordini")) return "orders";
+
+    if(this.hasAny(h,["volume delle query di ricerca","impressioni: numero totale","clic: % quota del marchio","acquisti: % quota del marchio","search query volume"])) return "brand_analytics";
 
     if(this.hasAny(h,["paese","tipo di account","nome account","fattura","data di emissione della fattura","importo pagato (convertito)","stato del pagamento"])) return "ad_invoices";
     if(this.hasAny(h,["stato della transazione","tipo di transazione","numero di ordine","commissioni amazon","totale (eur)","transaction type"])) return "transactions";

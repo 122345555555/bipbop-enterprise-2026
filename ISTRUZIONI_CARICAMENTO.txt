@@ -1,0 +1,42 @@
+COME CARICARE QUESTI FILE SU GITHUB
+
+Repository:
+122345555555/bipbop-enterprise-2026
+
+Sostituisci questi file nel repository GitHub:
+
+1. index.html
+   Va nella cartella principale del repo.
+
+2. style.css
+   Va nella cartella principale del repo.
+
+3. src/app.js
+   Va nella cartella src.
+
+4. src/parser.js
+   Va nella cartella src.
+
+5. src/render.js
+   Va nella cartella src.
+
+6. src/storage.js
+   Va nella cartella src.
+
+7. src/utils.js
+   Va nella cartella src.
+
+Dopo averli caricati:
+- fai commit su GitHub
+- aspetta il deploy Vercel
+- apri l'app
+- fai Cmd + Shift + R
+
+Cosa cambia:
+- compare il menu "Destinazione import" in Import Amazon
+- puoi scegliere manualmente dove importare un report
+- in Archivio compare "Elimina" per rimuovere report caricati male
+- il parser distingue meglio Brand Analytics, Search Terms e report Ads
+
+Nota:
+Il file "Performance_delle_query_di_ricerca_Visualizzazione_marchio" deve stare in Brand Analytics.

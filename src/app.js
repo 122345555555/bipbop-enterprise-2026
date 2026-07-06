@@ -13,27 +13,38 @@ function show(view){
 
 async function importFiles(files){
   const lines=[];
+  const forcedType=BBUtils.el("reportTypeOverride")?.value || "";
   for(const file of files){
+    const safeFileName=BBUtils.html(file.name);
     try{
       const buffer=await file.arrayBuffer();
       const text=BBParser.decodeArrayBuffer(buffer);
       const parsed=BBParser.parse(text);
-      const reportType=BBParser.detectReport(parsed.headers,file.name);
+      const detectedType=BBParser.detectReport(parsed.headers,file.name);
+      const reportType=forcedType || detectedType;
       if(reportType==="unknown"){
-        lines.push("⚠️ "+file.name+": tipo report non riconosciuto. Colonne rilevate: "+parsed.headers.length+".");
+        lines.push("⚠️ "+safeFileName+": tipo report non riconosciuto. Colonne rilevate: "+parsed.headers.length+".");
         continue;
       }
       const fingerprint=await BBUtils.sha256(text);
-      const source=BBParser.sourceFrom(reportType,file.name,parsed.headers);
+      const source={
+        ...BBParser.sourceFrom(reportType,file.name,parsed.headers),
+        detected_type:detectedType,
+        forced_type:forcedType || null,
+        header_index:parsed.headerIndex
+      };
       const result=await BBStorage.insertFile(reportType,file.name,parsed.headers,parsed.rows,fingerprint,source,parsed.delimiter);
+      const placement=forcedType
+        ? "forzato in "+BBUtils.html(BBAnalytics.label(reportType))+" (automatico: "+BBUtils.html(BBAnalytics.label(detectedType))+")"
+        : "rilevato come "+BBUtils.html(BBAnalytics.label(reportType));
       if(result.isDuplicate){
-        lines.push("⚠️ "+file.name+": duplicato già presente. Salvato in archivio ma NON sommato.");
+        lines.push("⚠️ "+safeFileName+": duplicato già presente per "+BBUtils.html(BBAnalytics.label(reportType))+". Salvato in archivio ma NON sommato.");
       }else{
-        lines.push("✅ "+file.name+": "+BBAnalytics.label(reportType)+", "+parsed.rows.length+" righe, "+parsed.headers.length+" colonne, separatore "+(parsed.delimiter==="\\t"?"TAB":parsed.delimiter)+".");
+        lines.push("✅ "+safeFileName+": "+placement+", "+parsed.rows.length+" righe, "+parsed.headers.length+" colonne, separatore "+BBUtils.html(parsed.delimiter==="\\t"?"TAB":parsed.delimiter)+".");
       }
     }catch(e){
       state.errors.push(String(e.message||e));
-      lines.push("❌ "+file.name+": "+(e.message||e));
+      lines.push("❌ "+safeFileName+": "+BBUtils.html(e.message||e));
     }
   }
   BBUtils.el("importLog").innerHTML=lines.map(x=>"<div>"+x+"</div>").join("");
@@ -67,6 +78,20 @@ function bind(){
   BBUtils.el("selectFilesBtn").addEventListener("click",()=>BBUtils.el("multiFile").click());
   BBUtils.el("multiFile").addEventListener("change",e=>importFiles(Array.from(e.target.files)));
   BBUtils.el("clearImportLogBtn").addEventListener("click",()=>BBUtils.el("importLog").textContent="Pronto.");
+  BBUtils.el("archiveTable").addEventListener("click",async e=>{
+    const btn=e.target.closest(".deleteFileBtn");
+    if(!btn) return;
+    const fileName=btn.dataset.fileName || "questo file";
+    if(!confirm("Eliminare "+fileName+" dall'archivio e dai dati attivi?")) return;
+    try{
+      await BBStorage.deleteFile(btn.dataset.fileId);
+      BBUtils.el("importLog").innerHTML="<div>✅ "+BBUtils.html(fileName)+": eliminato. Ora puoi ricaricarlo scegliendo la destinazione corretta.</div>";
+      await refresh();
+    }catch(err){
+      state.errors.push(String(err.message||err));
+      BBRender.renderAll();
+    }
+  });
 
   const dz=BBUtils.el("dropZone");
   dz.addEventListener("click",()=>BBUtils.el("multiFile").click());
