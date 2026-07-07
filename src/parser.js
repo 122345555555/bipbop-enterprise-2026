@@ -97,6 +97,8 @@ window.BBParser = {
     const h=headers.map(x=>BBUtils.low(x)).join(" | ");
     const fn=BBUtils.flat(fileName);
 
+    if(this.hasAny(h,["customer search term","termine di ricerca del cliente","termine di ricerca","search term"])) return "search_terms";
+
     if(fn.includes("brand analytics") || fn.includes("performance delle query") || fn.includes("performance query") || fn.includes("visualizzazione marchio")) return "brand_analytics";
     if(fn.includes("sponsored brands") || fn.includes("sponsored brand") || fn.includes("marche sponsorizzate")) return "sponsored_brands";
     if(fn.includes("sponsored products") || fn.includes("sponsored product") || fn.includes("prodotti sponsorizzati")) return "sponsored_products";
@@ -116,8 +118,6 @@ window.BBParser = {
     if(this.hasAny(h,["order-id","purchase-date","quantity-purchased","item-price"])) return "orders";
     if(this.hasAny(h,["fulfillable","available","inventory","afn","mfn"]) && h.includes("sku")) return "inventory";
     if(this.hasAny(h,["item-name","item-description","listing-id","seller-sku","asin1","product-id","fulfillment-channel","merchant-shipping-group","status"]) && this.hasAny(h,["quantity","price","seller-sku"])) return "inventory";
-    if(this.hasAny(h,["customer search term","termine di ricerca","search term"])) return "search_terms";
-
     const looksAds = this.hasAny(h,["impressions","impressioni","viewable impressions"]) && this.hasAny(h,["clicks","clic","click"]) && this.hasAny(h,["spend","spesa","cost","costo totale","vendite","sales","roas","acos"]);
     if(looksAds){
       if(fn.includes("sponsored brands") || fn.includes("sponsored brand") || fn.includes("brands")) return "sponsored_brands";

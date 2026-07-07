@@ -1,0 +1,21 @@
+Aggiornamento BipBop v1.6 - Search Terms Sponsored Brands
+
+Il file:
+Sponsored_Brands_campaign_search_terms_lug_7_2026.csv
+
+e un report Search Terms, anche se arriva da Sponsored Brands.
+
+Risultato del test:
+- tipo report: Search Terms
+- righe dati: 50
+- colonne: 13
+- keyword analizzabili: 48
+
+Cosa cambia:
+- se un file contiene "Termine di ricerca del cliente" viene messo in Search Terms;
+- non viene piu classificato solo come Sponsored Brands a causa del nome file;
+- la sezione Keyword puo usarlo per decidere quali parole spingere, testare o tagliare.
+
+Esempio trovato nel test:
+"adesivi muro bambini cameretta" viene letta come keyword da spingere,
+perche ha vendite e ACOS basso nel file caricato.
