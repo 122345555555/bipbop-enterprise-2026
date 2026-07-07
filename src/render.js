@@ -110,6 +110,14 @@ window.BBRender = {
       watch:"Da monitorare"
     }[decision] || "Da monitorare";
   },
+  asinCell(asin,title){
+    const h=BBUtils.html;
+    return '<div class="asin-cell"><b>'+h(asin||"N/D")+'</b>'+(title?'<span>'+h(title)+'</span>':'')+'</div>';
+  },
+  textCell(main,sub){
+    const h=BBUtils.html;
+    return '<div class="asin-cell"><b>'+h(main||"—")+'</b>'+(sub?'<span>'+h(sub)+'</span>':'')+'</div>';
+  },
   filteredAsinDecisionRows(rows){
     const c=this.asinControls();
     let out=rows.filter(r=>{
@@ -174,7 +182,7 @@ window.BBRender = {
       ["Controlla stock",asinCount("stock")],
       ["Da monitorare",asinCount("watch")],
       ["Profitto ASIN",BBUtils.euro(adr.reduce((a,r)=>a+(r.profit||0),0))]
-    ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Risultati mostrati: '+adf.length+' su '+adr.length+'. Le decisioni combinano ordini, Profit Report e inventario.</p><table class="decision-table"><tr><th>Decisione</th><th>ASIN</th><th>SKU / Titolo</th><th>Azione</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th><th>Stock</th><th>Fonte</th></tr>'+adf.map(r=>'<tr><td><span class="pill decision-'+h(r.decision)+'">'+h(this.asinDecisionLabel(r.decision))+'</span></td><td>'+h(r.asin)+'</td><td>'+h(r.sku||r.title||"")+'</td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td><td>'+h(r.stock===null?"—":r.stock)+'</td><td class="small">'+h(r.source)+'</td></tr>').join("")+'</table>':'<div class="action">Importa Report ordini, Inventario e Profit Report per vedere decisioni ASIN.</div>';
+    ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Risultati mostrati: '+adf.length+' su '+adr.length+'. Le decisioni combinano ordini, Profit Report e inventario.</p><table class="decision-table"><tr><th>Decisione</th><th>ASIN / Prodotto</th><th>SKU</th><th>Azione</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th><th>Stock</th><th>Fonte</th></tr>'+adf.map(r=>'<tr><td><span class="pill decision-'+h(r.decision)+'">'+h(this.asinDecisionLabel(r.decision))+'</span></td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku||"")+'</td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td><td>'+h(r.stock===null?"—":r.stock)+'</td><td class="small">'+h(r.source)+'</td></tr>').join("")+'</table>':'<div class="action">Importa Report ordini, Inventario e Profit Report per vedere decisioni ASIN.</div>';
 
     const ir=BBAnalytics.inventoryRows ? BBAnalytics.inventoryRows(s.samples) : [];
     const invEl=BBUtils.el("inventoryBox");
@@ -222,18 +230,26 @@ window.BBRender = {
     this.syncProfitYears(py);
     const pf=this.filteredProfitRows(pr);
     BBUtils.el("profitBox").innerHTML += py.length?'<h3>Riepilogo per anno</h3><div class="grid3">'+py.map(r=>'<div class="kpi"><small>'+h(r.year)+' — '+h(r.asinCount)+' ASIN/SKU</small><strong>'+h(BBUtils.euro(r.profit))+'</strong><br><span class="small">Vendite '+h(BBUtils.euro(r.sales))+' · Margine '+h(BBUtils.pct(r.margin))+'</span></div>').join("")+'</div>':'';
-    BBUtils.el("profitBox").innerHTML += pr.length?'<h3>Profitto per ASIN</h3><p class="hint">Risultati mostrati: '+pf.length+' su '+pr.length+'.</p><table><tr><th>Anno</th><th>ASIN</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th></tr>'+pf.map(r=>'<tr><td>'+h(r.year)+'</td><td>'+h(r.asin)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td></tr>').join("")+'</table>':'<p class="hint">Carica il Profit Report per vedere profitto e margine per ASIN. I costi interni potranno essere collegati dopo.</p>';
+    BBUtils.el("profitBox").innerHTML += pr.length?'<h3>Profitto per ASIN</h3><p class="hint">Risultati mostrati: '+pf.length+' su '+pr.length+'.</p><table><tr><th>Anno</th><th>ASIN / Prodotto</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th></tr>'+pf.map(r=>'<tr><td>'+h(r.year)+'</td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td></tr>').join("")+'</table>':'<p class="hint">Carica il Profit Report per vedere profitto e margine per ASIN. I costi interni potranno essere collegati dopo.</p>';
 
     BBUtils.el("growthBox").innerHTML='<div class="grid3">'+rs.map(r=>'<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("")+'</div>';
 
     const decisionEl=BBUtils.el("decisionBox");
     if(decisionEl){
       const dr=BBAnalytics.decisionRows ? BBAnalytics.decisionRows(s.samples,s.counts) : [];
+      const asinDecisions=dr.filter(r=>["ASIN","Inventario"].includes(r.area));
+      const keywordDecisions=dr.filter(r=>r.area==="Keyword");
+      const otherDecisions=dr.filter(r=>!["ASIN","Inventario","Keyword"].includes(r.area));
+      const priorityPill=(r,i)=>'<span class="pill decision-'+(r.type==="red"?"fix":(r.type==="yellow"?"stock":"scale"))+'">'+(i+1)+'</span>';
+      const section=(title,subtitle,rows,kind)=>rows.length?'<div class="decision-section"><h3>'+h(title)+'</h3><p class="hint">'+h(subtitle)+'</p><table class="decision-table"><tr><th>Priorità</th><th>Cosa</th><th>Perché</th><th>Azione</th></tr>'+rows.map((r,i)=>'<tr><td>'+priorityPill(r,i)+'</td><td><b>'+h(r.title)+'</b><br>'+(kind==="asin"?this.asinCell(r.item,r.itemTitle):this.textCell(r.item,r.area))+'</td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table></div>':'';
       decisionEl.innerHTML=dr.length?'<div class="grid3">'+[
         ["Priorità critiche",dr.filter(r=>r.type==="red").length],
         ["Da controllare",dr.filter(r=>r.type==="yellow").length],
         ["Opportunità",dr.filter(r=>r.type==="green").length]
-      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><table class="decision-table"><tr><th>Priorità</th><th>Area</th><th>Cosa</th><th>Perché</th><th>Azione</th></tr>'+dr.map((r,i)=>'<tr><td><span class="pill decision-'+(r.type==="red"?"fix":(r.type==="yellow"?"stock":"scale"))+'">'+(i+1)+'</span></td><td>'+h(r.area)+'</td><td><b>'+h(r.title)+'</b><br><span class="small">'+h(r.item)+'</span></td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>':'<div class="action">Importa report per generare decisioni operative.</div>';
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      section("ASIN / Prodotti","Decisioni sui prodotti: perdite, stock, margine e articoli da spingere.",asinDecisions,"asin")+
+      section("Keyword / Search Term","Decisioni sulle parole chiave: dove investire, cosa ottimizzare e cosa tagliare.",keywordDecisions,"keyword")+
+      section("Dati e controllo","Report mancanti o controlli necessari per rendere le decisioni piu precise.",otherDecisions,"other"):'<div class="action">Importa report per generare decisioni operative.</div>';
     }
     BBUtils.el("alertsBox").innerHTML=rs.map(r=>'<div class="action '+r[0]+'">🚨 <b>'+r[1]+'</b><br>'+r[2]+'</div>').join("");
     BBUtils.el("diagnosticBox").innerHTML='<div class="action"><b>SOLO TABELLE BB100 GROWTH ENGINE</b><br>Report files: '+s.files.length+'<br>Raw rows attive: '+totalRows+'<br>Report configurati: '+BBAnalytics.reportDefs.length+'<br>Storage: '+window.BIPBOP_CONFIG.storageKey+'</div>';

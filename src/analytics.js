@@ -120,6 +120,34 @@ window.BBAnalytics = {
     });
     return Array.from(map.values()).sort((a,b)=>b.sales-a.sales).slice(0,100);
   },
+  productTitleMap(samples){
+    const map=new Map();
+    const remember=(asin,title)=>{
+      asin=String(asin||"").trim();
+      title=String(title||"").replace(/\s+/g," ").trim();
+      if(!asin || asin==="N/D" || !title || map.has(asin)) return;
+      map.set(asin,BBUtils.short(title,140));
+    };
+    (samples.inventory||[]).forEach(r=>{
+      remember(
+        BBUtils.pick(r,["asin1","ASIN","asin","product-id"]),
+        BBUtils.pick(r,["item-name","Title","Titolo","Product Name","Nome prodotto"])
+      );
+    });
+    (samples.orders||[]).forEach(r=>{
+      remember(
+        BBUtils.pick(r,["asin","ASIN","product-id","Product ID"]),
+        BBUtils.pick(r,["product-name","Product Name","item-name","Titolo","Title"])
+      );
+    });
+    (samples.business_report||[]).forEach(r=>{
+      remember(
+        BBUtils.pick(r,["ASIN","Parent ASIN","Child ASIN"]),
+        BBUtils.pick(r,["Title","Titolo","Product Name","Nome prodotto"])
+      );
+    });
+    return map;
+  },
   keywordRows(samples){
     const rows=(samples.search_terms||[]).map(r=>({row:r,source:"Search Terms"}));
     const map=new Map();
@@ -224,13 +252,15 @@ window.BBAnalytics = {
 ,
   profitRows(samples){
     const rows=samples.profit_report||[];
+    const titles=this.productTitleMap(samples);
     const map=new Map();
     rows.forEach(r=>{
       const asin=BBUtils.pick(r,["ASIN","asin"])||"N/D";
       const sku=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
       const year=this.rowYear(r);
       const key=[year,asin,sku].join("|");
-      const o=map.get(key)||{year,asin,sku,sales:0,units:0,profit:0,margin:NaN};
+      const o=map.get(key)||{year,asin,sku,title:titles.get(asin)||"",sales:0,units:0,profit:0,margin:NaN};
+      o.title=o.title||titles.get(asin)||"";
       const sales=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
       const units=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
       const profit=BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
@@ -257,7 +287,9 @@ window.BBAnalytics = {
   },
   asinDecisionRows(samples){
     const map=new Map();
+    const titles=this.productTitleMap(samples);
     const ensure=(asin,sku="",title="")=>{
+      title=title||titles.get(asin)||"";
       const key=asin||sku||title||"N/D";
       const o=map.get(key)||{asin:asin||"N/D",sku,title,sales:0,units:0,profit:0,margin:NaN,stock:null,status:"",source:new Set()};
       if(sku && !o.sku) o.sku=sku;
@@ -279,7 +311,7 @@ window.BBAnalytics = {
     (samples.profit_report||[]).forEach(r=>{
       const asin=BBUtils.pick(r,["ASIN","asin"])||"N/D";
       const sku=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
-      const o=ensure(asin,sku,sku);
+      const o=ensure(asin,sku,titles.get(asin)||"");
       o.sales+=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
       o.units+=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
       o.profit+=BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
@@ -321,11 +353,11 @@ window.BBAnalytics = {
     const out=[];
     this.asinDecisionRows(samples).forEach(r=>{
       if(r.decision==="fix"){
-        out.push({area:"ASIN",priority:1,type:"red",title:"Correggi ASIN in perdita",item:r.asin,why:"Profitto "+BBUtils.euro(r.profit)+" su vendite "+BBUtils.euro(r.sales)+".",action:r.action});
+        out.push({area:"ASIN",priority:1,type:"red",title:"Correggi ASIN in perdita",item:r.asin,itemTitle:r.title,why:"Profitto "+BBUtils.euro(r.profit)+" su vendite "+BBUtils.euro(r.sales)+".",action:r.action});
       }else if(r.decision==="stock"){
-        out.push({area:"Inventario",priority:2,type:"yellow",title:"Stock blocca crescita",item:r.asin,why:"ASIN con vendite/profitto ma stock a "+r.stock+".",action:r.action});
+        out.push({area:"Inventario",priority:2,type:"yellow",title:"Stock blocca crescita",item:r.asin,itemTitle:r.title,why:"ASIN con vendite/profitto ma stock a "+r.stock+".",action:r.action});
       }else if(r.decision==="scale"){
-        out.push({area:"ASIN",priority:3,type:"green",title:"Spingi ASIN profittevole",item:r.asin,why:"Profitto "+BBUtils.euro(r.profit)+" e margine "+BBUtils.pct(r.margin)+".",action:r.action});
+        out.push({area:"ASIN",priority:3,type:"green",title:"Spingi ASIN profittevole",item:r.asin,itemTitle:r.title,why:"Profitto "+BBUtils.euro(r.profit)+" e margine "+BBUtils.pct(r.margin)+".",action:r.action});
       }
     });
     this.keywordRows(samples).forEach(r=>{

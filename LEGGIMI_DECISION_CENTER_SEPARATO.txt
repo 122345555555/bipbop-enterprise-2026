@@ -1,0 +1,19 @@
+BipBop Enterprise 2026 - Decision Center separato v2.5
+
+Cosa cambia
+- L'AI Decision Center non mostra piu una lista unica mista.
+- Ora divide le decisioni in sezioni:
+  - ASIN / Prodotti
+  - Keyword / Search Term
+  - Dati e controllo
+
+Perche e utile
+- Le decisioni sugli ASIN riguardano prodotti, margine, stock e profitto.
+- Le decisioni sulle keyword riguardano dove investire, cosa ottimizzare e cosa tagliare.
+- I report mancanti restano separati, cosi non confondono le decisioni operative.
+
+Cosa controllare dopo il deploy
+1. Apri l'app.
+2. Premi Aggiorna dati.
+3. Vai in AI Decision Center.
+4. Controlla che prima ci sia la sezione ASIN / Prodotti e poi Keyword / Search Term.
