@@ -146,7 +146,25 @@
       </div>
     </section>
     <section id="brandanalytics" class="view"><div class="card"><h3>Brand Analytics – Performance query di ricerca</h3><div id="brandAnalyticsBox"></div></div></section>
-    <section id="profit" class="view"><div class="card"><h3>Profit Center</h3><div id="profitBox"></div></div></section>
+    <section id="profit" class="view">
+      <div class="card">
+        <h3>Profit Center</h3>
+        <div class="tool-row profit-tools">
+          <select id="profitYearFilter">
+            <option value="all">Tutti gli anni</option>
+          </select>
+          <select id="profitSort">
+            <option value="sales_desc">Vendite alte prima</option>
+            <option value="profit_desc">Profitto alto prima</option>
+            <option value="profit_asc">Perdite prima</option>
+            <option value="margin_desc">Margine alto prima</option>
+            <option value="margin_asc">Margine basso prima</option>
+          </select>
+          <button id="profitReset" class="secondaryBtn" type="button">Azzera filtri</button>
+        </div>
+        <div id="profitBox"></div>
+      </div>
+    </section>
     <section id="growth" class="view"><div class="card"><h3>Growth Plan operativo</h3><div id="growthBox"></div></div></section>
     <section id="decision" class="view"><div class="card"><h3>AI Decision Center</h3><div id="decisionBox"></div></div></section>
     <section id="alerts" class="view"><div class="card"><h3>Alert Center</h3><div id="alertsBox"></div></div></section>
@@ -178,12 +196,12 @@
     </section>
   </main>
 
-  <script src="config.js?v=2.0"></script>
-  <script src="src/utils.js?v=2.0"></script>
-  <script src="src/parser.js?v=2.0"></script>
-  <script src="src/storage.js?v=2.0"></script>
-  <script src="src/analytics.js?v=2.0"></script>
-  <script src="src/render.js?v=2.0"></script>
-  <script src="src/app.js?v=2.0"></script>
+  <script src="config.js?v=2.1"></script>
+  <script src="src/utils.js?v=2.1"></script>
+  <script src="src/parser.js?v=2.1"></script>
+  <script src="src/storage.js?v=2.1"></script>
+  <script src="src/analytics.js?v=2.1"></script>
+  <script src="src/render.js?v=2.1"></script>
+  <script src="src/app.js?v=2.1"></script>
 </body>
 </html>

@@ -68,6 +68,31 @@ window.BBRender = {
       observe:"Da osservare"
     }[decision] || "Da osservare";
   },
+  profitControls(){
+    const get=id=>BBUtils.el(id);
+    return {
+      year:get("profitYearFilter")?.value || "all",
+      sort:get("profitSort")?.value || "sales_desc"
+    };
+  },
+  syncProfitYears(yearRows){
+    const sel=BBUtils.el("profitYearFilter");
+    if(!sel) return;
+    const current=sel.value || "all";
+    const years=yearRows.map(r=>String(r.year)).filter(Boolean);
+    sel.innerHTML='<option value="all">Tutti gli anni</option>'+years.map(y=>'<option value="'+BBUtils.html(y)+'">'+BBUtils.html(y)+'</option>').join("");
+    sel.value=years.includes(current)?current:"all";
+  },
+  filteredProfitRows(rows){
+    const c=this.profitControls();
+    let out=rows.filter(r=>c.year==="all" || String(r.year)===c.year).slice();
+    if(c.sort==="profit_desc") out.sort((a,b)=>(b.profit||0)-(a.profit||0));
+    else if(c.sort==="profit_asc") out.sort((a,b)=>(a.profit||0)-(b.profit||0));
+    else if(c.sort==="margin_desc") out.sort((a,b)=>(Number.isFinite(b.margin)?b.margin:-999999)-(Number.isFinite(a.margin)?a.margin:-999999));
+    else if(c.sort==="margin_asc") out.sort((a,b)=>(Number.isFinite(a.margin)?a.margin:999999)-(Number.isFinite(b.margin)?b.margin:999999));
+    else out.sort((a,b)=>(b.sales||0)-(a.sales||0));
+    return out;
+  },
   renderAll(){
     const s=this.state;
     const h=BBUtils.html;
@@ -153,7 +178,11 @@ window.BBRender = {
       ["Da Profit Report",c.netProfitReport?BBUtils.euro(c.netProfitReport):"—"],["Ricavi Profit Report",c.salesProfit?BBUtils.euro(c.salesProfit):"—"],["Fee Profit Report",c.amazonFeesProfit?BBUtils.euro(c.amazonFeesProfit):"—"]
     ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>';
     const pr=BBAnalytics.profitRows ? BBAnalytics.profitRows(s.samples) : [];
-    BBUtils.el("profitBox").innerHTML += pr.length?'<h3>Profitto per ASIN</h3><table><tr><th>ASIN</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th></tr>'+pr.map(r=>'<tr><td>'+h(r.asin)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td></tr>').join("")+'</table>':'<p class="hint">Carica il Profit Report per vedere profitto e margine per ASIN. I costi interni potranno essere collegati dopo.</p>';
+    const py=BBAnalytics.profitYearRows ? BBAnalytics.profitYearRows(s.samples) : [];
+    this.syncProfitYears(py);
+    const pf=this.filteredProfitRows(pr);
+    BBUtils.el("profitBox").innerHTML += py.length?'<h3>Riepilogo per anno</h3><div class="grid3">'+py.map(r=>'<div class="kpi"><small>'+h(r.year)+' — '+h(r.asinCount)+' ASIN/SKU</small><strong>'+h(BBUtils.euro(r.profit))+'</strong><br><span class="small">Vendite '+h(BBUtils.euro(r.sales))+' · Margine '+h(BBUtils.pct(r.margin))+'</span></div>').join("")+'</div>':'';
+    BBUtils.el("profitBox").innerHTML += pr.length?'<h3>Profitto per ASIN</h3><p class="hint">Risultati mostrati: '+pf.length+' su '+pr.length+'.</p><table><tr><th>Anno</th><th>ASIN</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th></tr>'+pf.map(r=>'<tr><td>'+h(r.year)+'</td><td>'+h(r.asin)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td></tr>').join("")+'</table>':'<p class="hint">Carica il Profit Report per vedere profitto e margine per ASIN. I costi interni potranno essere collegati dopo.</p>';
 
     BBUtils.el("growthBox").innerHTML='<div class="grid3">'+rs.map(r=>'<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("")+'</div>';
 

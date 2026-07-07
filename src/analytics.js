@@ -13,6 +13,13 @@ window.BBAnalytics = {
     ["profit_report","Profit Report","consigliato"]
   ],
   label(type){ const r=this.reportDefs.find(x=>x[0]===type); return r?r[1]:type; },
+  rowYear(r){
+    const raw=BBUtils.pick(r,["Data di inizio","Start Date","date-start","start-date","Data inizio"])||
+      BBUtils.pick(r,["Data di fine","End Date","date-end","end-date","Data fine"]);
+    const s=String(raw||"");
+    const m=s.match(/(20\d{2})/);
+    return m?m[1]:"Senza anno";
+  },
   calc(samples){
     const br=samples.business_report||[], tx=samples.transactions||[], inv=samples.ad_invoices||[], profitRows=samples.profit_report||[];
     const adsRows=[...(samples.sponsored_products||[]),...(samples.sponsored_brands||[]),...(samples.sponsored_display||[])];
@@ -217,15 +224,36 @@ window.BBAnalytics = {
 ,
   profitRows(samples){
     const rows=samples.profit_report||[];
-    return rows.map(r=>{
+    const map=new Map();
+    rows.forEach(r=>{
       const asin=BBUtils.pick(r,["ASIN","asin"])||"N/D";
       const sku=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
+      const year=this.rowYear(r);
+      const key=[year,asin,sku].join("|");
+      const o=map.get(key)||{year,asin,sku,sales:0,units:0,profit:0,margin:NaN};
       const sales=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
       const units=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
       const profit=BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
-      const margin=sales?profit/sales*100:NaN;
-      return {asin,sku,sales,units,profit,margin};
-    }).filter(r=>r.asin!=="N/D" || r.sales || r.profit).sort((a,b)=>b.sales-a.sales).slice(0,100);
+      o.sales+=sales;
+      o.units+=units;
+      o.profit+=profit;
+      o.margin=o.sales?o.profit/o.sales*100:NaN;
+      map.set(key,o);
+    });
+    return Array.from(map.values()).filter(r=>r.asin!=="N/D" || r.sales || r.profit).sort((a,b)=>b.sales-a.sales).slice(0,300);
+  },
+  profitYearRows(samples){
+    const rows=this.profitRows(samples), map=new Map();
+    rows.forEach(r=>{
+      const o=map.get(r.year)||{year:r.year,sales:0,units:0,profit:0,margin:NaN,asinCount:0};
+      o.sales+=r.sales;
+      o.units+=r.units;
+      o.profit+=r.profit;
+      o.asinCount+=1;
+      o.margin=o.sales?o.profit/o.sales*100:NaN;
+      map.set(r.year,o);
+    });
+    return Array.from(map.values()).sort((a,b)=>String(a.year).localeCompare(String(b.year)));
   }
 
 };

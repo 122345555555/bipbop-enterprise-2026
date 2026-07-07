@@ -1,0 +1,19 @@
+Aggiornamento BipBop v2.1 - Profit Center per anno
+
+Problema:
+I Profit Report 2025 e 2026 venivano sommati insieme, quindi sembravano duplicati.
+
+Cosa cambia:
+- il Profit Center legge l'anno da Data di inizio / Data di fine;
+- aggiunge un filtro anno: Tutti gli anni, 2025, 2026, ecc.;
+- mostra un riepilogo per anno con vendite, profitto, margine e numero ASIN/SKU;
+- aggrega le righe per Anno + ASIN + SKU;
+- aggiunge la colonna Anno nella tabella Profitto per ASIN;
+- puoi ordinare per vendite, profitto, perdite e margine.
+
+Come usarlo:
+1. Carica questo pacchetto su GitHub.
+2. Aspetta Vercel.
+3. Apri l'app e premi Aggiorna dati.
+4. Vai su Profit Center.
+5. Usa il filtro anno per vedere 2025, 2026 o totale.

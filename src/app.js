@@ -119,6 +119,15 @@ function bind(){
     BBUtils.el("keywordSort").value="priority";
     BBRender.renderAll();
   });
+  ["profitYearFilter","profitSort"].forEach(id=>{
+    const el=BBUtils.el(id);
+    if(el) el.addEventListener("change",()=>BBRender.renderAll());
+  });
+  BBUtils.el("profitReset")?.addEventListener("click",()=>{
+    BBUtils.el("profitYearFilter").value="all";
+    BBUtils.el("profitSort").value="sales_desc";
+    BBRender.renderAll();
+  });
 
   const dz=BBUtils.el("dropZone");
   dz.addEventListener("click",()=>BBUtils.el("multiFile").click());
