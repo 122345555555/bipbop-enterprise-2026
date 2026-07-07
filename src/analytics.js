@@ -254,6 +254,68 @@ window.BBAnalytics = {
       map.set(r.year,o);
     });
     return Array.from(map.values()).sort((a,b)=>String(a.year).localeCompare(String(b.year)));
+  },
+  asinDecisionRows(samples){
+    const map=new Map();
+    const ensure=(asin,sku="",title="")=>{
+      const key=asin||sku||title||"N/D";
+      const o=map.get(key)||{asin:asin||"N/D",sku,title,sales:0,units:0,profit:0,margin:NaN,stock:null,status:"",source:new Set()};
+      if(sku && !o.sku) o.sku=sku;
+      if(title && !o.title) o.title=title;
+      map.set(key,o);
+      return o;
+    };
+
+    (samples.orders||[]).forEach(r=>{
+      const asin=BBUtils.pick(r,["asin","ASIN","product-id","Product ID"])||"N/D";
+      const sku=BBUtils.pick(r,["sku","seller-sku","SKU"])||"";
+      const title=BBUtils.pick(r,["product-name","Product Name","item-name","Titolo","Title"])||"";
+      const o=ensure(asin,sku,title);
+      o.sales+=BBUtils.num(BBUtils.pick(r,["item-price","Item Price","Prezzo articolo","Prezzo dell'articolo","product-sales","Product Sales"]));
+      o.units+=BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità","quantity"]));
+      o.source.add("Ordini");
+    });
+
+    (samples.profit_report||[]).forEach(r=>{
+      const asin=BBUtils.pick(r,["ASIN","asin"])||"N/D";
+      const sku=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
+      const o=ensure(asin,sku,sku);
+      o.sales+=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
+      o.units+=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
+      o.profit+=BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
+      o.source.add("Profit Report");
+    });
+
+    (samples.inventory||[]).forEach(r=>{
+      const asin=BBUtils.pick(r,["asin1","ASIN","asin","product-id"])||"N/D";
+      const sku=BBUtils.pick(r,["seller-sku","SKU","sku"])||"";
+      const title=BBUtils.short(BBUtils.pick(r,["item-name","Title","Titolo","Product Name","Nome prodotto"])||"",90);
+      const o=ensure(asin,sku,title);
+      o.stock=BBUtils.num(BBUtils.pick(r,["quantity","Quantità","available","fulfillable"]));
+      o.status=BBUtils.pick(r,["status","Stato"])||"";
+      o.source.add("Inventario");
+    });
+
+    return Array.from(map.values()).map(o=>{
+      o.margin=o.sales?o.profit/o.sales*100:NaN;
+      let decision="watch", action="Monitora";
+      if((o.stock!==null && o.stock<=0) && (o.sales>0 || o.units>0)){
+        decision="stock"; action="Controlla stock prima di spingere";
+      }else if(o.profit<0){
+        decision="fix"; action="Correggi costi/prezzo/ads";
+      }else if(o.sales>=100 && Number.isFinite(o.margin) && o.margin>=40 && (o.stock===null || o.stock>10)){
+        decision="scale"; action="Spingi con keyword e budget";
+      }else if(o.sales>0 && Number.isFinite(o.margin) && o.margin>=25){
+        decision="protect"; action="Proteggi ranking e stock";
+      }else if(o.sales>0 && Number.isFinite(o.margin) && o.margin<25){
+        decision="fix"; action="Migliora margine o prezzo";
+      }
+      o.decision=decision;
+      o.action=action;
+      o.search=[o.asin,o.sku,o.title].join(" ").toLowerCase();
+      o.source=Array.from(o.source).join(", ");
+      return o;
+    }).filter(o=>o.asin!=="N/D" || o.sku || o.sales || o.profit).sort((a,b)=>(b.profit||0)-(a.profit||0)).slice(0,300);
   }
 
 };

@@ -93,6 +93,37 @@ window.BBRender = {
     else out.sort((a,b)=>(b.sales||0)-(a.sales||0));
     return out;
   },
+  asinControls(){
+    const get=id=>BBUtils.el(id);
+    return {
+      q:BBUtils.low(get("asinSearch")?.value || ""),
+      filter:get("asinDecisionFilter")?.value || "all",
+      sort:get("asinSort")?.value || "profit_desc"
+    };
+  },
+  asinDecisionLabel(decision){
+    return {
+      scale:"Da spingere",
+      protect:"Da proteggere",
+      fix:"Da correggere",
+      stock:"Controlla stock",
+      watch:"Da monitorare"
+    }[decision] || "Da monitorare";
+  },
+  filteredAsinDecisionRows(rows){
+    const c=this.asinControls();
+    let out=rows.filter(r=>{
+      if(c.q && !String(r.search||"").includes(c.q)) return false;
+      if(c.filter!=="all" && r.decision!==c.filter) return false;
+      return true;
+    }).slice();
+    if(c.sort==="sales_desc") out.sort((a,b)=>(b.sales||0)-(a.sales||0));
+    else if(c.sort==="profit_asc") out.sort((a,b)=>(a.profit||0)-(b.profit||0));
+    else if(c.sort==="margin_asc") out.sort((a,b)=>(Number.isFinite(a.margin)?a.margin:999999)-(Number.isFinite(b.margin)?b.margin:999999));
+    else if(c.sort==="units_desc") out.sort((a,b)=>(b.units||0)-(a.units||0));
+    else out.sort((a,b)=>(b.profit||0)-(a.profit||0));
+    return out;
+  },
   renderAll(){
     const s=this.state;
     const h=BBUtils.html;
@@ -133,8 +164,17 @@ window.BBRender = {
     const adFiles=s.files.filter(x=>["sponsored_products","sponsored_brands","sponsored_display"].includes(x.report_type)&&!x.is_duplicate);
     BBUtils.el("adsFilesBox").innerHTML=adFiles.length?'<h3>File Ads attivi</h3><table><tr><th>Tipo</th><th>File</th><th>Righe</th></tr>'+adFiles.map(f=>'<tr><td>'+h(BBAnalytics.label(f.report_type))+'</td><td>'+h(f.file_name)+'</td><td>'+h(f.row_count)+'</td></tr>').join("")+'</table>':'';
 
-    const ar=BBAnalytics.asinRows(s.samples);
-    BBUtils.el("asinBox").innerHTML=ar.length?'<table><tr><th>ASIN</th><th>Titolo</th><th>Vendite</th><th>Unità</th><th>Sessioni</th><th>Conv.</th></tr>'+ar.map(r=>'<tr><td>'+h(r.asin)+'</td><td>'+h(r.title)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(r.sessions)+'</td><td>'+h(r.cr?r.cr+"%":"—")+'</td></tr>').join("")+'</table>':'<div class="action">Importa Business Report o Transazioni.</div>';
+    const adr=BBAnalytics.asinDecisionRows ? BBAnalytics.asinDecisionRows(s.samples) : [];
+    const adf=this.filteredAsinDecisionRows(adr);
+    const asinCount=key=>adr.filter(r=>r.decision===key).length;
+    BBUtils.el("asinBox").innerHTML=adr.length?'<div class="grid3">'+[
+      ["Da spingere",asinCount("scale")],
+      ["Da proteggere",asinCount("protect")],
+      ["Da correggere",asinCount("fix")],
+      ["Controlla stock",asinCount("stock")],
+      ["Da monitorare",asinCount("watch")],
+      ["Profitto ASIN",BBUtils.euro(adr.reduce((a,r)=>a+(r.profit||0),0))]
+    ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Risultati mostrati: '+adf.length+' su '+adr.length+'. Le decisioni combinano ordini, Profit Report e inventario.</p><table class="decision-table"><tr><th>Decisione</th><th>ASIN</th><th>SKU / Titolo</th><th>Azione</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th><th>Stock</th><th>Fonte</th></tr>'+adf.map(r=>'<tr><td><span class="pill decision-'+h(r.decision)+'">'+h(this.asinDecisionLabel(r.decision))+'</span></td><td>'+h(r.asin)+'</td><td>'+h(r.sku||r.title||"")+'</td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td><td>'+h(r.stock===null?"—":r.stock)+'</td><td class="small">'+h(r.source)+'</td></tr>').join("")+'</table>':'<div class="action">Importa Report ordini, Inventario e Profit Report per vedere decisioni ASIN.</div>';
 
     const ir=BBAnalytics.inventoryRows ? BBAnalytics.inventoryRows(s.samples) : [];
     const invEl=BBUtils.el("inventoryBox");

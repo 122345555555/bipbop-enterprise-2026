@@ -91,7 +91,31 @@
 
     <section id="sales" class="view"><div class="card"><h3>Sales</h3><div id="salesBox"></div></div></section>
     <section id="advertising" class="view"><div class="card"><h3>Advertising Intelligence</h3><div id="adsBox"></div><div id="adsFilesBox"></div></div></section>
-    <section id="asin" class="view"><div class="card"><h3>ASIN Intelligence</h3><div id="asinBox"></div></div></section>
+    <section id="asin" class="view">
+      <div class="card">
+        <h3>ASIN Intelligence</h3>
+        <div class="tool-row asin-tools">
+          <input id="asinSearch" placeholder="Cerca ASIN o SKU">
+          <select id="asinDecisionFilter">
+            <option value="all">Tutti gli ASIN</option>
+            <option value="scale">Da spingere</option>
+            <option value="protect">Da proteggere</option>
+            <option value="fix">Da correggere</option>
+            <option value="stock">Controlla stock</option>
+            <option value="watch">Da monitorare</option>
+          </select>
+          <select id="asinSort">
+            <option value="profit_desc">Profitto alto prima</option>
+            <option value="sales_desc">Vendite alte prima</option>
+            <option value="profit_asc">Perdite prima</option>
+            <option value="margin_asc">Margine basso prima</option>
+            <option value="units_desc">Unità alte prima</option>
+          </select>
+          <button id="asinReset" class="secondaryBtn" type="button">Azzera filtri</button>
+        </div>
+        <div id="asinBox"></div>
+      </div>
+    </section>
     <section id="inventory" class="view">
       <div class="card">
         <h3>Inventario / Catalogo offerte</h3>
@@ -196,12 +220,12 @@
     </section>
   </main>
 
-  <script src="config.js?v=2.1"></script>
-  <script src="src/utils.js?v=2.1"></script>
-  <script src="src/parser.js?v=2.1"></script>
-  <script src="src/storage.js?v=2.1"></script>
-  <script src="src/analytics.js?v=2.1"></script>
-  <script src="src/render.js?v=2.1"></script>
-  <script src="src/app.js?v=2.1"></script>
+  <script src="config.js?v=2.2"></script>
+  <script src="src/utils.js?v=2.2"></script>
+  <script src="src/parser.js?v=2.2"></script>
+  <script src="src/storage.js?v=2.2"></script>
+  <script src="src/analytics.js?v=2.2"></script>
+  <script src="src/render.js?v=2.2"></script>
+  <script src="src/app.js?v=2.2"></script>
 </body>
 </html>

@@ -128,6 +128,16 @@ function bind(){
     BBUtils.el("profitSort").value="sales_desc";
     BBRender.renderAll();
   });
+  ["asinSearch","asinDecisionFilter","asinSort"].forEach(id=>{
+    const el=BBUtils.el(id);
+    if(el) el.addEventListener(id==="asinSearch"?"input":"change",()=>BBRender.renderAll());
+  });
+  BBUtils.el("asinReset")?.addEventListener("click",()=>{
+    BBUtils.el("asinSearch").value="";
+    BBUtils.el("asinDecisionFilter").value="all";
+    BBUtils.el("asinSort").value="profit_desc";
+    BBRender.renderAll();
+  });
 
   const dz=BBUtils.el("dropZone");
   dz.addEventListener("click",()=>BBUtils.el("multiFile").click());

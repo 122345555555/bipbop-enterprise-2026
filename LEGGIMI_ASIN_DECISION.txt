@@ -1,0 +1,24 @@
+Aggiornamento BipBop v2.2 - ASIN Decision
+
+Cosa cambia:
+- la sezione ASIN non mostra solo vendite e unita;
+- aggiunge decisioni operative per ogni ASIN;
+- usa Report ordini, Profit Report e Inventario insieme;
+- mostra profitto, margine, stock e azione consigliata;
+- aggiunge ricerca per ASIN/SKU;
+- aggiunge filtri:
+  - Da spingere
+  - Da proteggere
+  - Da correggere
+  - Controlla stock
+  - Da monitorare
+- aggiunge ordinamento per profitto, vendite, perdite, margine e unita.
+
+Regole iniziali:
+- se vende, ha margine buono e stock sufficiente: Da spingere;
+- se vende ma ha profitto negativo: Da correggere;
+- se vende ma lo stock e zero: Controlla stock;
+- se vende con margine discreto: Da proteggere.
+
+Dopo il deploy:
+Apri l'app, premi Aggiorna dati e vai nella sezione ASIN.
