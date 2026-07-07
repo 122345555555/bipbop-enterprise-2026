@@ -111,6 +111,7 @@ window.BBParser = {
 
     if(this.hasAny(h,["volume delle query di ricerca","impressioni: numero totale","clic: % quota del marchio","acquisti: % quota del marchio","search query volume"])) return "brand_analytics";
 
+    if(this.hasAny(h,["vendite nette","utile netto","asin parent","msku","tariffe di logistica di amazon","totale: commissione per segnalazione"]) && this.hasAny(h,["unità vendute","vendite","asin"])) return "profit_report";
     if(this.hasAny(h,["paese","tipo di account","nome account","fattura","data di emissione della fattura","importo pagato (convertito)","stato del pagamento"])) return "ad_invoices";
     if(this.hasAny(h,["stato della transazione","tipo di transazione","numero di ordine","commissioni amazon","totale (eur)","transaction type"])) return "transactions";
     if(this.hasAny(h,["ordered product sales","unit session percentage","sessions - total","unità ordinate","vendite prodotto ordinate","child asin","parent asin"])) return "business_report";

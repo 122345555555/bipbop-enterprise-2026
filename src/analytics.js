@@ -9,11 +9,12 @@ window.BBAnalytics = {
     ["search_terms","Search Terms","consigliato"],
     ["orders","Report ordini","consigliato"],
     ["inventory","Inventario","consigliato"],
-    ["brand_analytics","Brand Analytics","consigliato"]
+    ["brand_analytics","Brand Analytics","consigliato"],
+    ["profit_report","Profit Report","consigliato"]
   ],
   label(type){ const r=this.reportDefs.find(x=>x[0]===type); return r?r[1]:type; },
   calc(samples){
-    const br=samples.business_report||[], tx=samples.transactions||[], inv=samples.ad_invoices||[];
+    const br=samples.business_report||[], tx=samples.transactions||[], inv=samples.ad_invoices||[], profitRows=samples.profit_report||[];
     const adsRows=[...(samples.sponsored_products||[]),...(samples.sponsored_brands||[]),...(samples.sponsored_display||[])];
     const orders=samples.orders||[];
 
@@ -23,23 +24,30 @@ window.BBAnalytics = {
       "item-price","Item Price","Prezzo articolo","Prezzo dell'articolo",
       "product-sales","Product Sales","Vendite prodotto","order-item-value"
     ])),0);
-    const sales=salesBR||salesTX||salesOrders;
+    const salesProfit=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"])),0);
+    const sales=salesBR||salesTX||salesOrders||salesProfit;
 
     const units=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"])),0)||
       orders.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità"])),0);
     const sessions=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sessions","Sessioni"])),0);
 
-    const amazonFees=tx.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Commissioni Amazon","Amazon fees","commissioni"])),0);
+    const amazonFeesTX=tx.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Commissioni Amazon","Amazon fees","commissioni"])),0);
+    const amazonFeesProfit=profitRows.reduce((a,r)=>{
+      const cols=Object.keys(r||{}).filter(k=>BBUtils.low(k).startsWith("totale:"));
+      return a+cols.reduce((s,k)=>s+Math.abs(BBUtils.num(r[k])),0);
+    },0);
+    const amazonFees=amazonFeesTX || -amazonFeesProfit;
     const adsInvoice=inv.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Importo pagato (convertito)","Paid Amount","Amount Paid","Totale","Total","Importo"])),0);
     const adsSpend=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"])),0);
     const adsSales=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sales","Vendite","7 Day Total Sales","14 Day Total Sales"])),0);
     const clicks=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Clicks","Clic","Click"])),0);
     const impressions=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Impressions","Impressioni","Viewable impressions","Impressioni visualizzabili"])),0);
     const ads=adsInvoice||adsSpend;
-    const profit=sales+amazonFees-ads;
+    const netProfitReport=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"])),0);
+    const profit=netProfitReport || (sales+amazonFees-ads);
 
     return {
-      sales,salesBR,salesTX,salesOrders,units,sessions,amazonFees,ads,adsSales,clicks,impressions,profit,
+      sales,salesBR,salesTX,salesOrders,salesProfit,units,sessions,amazonFees,amazonFeesTX,amazonFeesProfit,ads,adsSales,clicks,impressions,profit,netProfitReport,
       tacos:sales?ads/sales*100:NaN,
       acos:adsSales?ads/adsSales*100:NaN,
       roas:ads?adsSales/ads:NaN,
@@ -62,7 +70,7 @@ window.BBAnalytics = {
     return out;
   },
   asinRows(samples){
-    const br=samples.business_report||[], tx=samples.transactions||[], orders=samples.orders||[], map=new Map();
+    const br=samples.business_report||[], tx=samples.transactions||[], orders=samples.orders||[], profitRows=samples.profit_report||[], map=new Map();
     br.forEach(r=>{
       const asin=BBUtils.pick(r,["ASIN","Parent ASIN","Child ASIN"])||"N/D";
       const title=BBUtils.pick(r,["Title","Titolo","Product Name","Nome prodotto"])||"";
@@ -91,6 +99,16 @@ window.BBAnalytics = {
         "product-sales","Product Sales","Vendite prodotto","order-item-value"
       ]));
       o.units+=BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità","quantity"]));
+      map.set(asin,o);
+    });
+    profitRows.forEach(r=>{
+      const asin=BBUtils.pick(r,["ASIN","asin"])||"N/D";
+      const title=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
+      const o=map.get(asin)||{asin,title,sales:0,units:0,sessions:0,cr:0};
+      o.title=o.title||title;
+      o.sales+=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
+      o.units+=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
+      o.netProfit=(o.netProfit||0)+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
       map.set(asin,o);
     });
     return Array.from(map.values()).sort((a,b)=>b.sales-a.sales).slice(0,100);
@@ -195,6 +213,19 @@ window.BBAnalytics = {
       const purchaseShare=BBUtils.num(BBUtils.pick(r,["Acquisti: % quota del marchio","Purchases: Brand Share %"]));
       return {query,volume,impTotal,brandImpShare,clickShare,purchaseShare};
     }).filter(x=>x.query).sort((a,b)=>b.volume-a.volume).slice(0,100);
+  }
+,
+  profitRows(samples){
+    const rows=samples.profit_report||[];
+    return rows.map(r=>{
+      const asin=BBUtils.pick(r,["ASIN","asin"])||"N/D";
+      const sku=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
+      const sales=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
+      const units=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
+      const profit=BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
+      const margin=sales?profit/sales*100:NaN;
+      return {asin,sku,sales,units,profit,margin};
+    }).filter(r=>r.asin!=="N/D" || r.sales || r.profit).sort((a,b)=>b.sales-a.sales).slice(0,100);
   }
 
 };

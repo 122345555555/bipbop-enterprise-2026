@@ -1,0 +1,25 @@
+Aggiornamento BipBop v2.0 - Profit Report Amazon
+
+Il file:
+4084e57f-f990-4453-8a26-b56212157ea3.amzn1.tortuga.4.eu.csv
+
+non e il Business Report classico con sessioni e conversione.
+E un report economico Amazon per ASIN/SKU.
+
+Risultato del test sul file:
+- tipo rilevato: Profit Report
+- righe: 31
+- colonne: 60
+- vendite nette lette: 2.438,06 EUR
+- ricavi netti/profitto Amazon letto: 1.068,24 EUR
+- margine stimato da report: 43,8%
+
+Cosa cambia:
+- l'app riconosce questo file come Profit Report;
+- puoi selezionarlo manualmente come Profit Report se serve;
+- il Profit Center mostra ricavi, fee, profitto e margine da questo report;
+- aggiunge una tabella Profitto per ASIN;
+- ASIN Intelligence puo usare vendite e unita anche da questo report.
+
+Nota:
+Serve ancora il Business Report classico per sessioni e conversione.

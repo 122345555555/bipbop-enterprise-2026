@@ -149,8 +149,11 @@ window.BBRender = {
     }
 
     BBUtils.el("profitBox").innerHTML='<div class="grid3">'+[
-      ["Ricavi",BBUtils.euro(c.sales)],["Commissioni Amazon",BBUtils.euro(c.amazonFees)],["Ads",BBUtils.euro(c.ads)],["Profitto stimato",BBUtils.euro(c.profit)],["Margine",BBUtils.pct(c.margin)],["TACOS",BBUtils.pct(c.tacos)]
-    ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div><p class="hint">La sezione è AI-ready: i costi interni potranno essere collegati per arrivare al profitto netto reale.</p>';
+      ["Ricavi",BBUtils.euro(c.sales)],["Commissioni Amazon",BBUtils.euro(c.amazonFees)],["Ads",BBUtils.euro(c.ads)],["Profitto",BBUtils.euro(c.profit)],["Margine",BBUtils.pct(c.margin)],["TACOS",BBUtils.pct(c.tacos)],
+      ["Da Profit Report",c.netProfitReport?BBUtils.euro(c.netProfitReport):"—"],["Ricavi Profit Report",c.salesProfit?BBUtils.euro(c.salesProfit):"—"],["Fee Profit Report",c.amazonFeesProfit?BBUtils.euro(c.amazonFeesProfit):"—"]
+    ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>';
+    const pr=BBAnalytics.profitRows ? BBAnalytics.profitRows(s.samples) : [];
+    BBUtils.el("profitBox").innerHTML += pr.length?'<h3>Profitto per ASIN</h3><table><tr><th>ASIN</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th></tr>'+pr.map(r=>'<tr><td>'+h(r.asin)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td></tr>').join("")+'</table>':'<p class="hint">Carica il Profit Report per vedere profitto e margine per ASIN. I costi interni potranno essere collegati dopo.</p>';
 
     BBUtils.el("growthBox").innerHTML='<div class="grid3">'+rs.map(r=>'<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("")+'</div>';
 
