@@ -228,7 +228,12 @@ window.BBRender = {
 
     const decisionEl=BBUtils.el("decisionBox");
     if(decisionEl){
-      decisionEl.innerHTML=rs.map((r,i)=>'<div class="action '+r[0]+'"><b>Priorità '+(i+1)+' — '+r[1]+'</b><br><b>Perché:</b> '+r[2]+'<br><b>Azione consigliata:</b> '+(r[1].includes("Business Report")?"Importa il Business Report per sbloccare analisi ASIN e conversione.":r[1].includes("Transazioni")?"Importa Transazioni per calcolare commissioni e profitto reale.":r[1].includes("Fatture")?"Importa o usa i report Ads per riconciliare la spesa pubblicitaria.":r[1].includes("TACOS")?"Riduci budget sulle campagne meno efficienti o migliora conversione della scheda.":r[1].includes("ACOS")?"Analizza keyword/campagne con spesa alta e vendite basse.":r[1].includes("CTR")?"Testa nuova immagine principale, titolo e creatività Sponsored Brand.":"Procedi con questa priorità prima delle ottimizzazioni secondarie.")+'</div>').join("");
+      const dr=BBAnalytics.decisionRows ? BBAnalytics.decisionRows(s.samples,s.counts) : [];
+      decisionEl.innerHTML=dr.length?'<div class="grid3">'+[
+        ["Priorità critiche",dr.filter(r=>r.type==="red").length],
+        ["Da controllare",dr.filter(r=>r.type==="yellow").length],
+        ["Opportunità",dr.filter(r=>r.type==="green").length]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><table class="decision-table"><tr><th>Priorità</th><th>Area</th><th>Cosa</th><th>Perché</th><th>Azione</th></tr>'+dr.map((r,i)=>'<tr><td><span class="pill decision-'+(r.type==="red"?"fix":(r.type==="yellow"?"stock":"scale"))+'">'+(i+1)+'</span></td><td>'+h(r.area)+'</td><td><b>'+h(r.title)+'</b><br><span class="small">'+h(r.item)+'</span></td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>':'<div class="action">Importa report per generare decisioni operative.</div>';
     }
     BBUtils.el("alertsBox").innerHTML=rs.map(r=>'<div class="action '+r[0]+'">🚨 <b>'+r[1]+'</b><br>'+r[2]+'</div>').join("");
     BBUtils.el("diagnosticBox").innerHTML='<div class="action"><b>SOLO TABELLE BB100 GROWTH ENGINE</b><br>Report files: '+s.files.length+'<br>Raw rows attive: '+totalRows+'<br>Report configurati: '+BBAnalytics.reportDefs.length+'<br>Storage: '+window.BIPBOP_CONFIG.storageKey+'</div>';

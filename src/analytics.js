@@ -316,6 +316,30 @@ window.BBAnalytics = {
       o.source=Array.from(o.source).join(", ");
       return o;
     }).filter(o=>o.asin!=="N/D" || o.sku || o.sales || o.profit).sort((a,b)=>(b.profit||0)-(a.profit||0)).slice(0,300);
+  },
+  decisionRows(samples,counts){
+    const out=[];
+    this.asinDecisionRows(samples).forEach(r=>{
+      if(r.decision==="fix"){
+        out.push({area:"ASIN",priority:1,type:"red",title:"Correggi ASIN in perdita",item:r.asin,why:"Profitto "+BBUtils.euro(r.profit)+" su vendite "+BBUtils.euro(r.sales)+".",action:r.action});
+      }else if(r.decision==="stock"){
+        out.push({area:"Inventario",priority:2,type:"yellow",title:"Stock blocca crescita",item:r.asin,why:"ASIN con vendite/profitto ma stock a "+r.stock+".",action:r.action});
+      }else if(r.decision==="scale"){
+        out.push({area:"ASIN",priority:3,type:"green",title:"Spingi ASIN profittevole",item:r.asin,why:"Profitto "+BBUtils.euro(r.profit)+" e margine "+BBUtils.pct(r.margin)+".",action:r.action});
+      }
+    });
+    this.keywordRows(samples).forEach(r=>{
+      if(r.decision==="cut"){
+        out.push({area:"Keyword",priority:1,type:"red",title:"Taglia keyword che spreca",item:r.term,why:"Spesa "+BBUtils.euro(r.spend)+" senza vendite.",action:r.action});
+      }else if(r.decision==="scale"){
+        out.push({area:"Keyword",priority:3,type:"green",title:"Spingi keyword profittevole",item:r.term,why:"Vendite "+BBUtils.euro(r.sales)+", ACOS "+BBUtils.pct(r.acos)+".",action:r.action});
+      }else if(r.decision==="optimize"){
+        out.push({area:"Keyword",priority:2,type:"yellow",title:"Ottimizza keyword costosa",item:r.term,why:"Vendite presenti ma ACOS "+BBUtils.pct(r.acos)+".",action:r.action});
+      }
+    });
+    if(!counts?.business_report?.activeRows) out.push({area:"Dati",priority:4,type:"yellow",title:"Manca Business Report",item:"Sessioni e conversione",why:"Serve per capire traffico e conversione per ASIN.",action:"Carica Sales and Traffic by Child Item quando lo trovi."});
+    if(!out.length) out.push({area:"Sistema",priority:9,type:"green",title:"Nessuna urgenza critica",item:"Base dati",why:"I dati caricati non evidenziano blocchi prioritari.",action:"Continua monitoraggio e importa altri report."});
+    return out.sort((a,b)=>a.priority-b.priority).slice(0,30);
   }
 
 };

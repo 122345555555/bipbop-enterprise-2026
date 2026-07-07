@@ -1,0 +1,36 @@
+BipBop Enterprise 2026 - AI Decision Center v2.3
+
+Cosa cambia in questa versione
+- La sezione AI Decision Center ora mostra decisioni operative vere, non solo un riepilogo generico.
+- Unisce segnali da:
+  - ASIN Decision
+  - Keyword Intelligence
+  - Inventario
+  - Profit Center
+  - stato dei report caricati
+- Evidenzia:
+  - priorita critiche, per esempio ASIN in perdita o keyword da tagliare
+  - opportunita da spingere, per esempio ASIN o keyword profittevoli
+  - controlli necessari, per esempio Business Report mancante
+
+Cosa fare dopo il caricamento su GitHub
+1. Carica tutti i file e le cartelle di questo pacchetto nel repository GitHub.
+2. Aspetta il deploy automatico su Vercel.
+3. Apri l'app pubblicata.
+4. Premi "Aggiorna dati".
+5. Apri "AI Decision Center".
+
+Cosa dovresti vedere
+- Una lista ordinata di decisioni con priorita:
+  - Critica
+  - Alta
+  - Media
+- Per ogni riga trovi:
+  - area interessata
+  - cosa controllare
+  - perche e importante
+  - azione consigliata
+
+Nota importante
+- Se manca ancora il Business Report, l'app lo segnala nel Decision Center.
+- I dati di ricavi possono comunque arrivare dal Report ordini o dal Profit Report, ma il Business Report resta utile per sessioni e conversione.
