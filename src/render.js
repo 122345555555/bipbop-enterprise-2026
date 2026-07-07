@@ -3,6 +3,36 @@ window.BBRender = {
   setState(s){ this.state=s; },
   fileCount(type){ return this.state.files.filter(f=>f.report_type===type && !f.is_duplicate).length; },
   latest(type){ return this.state.files.find(f=>f.report_type===type); },
+  inventoryControls(){
+    const get=id=>BBUtils.el(id);
+    return {
+      q:BBUtils.low(get("inventorySearch")?.value || ""),
+      filter:get("inventoryFilter")?.value || "all",
+      sort:get("inventorySort")?.value || "title",
+      lowStock:Math.max(0, BBUtils.num(get("inventoryLowStock")?.value || 10))
+    };
+  },
+  filteredInventoryRows(rows){
+    const c=this.inventoryControls();
+    const isActive=r=>["active","attivo"].includes(BBUtils.low(r.status));
+    const hasValidAsin=r=>/^B0[A-Z0-9]{8}$/i.test(String(r.asin || ""));
+    let out=rows.filter(r=>{
+      if(c.q && !String(r.search || "").includes(c.q)) return false;
+      if(c.filter==="active") return isActive(r);
+      if(c.filter==="inactive") return !isActive(r);
+      if(c.filter==="outofstock") return (r.quantity || 0)<=0;
+      if(c.filter==="lowstock") return (r.quantity || 0)>0 && (r.quantity || 0)<=c.lowStock;
+      if(c.filter==="missingasin") return !hasValidAsin(r);
+      return true;
+    });
+    out=out.slice();
+    if(c.sort==="qty_asc") out.sort((a,b)=>(a.quantity||0)-(b.quantity||0));
+    else if(c.sort==="qty_desc") out.sort((a,b)=>(b.quantity||0)-(a.quantity||0));
+    else if(c.sort==="price_desc") out.sort((a,b)=>(b.price||0)-(a.price||0));
+    else if(c.sort==="price_asc") out.sort((a,b)=>(a.price||0)-(b.price||0));
+    else out.sort((a,b)=>String(a.title||"").localeCompare(String(b.title||"")));
+    return out;
+  },
   renderAll(){
     const s=this.state;
     const h=BBUtils.html;
@@ -48,11 +78,19 @@ window.BBRender = {
     const ir=BBAnalytics.inventoryRows ? BBAnalytics.inventoryRows(s.samples) : [];
     const invEl=BBUtils.el("inventoryBox");
     if(invEl){
+      const fr=this.filteredInventoryRows(ir);
+      const activeCount=ir.filter(r=>["active","attivo"].includes(BBUtils.low(r.status))).length;
+      const lowStock=this.inventoryControls().lowStock;
+      const lowCount=ir.filter(r=>(r.quantity||0)>0 && (r.quantity||0)<=lowStock).length;
+      const outCount=ir.filter(r=>(r.quantity||0)<=0).length;
       invEl.innerHTML=ir.length?'<div class="grid3">'+[
-        ["SKU attivi",ir.length],
+        ["SKU totali",ir.length],
+        ["Attivi",activeCount],
+        ["Sotto scorta",lowCount],
+        ["Esauriti",outCount],
         ["Quantità totale",ir.reduce((a,r)=>a+(r.quantity||0),0)],
         ["Valore listino",BBUtils.euro(ir.reduce((a,r)=>a+((r.price||0)*(r.quantity||0)),0))]
-      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><table class="compact-table"><tr><th>SKU</th><th>ASIN</th><th>Prodotto</th><th>Prezzo</th><th>Quantità</th><th>Stato</th><th>Canale</th></tr>'+ir.map(r=>'<tr><td>'+h(r.sku)+'</td><td>'+h(r.asin)+'</td><td class="product-cell">'+h(r.title)+'</td><td>'+h(BBUtils.euro(r.price))+'</td><td>'+h(r.quantity)+'</td><td>'+h(r.status)+'</td><td>'+h(r.channel)+'</td></tr>').join("")+'</table>':'<div class="action">Importa il Report di tutte le offerte per vedere SKU, ASIN, prezzo, quantità e stato.</div>';
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Risultati mostrati: '+fr.length+' su '+ir.length+'.</p><table class="compact-table"><tr><th>SKU</th><th>ASIN</th><th>Prodotto</th><th>Prezzo</th><th>Quantità</th><th>Stato</th><th>Canale</th></tr>'+fr.map(r=>'<tr><td>'+h(r.sku)+'</td><td>'+h(r.asin)+'</td><td class="product-cell">'+h(r.title)+'</td><td>'+h(BBUtils.euro(r.price))+'</td><td class="'+((r.quantity||0)<=0?'stock-bad':((r.quantity||0)<=lowStock?'stock-warn':''))+'">'+h(r.quantity)+'</td><td>'+h(r.status)+'</td><td>'+h(r.channel)+'</td></tr>').join("")+'</table>':'<div class="action">Importa il Report di tutte le offerte per vedere SKU, ASIN, prezzo, quantità e stato.</div>';
     }
 
     const kr=BBAnalytics.keywordRows(s.samples);

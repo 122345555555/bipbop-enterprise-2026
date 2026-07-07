@@ -91,7 +91,32 @@
     <section id="sales" class="view"><div class="card"><h3>Sales</h3><div id="salesBox"></div></div></section>
     <section id="advertising" class="view"><div class="card"><h3>Advertising Intelligence</h3><div id="adsBox"></div><div id="adsFilesBox"></div></div></section>
     <section id="asin" class="view"><div class="card"><h3>ASIN Intelligence</h3><div id="asinBox"></div></div></section>
-    <section id="inventory" class="view"><div class="card"><h3>Inventario / Catalogo offerte</h3><div id="inventoryBox"></div></div></section>
+    <section id="inventory" class="view">
+      <div class="card">
+        <h3>Inventario / Catalogo offerte</h3>
+        <div class="tool-row inventory-tools">
+          <input id="inventorySearch" placeholder="Cerca prodotto, SKU o ASIN">
+          <select id="inventoryFilter">
+            <option value="all">Tutti i prodotti</option>
+            <option value="active">Solo attivi</option>
+            <option value="inactive">Non attivi</option>
+            <option value="outofstock">Esauriti</option>
+            <option value="lowstock">Sotto scorta</option>
+            <option value="missingasin">Senza ASIN valido</option>
+          </select>
+          <input id="inventoryLowStock" type="number" min="0" value="10" title="Soglia sotto scorta">
+          <select id="inventorySort">
+            <option value="title">Ordina per prodotto</option>
+            <option value="qty_asc">Quantità bassa prima</option>
+            <option value="qty_desc">Quantità alta prima</option>
+            <option value="price_desc">Prezzo alto prima</option>
+            <option value="price_asc">Prezzo basso prima</option>
+          </select>
+          <button id="inventoryReset" class="secondaryBtn" type="button">Azzera filtri</button>
+        </div>
+        <div id="inventoryBox"></div>
+      </div>
+    </section>
     <section id="keyword" class="view"><div class="card"><h3>Keyword Intelligence</h3><div id="keywordBox"></div></div></section>
     <section id="brandanalytics" class="view"><div class="card"><h3>Brand Analytics – Performance query di ricerca</h3><div id="brandAnalyticsBox"></div></div></section>
     <section id="profit" class="view"><div class="card"><h3>Profit Center</h3><div id="profitBox"></div></div></section>
@@ -126,12 +151,12 @@
     </section>
   </main>
 
-  <script src="config.js?v=1.2"></script>
-  <script src="src/utils.js?v=1.2"></script>
-  <script src="src/parser.js?v=1.2"></script>
-  <script src="src/storage.js?v=1.2"></script>
-  <script src="src/analytics.js?v=1.2"></script>
-  <script src="src/render.js?v=1.2"></script>
-  <script src="src/app.js?v=1.2"></script>
+  <script src="config.js?v=1.3"></script>
+  <script src="src/utils.js?v=1.3"></script>
+  <script src="src/parser.js?v=1.3"></script>
+  <script src="src/storage.js?v=1.3"></script>
+  <script src="src/analytics.js?v=1.3"></script>
+  <script src="src/render.js?v=1.3"></script>
+  <script src="src/app.js?v=1.3"></script>
 </body>
 </html>

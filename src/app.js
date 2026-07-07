@@ -93,6 +93,18 @@ function bind(){
     }
   });
 
+  ["inventorySearch","inventoryFilter","inventoryLowStock","inventorySort"].forEach(id=>{
+    const el=BBUtils.el(id);
+    if(el) el.addEventListener(id==="inventorySearch"?"input":"change",()=>BBRender.renderAll());
+  });
+  BBUtils.el("inventoryReset")?.addEventListener("click",()=>{
+    BBUtils.el("inventorySearch").value="";
+    BBUtils.el("inventoryFilter").value="all";
+    BBUtils.el("inventoryLowStock").value="10";
+    BBUtils.el("inventorySort").value="title";
+    BBRender.renderAll();
+  });
+
   const dz=BBUtils.el("dropZone");
   dz.addEventListener("click",()=>BBUtils.el("multiFile").click());
   ["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add("drag");}));

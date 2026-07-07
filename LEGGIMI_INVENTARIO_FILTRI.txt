@@ -1,0 +1,19 @@
+Aggiornamento BipBop v1.3 - Inventario utilizzabile
+
+Cosa cambia:
+- il report "Report di tutte le offerte" resta nella sezione Inventario;
+- nella pagina Inventario trovi ricerca per prodotto, SKU o ASIN;
+- puoi filtrare: tutti, solo attivi, non attivi, esauriti, sotto scorta, senza ASIN valido;
+- puoi cambiare la soglia "sotto scorta" direttamente dalla pagina;
+- puoi ordinare per prodotto, quantita o prezzo;
+- la tabella resta compatta e non esplode con descrizioni troppo lunghe.
+
+Come caricarlo:
+1. Apri lo zip.
+2. Carica questi file nel repository GitHub sostituendo quelli esistenti.
+3. Aspetta il deploy automatico di Vercel.
+4. Apri l'app, vai su Inventario e premi "Aggiorna dati".
+
+Nota:
+Questa versione include anche le correzioni precedenti su parser, Brand Analytics,
+riconoscimento Report di tutte le offerte e vista Inventario.

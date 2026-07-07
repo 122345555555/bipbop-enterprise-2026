@@ -101,7 +101,8 @@ window.BBAnalytics = {
       const quantity=BBUtils.num(BBUtils.pick(r,["quantity","Quantità","available","fulfillable"]));
       const status=BBUtils.pick(r,["status","Stato"])||"";
       const channel=BBUtils.pick(r,["fulfillment-channel","Fulfillment Channel","Canale"])||"";
-      return {sku,asin,title,price,quantity,status,channel};
+      const search=[sku,asin,rawTitle,status,channel].join(" ").toLowerCase();
+      return {sku,asin,title,price,quantity,status,channel,search};
     }).filter(x=>x.sku||x.asin||x.title).sort((a,b)=>a.title.localeCompare(b.title)).slice(0,500);
   },
   brandAnalyticsRows(samples){
