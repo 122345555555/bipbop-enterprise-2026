@@ -1,0 +1,45 @@
+SALES RECOVERY CENTER - COSA FA
+
+Ho aggiunto una nuova sezione "Sales Recovery" nel menu laterale.
+
+Serve quando le vendite si fermano o calano.
+La sezione controlla automaticamente:
+
+1. Giorni senza vendite
+   Usa Store per data, Business Report e Report ordini quando disponibili.
+
+2. Inventario / stock
+   Evidenzia prodotti con stock zero o sotto scorta, soprattutto se hanno gia' venduto.
+
+3. Featured Offer / Buy Box
+   Se il Business Report contiene la colonna Featured Offer / Buy Box, segnala se scende sotto le soglie:
+   - sotto 95% = da controllare
+   - sotto 85% = critico
+
+4. Traffico ma zero vendite
+   Cerca ASIN o pagine Store con visite/sessioni ma nessuna vendita.
+
+5. Azioni immediate
+   Mostra checklist operative:
+   - ripristina inventario FBA
+   - controlla inventario bloccato
+   - recupera Featured Offer
+   - ottimizza listing con traffico
+   - controlla salute account
+
+IMPORTANTE
+
+L'app non puo' entrare da sola in Amazon e creare spedizioni FBA.
+Pero' puo' dirti quando devi farlo e su quali prodotti concentrarti.
+
+Ogni martedi carica questi report:
+- Business Report
+- Report ordini
+- Profit Report SKU
+- Inventario / tutte le offerte
+- Fatture Ads
+- Sponsored Products / Sponsored Brands
+- Search Terms
+- Brand Analytics
+- Store: date, livePage, notLivePage, source
+

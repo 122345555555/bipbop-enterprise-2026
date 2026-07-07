@@ -375,6 +375,165 @@ window.BBAnalytics = {
     if([10,11].includes(month)) return {season:"Pre-Natale",focus:"Gift, nonni e regali emozionali",action:"Lancia bundle regalo, personalizzazioni nome e set premium."};
     return {season:"Natale",focus:"Regalo nascita e cameretta pronta",action:"Spingi gift box, set premium, temi luna/stelle, animali e messaggi personalizzati."};
   },
+  parseReportDate(value){
+    const s=String(value||"").trim();
+    if(!s) return null;
+    let m=s.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+    if(m) return new Date(Number(m[1]),Number(m[2])-1,Number(m[3]));
+    m=s.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
+    if(m){
+      const y=Number(m[3].length===2?"20"+m[3]:m[3]);
+      return new Date(y,Number(m[2])-1,Number(m[1]));
+    }
+    const parsed=new Date(s);
+    return Number.isNaN(parsed.getTime())?null:new Date(parsed.getFullYear(),parsed.getMonth(),parsed.getDate());
+  },
+  dateKey(date){
+    if(!date) return "";
+    return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
+  },
+  rowDate(r){
+    return this.parseReportDate(BBUtils.pick(r,[
+      "Data","Date","Report Date","Data del report","Data di inizio","Start Date",
+      "Data di fine","End Date","date","start-date","end-date"
+    ]));
+  },
+  rowSales(r){
+    return BBUtils.num(BBUtils.pick(r,[
+      "Vendite","Sales","Ordered Product Sales","Vendite prodotto ordinate",
+      "item-price","Item Price","Prezzo articolo","Product Sales","Vendite prodotto"
+    ]));
+  },
+  rowUnits(r){
+    return BBUtils.num(BBUtils.pick(r,[
+      "Unita","Unità","Units","Units Ordered","Unita ordinate","Unità ordinate",
+      "quantity-purchased","Quantity","Quantità"
+    ]));
+  },
+  rowTraffic(r){
+    return BBUtils.num(BBUtils.pick(r,[
+      "Visualizzazioni","Views","Page Views","Page views","Sessions","Sessioni",
+      "Visite","Visitatori","Visits","Visitors"
+    ]));
+  },
+  salesTimelineRows(samples){
+    const sources=[
+      ...(samples.store_date||[]),
+      ...(samples.business_report||[]),
+      ...(samples.orders||[])
+    ];
+    const map=new Map();
+    sources.forEach(r=>{
+      const d=this.rowDate(r);
+      if(!d) return;
+      const key=this.dateKey(d);
+      const o=map.get(key)||{date:d,key,sales:0,units:0,traffic:0};
+      o.sales+=this.rowSales(r);
+      o.units+=this.rowUnits(r);
+      o.traffic+=this.rowTraffic(r);
+      map.set(key,o);
+    });
+    return Array.from(map.values()).sort((a,b)=>a.date-b.date);
+  },
+  featuredOfferRows(samples){
+    const cols=[
+      "Featured Offer %","Featured Offer Percentage","Featured Offer (Buy Box) Percentage",
+      "Percentuale Featured Offer","Featured Offer","Buy Box Percentage","Buy Box %",
+      "Percentuale Buy Box","Featured Offer % (Buy Box)"
+    ];
+    return (samples.business_report||[]).map(r=>{
+      const raw=BBUtils.pick(r,cols);
+      if(raw==="") return null;
+      let value=BBUtils.num(raw);
+      if(value>0 && value<=1) value=value*100;
+      return {date:this.rowDate(r),value,row:r};
+    }).filter(x=>x && x.value>0).sort((a,b)=>(a.date||0)-(b.date||0));
+  },
+  trafficNoSalesRows(samples){
+    const titles=this.productTitleMap(samples);
+    const fromBusiness=(samples.business_report||[]).map(r=>{
+      const asin=BBUtils.pick(r,["ASIN","Parent ASIN","Child ASIN"])||"N/D";
+      const title=BBUtils.pick(r,["Title","Titolo","Product Name","Nome prodotto"])||titles.get(asin)||"";
+      const traffic=this.rowTraffic(r);
+      const sales=this.rowSales(r);
+      const units=this.rowUnits(r);
+      return {source:"Business Report",asin,title,page:"",traffic,sales,units,action:"Controlla prezzo, Featured Offer, immagini e stock."};
+    });
+    const fromStore=(samples.store_live_page||[]).concat(samples.store_not_live_page||[]).map(r=>{
+      const page=BBUtils.pick(r,["Pagine attive","Altre pagine","Page","Pagina","Name"])||"";
+      const traffic=this.rowTraffic(r);
+      const sales=this.rowSales(r);
+      const units=this.rowUnits(r);
+      return {source:"Store",asin:"",title:"",page,traffic,sales,units,action:"Migliora hero, ordine prodotti e promessa della pagina Store."};
+    });
+    return fromBusiness.concat(fromStore)
+      .filter(r=>r.traffic>=20 && (r.sales||0)===0 && (r.units||0)===0)
+      .sort((a,b)=>(b.traffic||0)-(a.traffic||0))
+      .slice(0,20);
+  },
+  salesRecovery(samples,c,counts){
+    const timeline=this.salesTimelineRows(samples);
+    const latest=timeline.length?timeline[timeline.length-1]:null;
+    const salesDays=timeline.filter(r=>(r.sales||0)>0 || (r.units||0)>0);
+    const lastSale=salesDays.length?salesDays[salesDays.length-1]:null;
+    const today=latest?.date || new Date();
+    const daysWithoutSales=lastSale ? Math.max(0,Math.round((today-lastSale.date)/86400000)) : null;
+    const since30=new Date(today.getFullYear(),today.getMonth(),today.getDate()-30);
+    const last30=timeline.filter(r=>r.date>=since30);
+    const trafficLast30=last30.reduce((a,r)=>a+(r.traffic||0),0);
+    const salesLast30=last30.reduce((a,r)=>a+(r.sales||0),0);
+    const unitsLast30=last30.reduce((a,r)=>a+(r.units||0),0);
+
+    const inv=this.inventoryRows(samples);
+    const asin=this.asinDecisionRows(samples);
+    const outOfStock=inv.filter(r=>(r.quantity||0)<=0);
+    const lowStock=inv.filter(r=>(r.quantity||0)>0 && (r.quantity||0)<=5);
+    const topOutOfStock=asin.filter(r=>(r.stock!==null && r.stock<=0) && ((r.sales||0)>0 || (r.units||0)>0 || (r.profit||0)>0)).slice(0,10);
+
+    const featured=this.featuredOfferRows(samples);
+    const featuredLatest=featured.length?featured[featured.length-1]:null;
+    const featuredAvg=featured.length?featured.reduce((a,r)=>a+r.value,0)/featured.length:NaN;
+    const featuredMin=featured.length?Math.min(...featured.map(r=>r.value)):NaN;
+    let featuredStatus="unknown";
+    if(featuredLatest){
+      featuredStatus=featuredLatest.value<85?"critical":(featuredLatest.value<95?"warning":"ok");
+    }
+
+    const zeroTraffic=this.trafficNoSalesRows(samples);
+    const actions=[];
+    if(daysWithoutSales!==null && daysWithoutSales>=7){
+      actions.push({area:"Vendite",type:"red",priority:1,title:"Periodo senza vendite",item:daysWithoutSales+" giorni",why:"Ultima vendita rilevata il "+lastSale.date.toLocaleDateString("it-IT")+".",action:"Controlla subito stock FBA, Featured Offer e listing con traffico."});
+    }
+    if(topOutOfStock.length || outOfStock.length){
+      actions.push({area:"Inventario",type:"red",priority:1,title:"Ripristina inventario FBA / stock",item:(topOutOfStock.length||outOfStock.length)+" prodotti critici",why:"Prodotti con stock zero possono bloccare vendite e Buy Box.",action:"Verifica spedizioni FBA in arrivo, inventario bloccato e crea rifornimento per i top seller."});
+    }
+    if(featuredStatus==="critical" || featuredStatus==="warning"){
+      actions.push({area:"Featured Offer",type:featuredStatus==="critical"?"red":"yellow",priority:featuredStatus==="critical"?1:2,title:"Recupera Featured Offer",item:BBUtils.pct(featuredLatest.value),why:"Quando scende sotto il 95% perdi visibilita' rispetto ad altri venditori.",action:"Controlla prezzo, disponibilita', tempi spedizione, salute account e competitor."});
+    }
+    if(zeroTraffic.length){
+      actions.push({area:"Conversione",type:"yellow",priority:2,title:"Traffico senza vendite",item:zeroTraffic.length+" elementi",why:"Ci sono ASIN o pagine con visite ma zero ordini.",action:"Migliora immagini, titolo, prezzo, recensioni e coerenza tra keyword e prodotto."});
+    }
+    if(!actions.length){
+      actions.push({area:"Sistema",type:"green",priority:9,title:"Nessun blocco evidente",item:"Controlli recovery",why:"Con i report disponibili non emergono blocchi automatici forti.",action:"Continua monitoraggio e carica Business Report, Inventario e Store ogni martedi."});
+    }
+
+    return {
+      daysWithoutSales,lastSale,latest,trafficLast30,salesLast30,unitsLast30,
+      inventory:{total:inv.length,outOfStock:outOfStock.length,lowStock:lowStock.length,topOutOfStock},
+      featured:{rows:featured,latest:featuredLatest,avg:featuredAvg,min:featuredMin,status:featuredStatus},
+      zeroTraffic,
+      actions:actions.sort((a,b)=>a.priority-b.priority),
+      hasBusinessReport:!!counts?.business_report,
+      hasInventory:!!counts?.inventory,
+      hasStore:!!(counts?.store_date || counts?.store_live_page),
+      checklists:[
+        {title:"Priorita' 1: ripristina inventario FBA",steps:["Vai in Catena di distribuzione > Spedizioni FBA e verifica spedizioni in arrivo o bloccate.","Controlla inventario bloccato/stranded e risolvi eventuali problemi.","Rifornisci prima i top seller e gli ASIN con traffico ma stock zero."]},
+        {title:"Priorita' 2: recupera Featured Offer",steps:["Confronta prezzo e consegna con i competitor sugli ASIN principali.","Mantieni tempi di spedizione rapidi e controlla salute account.","Se la Featured Offer scende sotto 85%, agisci prima di aumentare Ads."]},
+        {title:"Priorita' 3: ottimizza listing con traffico",steps:["Aggiorna immagini principali, infografiche e foto ambientate.","Riscrivi titoli e bullet con keyword precise: adesivi murali bambini, greche cameretta, gift nascita.","Controlla recensioni, varianti, prezzo e coerenza tra annuncio e pagina prodotto."]},
+        {title:"Monitoraggio continuo",steps:["Ogni martedi carica Business Report, Inventario, Store, Search Terms, Ads, Profit Report e Ordini.","Controlla giorni senza vendite, Featured Offer, stock e traffico senza conversione.","Se resti senza vendite per 7 giorni, apri subito questa sezione."]}
+      ]
+    };
+  },
   trendIdeas(samples,c){
     const strategy=this.productStrategyRows(samples);
     const hasCat=name=>strategy.some(r=>BBUtils.low(r.category).includes(BBUtils.low(name)) && (r.sales>0 || r.visits>0 || r.keywords>0));
@@ -399,6 +558,8 @@ window.BBAnalytics = {
     const trends=this.trendIdeas(samples,c);
     const pick=(rows,n)=>rows.slice(0,n);
     const actions=[];
+    const recovery=this.salesRecovery ? this.salesRecovery(samples,c,counts) : null;
+    (recovery?.actions||[]).filter(r=>r.type!=="green").slice(0,4).forEach(r=>actions.push({group:"Sales Recovery",priority:r.type==="red"?"Alta":"Media",item:r.title,detail:r.item,why:r.why,action:r.action}));
     pick(asin.filter(r=>r.decision==="scale"),3).forEach(r=>actions.push({group:"Prodotti da spingere",priority:"Alta",item:r.asin,detail:r.title||r.sku,why:"Profitto "+BBUtils.euro(r.profit)+" e margine "+BBUtils.pct(r.margin)+".",action:"Aumenta visibilita', proteggi stock e collega keyword migliori."}));
     pick(asin.filter(r=>r.decision==="fix"),3).forEach(r=>actions.push({group:"Prodotti da correggere",priority:"Alta",item:r.asin,detail:r.title||r.sku,why:"Margine/profitto non convincono.",action:"Rivedi prezzo, formato, costi produzione o Ads prima di spingere."}));
     pick(keywords.filter(r=>r.decision==="scale"),3).forEach(r=>actions.push({group:"Keyword da aumentare",priority:"Media",item:r.term,detail:r.source,why:"Vendite "+BBUtils.euro(r.sales)+" con ACOS "+BBUtils.pct(r.acos)+".",action:"Aumenta offerta con budget controllato."}));
@@ -549,6 +710,10 @@ window.BBAnalytics = {
   },
   decisionRows(samples,counts){
     const out=[];
+    const recovery=this.salesRecovery ? this.salesRecovery(samples,this.calc(samples),counts) : null;
+    (recovery?.actions||[]).filter(r=>r.type!=="green").forEach(r=>{
+      out.push({area:"Recovery",priority:r.priority||1,type:r.type,title:r.title,item:r.item,why:r.why,action:r.action});
+    });
     this.asinDecisionRows(samples).forEach(r=>{
       if(r.decision==="fix"){
         out.push({area:"ASIN",priority:1,type:"red",title:"Correggi ASIN in perdita",item:r.asin,itemTitle:r.title,why:"Profitto "+BBUtils.euro(r.profit)+" su vendite "+BBUtils.euro(r.sales)+".",action:r.action});

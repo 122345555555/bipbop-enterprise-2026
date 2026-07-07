@@ -217,6 +217,40 @@ window.BBRender = {
       ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Risultati mostrati: '+fr.length+' su '+ir.length+'.</p><table class="compact-table"><tr><th>SKU</th><th>ASIN</th><th>Prodotto</th><th>Prezzo</th><th>Quantità</th><th>Stato</th><th>Canale</th></tr>'+fr.map(r=>'<tr><td>'+h(r.sku)+'</td><td>'+h(r.asin)+'</td><td class="product-cell">'+h(r.title)+'</td><td>'+h(BBUtils.euro(r.price))+'</td><td class="'+((r.quantity||0)<=0?'stock-bad':((r.quantity||0)<=lowStock?'stock-warn':''))+'">'+h(r.quantity)+'</td><td>'+h(r.status)+'</td><td>'+h(r.channel)+'</td></tr>').join("")+'</table>':'<div class="action">Importa il Report di tutte le offerte per vedere SKU, ASIN, prezzo, quantità e stato.</div>';
     }
 
+    const recoveryEl=BBUtils.el("recoveryBox");
+    if(recoveryEl){
+      const rec=BBAnalytics.salesRecovery ? BBAnalytics.salesRecovery(scopedSamples,c,s.counts) : null;
+      const dateLabel=d=>d?d.toLocaleDateString("it-IT"):"—";
+      const statusText=rec?.featured.status==="critical"?"Critica":(rec?.featured.status==="warning"?"Da controllare":(rec?.featured.status==="ok"?"Buona":"Dato mancante"));
+      recoveryEl.innerHTML=rec?'<div class="grid3">'+[
+        ["Giorni senza vendite",rec.daysWithoutSales===null?"—":rec.daysWithoutSales],
+        ["Ultima vendita",dateLabel(rec.lastSale?.date)],
+        ["Traffico ultimi 30gg",rec.trafficLast30||"—"],
+        ["Vendite ultimi 30gg",BBUtils.euro(rec.salesLast30)],
+        ["Unità ultimi 30gg",rec.unitsLast30||"—"],
+        ["Featured Offer",rec.featured.latest?BBUtils.pct(rec.featured.latest.value):"—"]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      '<h3>Problemi identificati</h3><table class="decision-table"><tr><th>Priorità</th><th>Area</th><th>Problema</th><th>Perché</th><th>Azione</th></tr>'+rec.actions.map((r,i)=>'<tr><td><span class="pill '+(r.type==="red"?'red':(r.type==="green"?'green':''))+'">'+h(i+1)+'</span></td><td>'+h(r.area)+'</td><td><b>'+h(r.title)+'</b><br><span class="small">'+h(r.item)+'</span></td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>'+
+      '<h3>Inventario e stock</h3><div class="grid3">'+[
+        ["SKU inventario",rec.inventory.total||"—"],
+        ["Stock zero",rec.inventory.outOfStock||0],
+        ["Sotto scorta",rec.inventory.lowStock||0]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      (rec.inventory.topOutOfStock.length?'<table><tr><th>ASIN / Prodotto</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Stock</th><th>Azione</th></tr>'+rec.inventory.topOutOfStock.map(r=>'<tr><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku||"")+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(BBUtils.euro(r.profit))+'</td><td class="stock-bad">'+h(r.stock)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>':'<div class="action '+(rec.hasInventory?'green':'yellow')+'"><b>Stock critico non evidente</b><br>'+(rec.hasInventory?'Nei dati caricati non vedo top seller con stock zero.':'Carica il report Inventario per controllare stock zero e prodotti bloccati.')+'</div>')+
+      '<h3>Featured Offer / Buy Box</h3><div class="grid3">'+[
+        ["Stato",statusText],
+        ["Ultimo valore",rec.featured.latest?BBUtils.pct(rec.featured.latest.value):"—"],
+        ["Media rilevata",BBUtils.pct(rec.featured.avg)],
+        ["Minimo rilevato",BBUtils.pct(rec.featured.min)],
+        ["Righe con dato",rec.featured.rows.length],
+        ["Ultima data",dateLabel(rec.featured.latest?.date)]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      (!rec.featured.rows.length?'<div class="action yellow"><b>Dato Featured Offer mancante</b><br>Carica il Business Report con la colonna Featured Offer / Buy Box per misurare il calo automatico.</div>':'<div class="action '+(rec.featured.status==="critical"?'red':(rec.featured.status==="warning"?'yellow':'green'))+'"><b>Interpretazione</b><br>Sotto 95% va controllata. Sotto 85% e\' critica: prezzo, disponibilita\', consegna e salute account possono bloccare le conversioni.</div>')+
+      '<h3>Traffico ma zero vendite</h3>'+
+      (rec.zeroTraffic.length?'<table><tr><th>Fonte</th><th>ASIN / Pagina</th><th>Traffico</th><th>Vendite</th><th>Unità</th><th>Azione</th></tr>'+rec.zeroTraffic.map(r=>'<tr><td>'+h(r.source)+'</td><td>'+(r.asin?this.asinCell(r.asin,r.title):this.textCell(r.page,r.source))+'</td><td>'+h(r.traffic)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>':'<div class="action '+(rec.hasBusinessReport||rec.hasStore?'green':'yellow')+'"><b>Nessun traffico senza vendite rilevato</b><br>'+(rec.hasBusinessReport||rec.hasStore?'Con i report attuali non vedo pagine o ASIN sopra soglia con zero vendite.':'Carica Business Report e report Store per vedere ASIN e pagine con visite ma zero conversioni.')+'</div>')+
+      '<h3>Azioni immediate</h3><div class="grid2">'+rec.checklists.map(block=>'<div class="action"><b>'+h(block.title)+'</b><ol>'+block.steps.map(step=>'<li>'+h(step)+'</li>').join("")+'</ol></div>').join("")+'</div>':'<div class="action">Carica report per attivare Sales Recovery.</div>';
+    }
+
     const storeEl=BBUtils.el("storeBox");
     if(storeEl){
       const st=BBAnalytics.storeInsights ? BBAnalytics.storeInsights(scopedSamples,c) : null;
