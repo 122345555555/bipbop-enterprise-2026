@@ -19,7 +19,11 @@ window.BBAnalytics = {
 
     const salesBR=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Ordered Product Sales","Vendite prodotto ordinate","Sales","Vendite"])),0);
     const salesTX=tx.reduce((a,r)=>a+Math.max(BBUtils.num(BBUtils.pick(r,["Totale (EUR)","Total (EUR)","Total","Totale"])),0),0);
-    const sales=salesBR||salesTX;
+    const salesOrders=orders.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,[
+      "item-price","Item Price","Prezzo articolo","Prezzo dell'articolo",
+      "product-sales","Product Sales","Vendite prodotto","order-item-value"
+    ])),0);
+    const sales=salesBR||salesTX||salesOrders;
 
     const units=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"])),0)||
       orders.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità"])),0);
@@ -35,7 +39,7 @@ window.BBAnalytics = {
     const profit=sales+amazonFees-ads;
 
     return {
-      sales,units,sessions,amazonFees,ads,adsSales,clicks,impressions,profit,
+      sales,salesBR,salesTX,salesOrders,units,sessions,amazonFees,ads,adsSales,clicks,impressions,profit,
       tacos:sales?ads/sales*100:NaN,
       acos:adsSales?ads/adsSales*100:NaN,
       roas:ads?adsSales/ads:NaN,
@@ -58,7 +62,7 @@ window.BBAnalytics = {
     return out;
   },
   asinRows(samples){
-    const br=samples.business_report||[], tx=samples.transactions||[], map=new Map();
+    const br=samples.business_report||[], tx=samples.transactions||[], orders=samples.orders||[], map=new Map();
     br.forEach(r=>{
       const asin=BBUtils.pick(r,["ASIN","Parent ASIN","Child ASIN"])||"N/D";
       const title=BBUtils.pick(r,["Title","Titolo","Product Name","Nome prodotto"])||"";
@@ -75,6 +79,18 @@ window.BBAnalytics = {
       const asin=m?m[0]:"N/D";
       const o=map.get(asin)||{asin,title:d,sales:0,units:0,sessions:0,cr:0};
       o.sales+=Math.max(BBUtils.num(BBUtils.pick(r,["Totale (EUR)","Total (EUR)","Totale"])),0);
+      map.set(asin,o);
+    });
+    orders.forEach(r=>{
+      const asin=BBUtils.pick(r,["asin","ASIN","product-id","Product ID"])||"N/D";
+      const title=BBUtils.pick(r,["product-name","Product Name","item-name","Titolo","Title"])||"";
+      const o=map.get(asin)||{asin,title,sales:0,units:0,sessions:0,cr:0};
+      o.title=o.title||title;
+      o.sales+=BBUtils.num(BBUtils.pick(r,[
+        "item-price","Item Price","Prezzo articolo","Prezzo dell'articolo",
+        "product-sales","Product Sales","Vendite prodotto","order-item-value"
+      ]));
+      o.units+=BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità","quantity"]));
       map.set(asin,o);
     });
     return Array.from(map.values()).sort((a,b)=>b.sales-a.sales).slice(0,100);

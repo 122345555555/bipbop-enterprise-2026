@@ -1,0 +1,19 @@
+Aggiornamento BipBop v1.8 - Ricavi da Report ordini
+
+Problema:
+Il Report ordini veniva importato, ma i ricavi nella dashboard potevano restare a zero.
+
+Perche succedeva:
+La dashboard calcolava i ricavi da Business Report o Transazioni, ma non usava ancora
+il campo item-price del Report ordini.
+
+Cosa cambia:
+- se manca il Business Report, i ricavi vengono calcolati anche dal Report ordini;
+- il campo principale letto e item-price;
+- le unita vengono lette da quantity-purchased;
+- la sezione Sales mostra anche da quale sorgente arrivano i ricavi:
+  Business Report, Transazioni o Report ordini;
+- la sezione ASIN puo mostrare vendite e unita anche partendo dagli ordini.
+
+Dopo il deploy:
+Apri l'app, premi Aggiorna dati e controlla la sezione Sales.
