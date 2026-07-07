@@ -43,7 +43,8 @@ window.BBUtils = {
     return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
   },
   rules(){
-    try { return JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.rulesKey) || '{"tacos":15,"acos":35,"margin":25}'); }
-    catch(e){ return {tacos:15,acos:35,margin:25}; }
+    const defaults={tacos:15,acos:35,margin:25,monthlyFee:39,subscriptionMonths:18};
+    try { return {...defaults,...JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.rulesKey) || "{}")}; }
+    catch(e){ return defaults; }
   }
 };

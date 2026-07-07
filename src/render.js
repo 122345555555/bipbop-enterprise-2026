@@ -240,6 +240,14 @@ window.BBRender = {
       ["Ricavi",BBUtils.euro(c.sales)],["Commissioni Amazon",BBUtils.euro(c.amazonFees)],["Ads",BBUtils.euro(c.ads)],["Profitto",BBUtils.euro(c.profit)],["Margine",BBUtils.pct(c.margin)],["TACOS",BBUtils.pct(c.tacos)],
       ["Da Profit Report",c.netProfitReport?BBUtils.euro(c.netProfitReport):"—"],["Ricavi Profit Report",c.salesProfit?BBUtils.euro(c.salesProfit):"—"],["Fee Profit Report",c.amazonFeesProfit?BBUtils.euro(c.amazonFeesProfit):"—"]
     ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>';
+    BBUtils.el("profitBox").innerHTML += '<h3>Riconciliazione saldo</h3><div class="grid3">'+[
+      ["Profitto Amazon",BBUtils.euro(c.netProfitReport||c.profit)],
+      ["ADS fatturate",BBUtils.euro(c.ads)],
+      ["ADS già nel Profit Report",BBUtils.euro(c.adsProfitReport)],
+      ["ADS extra da sottrarre",BBUtils.euro(c.adsExtra)],
+      ["Canone stimato",BBUtils.euro(c.subscriptionCost)],
+      ["Saldo finale stimato",BBUtils.euro(c.reconciledProfit)]
+    ].map(x=>'<div class="kpi '+(x[0]==="Saldo finale stimato" ? ((c.reconciledProfit||0)<0?'recon-bad':'recon-good') : '')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Formula: Profitto Amazon - ADS extra non già incluse - canone stimato. Saldo prudente sottraendo tutte le ADS fatturate: <b>'+h(BBUtils.euro(c.conservativeProfit))+'</b>.</p>';
     if(profitFiles.length>1){
       BBUtils.el("profitBox").innerHTML += '<div class="action yellow"><b>Attenzione: più Profit Report attivi</b><br>Per evitare doppi conteggi sto usando solo l’ultimo Profit Report caricato: <b>'+h(activeProfitFile)+'</b>. Gli altri restano in archivio ma non vengono sommati nei KPI principali.</div>';
     }

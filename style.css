@@ -65,6 +65,8 @@ table.compact-table th:nth-child(6),table.compact-table td:nth-child(6){width:75
 .asin-cell span{display:block;margin-top:4px;color:#64748b;font-size:12px;white-space:normal}
 .decision-section{margin-top:22px;padding-top:8px}
 .decision-section h3{margin-bottom:4px}
+.recon-good strong{color:#047857}
+.recon-bad strong{color:#be123c}
 .stock-bad{color:#be123c;font-weight:900}
 .stock-warn{color:#b45309;font-weight:900}
 .decision-scale{background:#dcfce7;color:#047857}

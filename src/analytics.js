@@ -46,15 +46,27 @@ window.BBAnalytics = {
     const amazonFees=amazonFeesTX || -amazonFeesProfit;
     const adsInvoice=inv.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Importo pagato (convertito)","Paid Amount","Amount Paid","Totale","Total","Importo"])),0);
     const adsSpend=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"])),0);
+    const adsProfitReport=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,[
+      "Costo pubblicitario delle vendite: Totale",
+      "Addebiti Sponsored Products: Totale",
+      "Advertising cost of sales: Total",
+      "Sponsored Products charges: Total",
+      "Sponsored Products charges"
+    ])),0);
     const adsSales=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sales","Vendite","7 Day Total Sales","14 Day Total Sales"])),0);
     const clicks=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Clicks","Clic","Click"])),0);
     const impressions=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Impressions","Impressioni","Viewable impressions","Impressioni visualizzabili"])),0);
     const ads=adsInvoice||adsSpend;
     const netProfitReport=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"])),0);
     const profit=netProfitReport || (sales+amazonFees-ads);
+    const rules=BBUtils.rules();
+    const subscriptionCost=BBUtils.num(rules.monthlyFee)*BBUtils.num(rules.subscriptionMonths);
+    const adsExtra=netProfitReport ? Math.max(ads-adsProfitReport,0) : ads;
+    const reconciledProfit=(netProfitReport||profit)-adsExtra-subscriptionCost;
+    const conservativeProfit=(netProfitReport||profit)-ads-subscriptionCost;
 
     return {
-      sales,salesBR,salesTX,salesOrders,salesProfit,units,sessions,amazonFees,amazonFeesTX,amazonFeesProfit,ads,adsSales,clicks,impressions,profit,netProfitReport,
+      sales,salesBR,salesTX,salesOrders,salesProfit,units,sessions,amazonFees,amazonFeesTX,amazonFeesProfit,ads,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,reconciledProfit,conservativeProfit,
       tacos:sales?ads/sales*100:NaN,
       acos:adsSales?ads/adsSales*100:NaN,
       roas:ads?adsSales/ads:NaN,

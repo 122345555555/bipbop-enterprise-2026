@@ -161,11 +161,15 @@ function bind(){
   BBUtils.el("ruleTacos").value=ru.tacos;
   BBUtils.el("ruleAcos").value=ru.acos;
   BBUtils.el("ruleMargin").value=ru.margin;
+  BBUtils.el("ruleMonthlyFee").value=ru.monthlyFee;
+  BBUtils.el("ruleSubscriptionMonths").value=ru.subscriptionMonths;
   BBUtils.el("saveRules").addEventListener("click",()=>{
     localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({
       tacos:BBUtils.num(BBUtils.el("ruleTacos").value),
       acos:BBUtils.num(BBUtils.el("ruleAcos").value),
-      margin:BBUtils.num(BBUtils.el("ruleMargin").value)
+      margin:BBUtils.num(BBUtils.el("ruleMargin").value),
+      monthlyFee:BBUtils.num(BBUtils.el("ruleMonthlyFee").value),
+      subscriptionMonths:BBUtils.num(BBUtils.el("ruleSubscriptionMonths").value)
     }));
     alert("Regole salvate");
     BBRender.renderAll();

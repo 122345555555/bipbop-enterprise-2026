@@ -1,0 +1,34 @@
+BipBop Enterprise 2026 - Riconciliazione saldo v2.7
+
+Cosa cambia
+- Nel Profit Center compare una nuova sezione "Riconciliazione saldo".
+- La sezione confronta:
+  - Profitto Amazon da Profit Report
+  - ADS fatturate
+  - ADS gia presenti nel Profit Report
+  - ADS extra da sottrarre
+  - Canone mensile stimato
+  - Saldo finale stimato
+
+Perche e importante
+- Il Profit Report puo gia includere una parte dei costi ADS.
+- Le fatture ADS possono coprire un totale piu ampio.
+- Per evitare doppi conteggi, l'app calcola:
+  Profitto Amazon - ADS extra non gia incluse - canone stimato
+
+Impostazioni
+- Vai in Setup > Regole economiche BipBop.
+- Puoi modificare:
+  - Canone mensile
+  - Mesi canone
+- Valori predefiniti:
+  - 39 euro al mese
+  - 18 mesi
+
+Test sui dati attuali
+- Profitto Amazon da Profit Report: circa 2.235,74 euro
+- ADS fatturate: circa 2.171,11 euro
+- ADS gia nel Profit Report: circa 772,10 euro
+- Canone stimato: 702,00 euro
+- Saldo finale stimato deduplicato: circa +134,73 euro
+- Saldo prudente sottraendo tutte le ADS: circa -637,37 euro
