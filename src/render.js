@@ -294,6 +294,38 @@ window.BBRender = {
     BBUtils.el("profitBox").innerHTML += pr.length?'<h3>Profitto per ASIN</h3><p class="hint">Risultati mostrati: '+pf.length+' su '+pr.length+'.</p><table><tr><th>Anno</th><th>ASIN / Prodotto</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th></tr>'+pf.map(r=>'<tr><td>'+h(r.year)+'</td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td></tr>').join("")+'</table>':'<p class="hint">Carica il Profit Report per vedere profitto e margine per ASIN. I costi interni potranno essere collegati dopo.</p>';
 
     const strategy=BBAnalytics.productStrategyRows ? BBAnalytics.productStrategyRows(scopedSamples) : [];
+    const weekly=BBAnalytics.weeklyActionPlan ? BBAnalytics.weeklyActionPlan(scopedSamples,c,s.counts) : null;
+    const weeklyEl=BBUtils.el("weeklyBox");
+    if(weeklyEl){
+      weeklyEl.innerHTML=weekly?'<div class="grid3">'+[
+        ["Focus periodo",weekly.season.season],
+        ["Obiettivo",weekly.season.focus],
+        ["Azione stagionale",weekly.season.action]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      '<h3>Azioni di questa settimana</h3><table class="decision-table"><tr><th>Priorità</th><th>Area</th><th>Cosa</th><th>Perché</th><th>Azione</th></tr>'+weekly.actions.map(r=>'<tr><td><span class="pill '+(r.priority==="Alta"?'red':'')+'">'+h(r.priority)+'</span></td><td>'+h(r.group)+'</td><td><b>'+h(r.item)+'</b><br><span class="small">'+h(r.detail||"")+'</span></td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>'+
+      '<h3>Budget test consigliato</h3>'+
+      (weekly.budgetTests.length?'<table><tr><th>Test</th><th>Budget</th><th>Obiettivo</th><th>Misura</th></tr>'+weekly.budgetTests.map(r=>'<tr><td>'+h(r.test)+'</td><td><b>'+h(r.budget)+'</b></td><td>'+h(r.goal)+'</td><td>'+h(r.metric)+'</td></tr>').join("")+'</table>':'<div class="action">Nessun test budget chiaro: carica piu report o seleziona una categoria manualmente.</div>')+
+      '<div class="action yellow"><b>Promemoria report</b><br>Ogni martedi carica: Business Report, ordini, Profit Report SKU, Fatture Ads, Sponsored Brands/Products, Search Terms, Inventario, Brand Analytics e Store date/livePage/notLivePage/source.</div>':'<div class="action">Carica i report per generare il piano settimanale.</div>';
+    }
+
+    const trendsEl=BBUtils.el("trendsBox");
+    if(trendsEl){
+      const trends=BBAnalytics.trendIdeas ? BBAnalytics.trendIdeas(scopedSamples,c) : [];
+      const season=BBAnalytics.seasonalFocus ? BBAnalytics.seasonalFocus() : null;
+      trendsEl.innerHTML='<div class="grid3">'+[
+        ["Target primario","Nuovi genitori / mamme"],
+        ["Target regalo","Nonni, zie, baby shower"],
+        ["Periodo",season?season.season:"—"]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      (season?'<div class="action green"><b>Focus stagionale</b><br>'+h(season.focus)+' — '+h(season.action)+'</div>':'')+
+      '<h3>Idee prodotto da valutare</h3><table class="decision-table"><tr><th>Priorità</th><th>Idea</th><th>Target</th><th>Formato</th><th>Palette</th><th>Perché</th><th>Azione</th></tr>'+trends.map(r=>'<tr><td><span class="pill '+(r.decision==="Priorita' alta"?'green':'')+'">'+h(r.decision)+'</span></td><td><b>'+h(r.idea)+'</b><br><span class="small">'+h(r.trigger)+'</span></td><td>'+h(r.target)+'</td><td>'+h(r.format)+'</td><td>'+h(r.palette)+'</td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>'+
+      '<h3>Angoli commerciali</h3><div class="grid3">'+[
+        ["Gift nascita","Bundle premium, nome bambino, biglietto regalo, packaging curato."],
+        ["Mamme","Cameretta calma, elegante, facile da applicare, non troppo cartoon."],
+        ["Nonni","Prodotti semplici da capire: set regalo, tema dolce, valore emozionale."]
+      ].map(x=>'<div class="action"><b>'+h(x[0])+'</b><br>'+h(x[1])+'</div>').join("")+'</div>';
+    }
+
     BBUtils.el("growthBox").innerHTML='<div class="grid3">'+rs.map(r=>'<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("")+'</div>'+
       (strategy.length?'<h3>Piano prodotto</h3><table class="decision-table"><tr><th>Decisione</th><th>Categoria</th><th>Azione</th><th>Vendite</th><th>Profitto</th><th>Segnali</th></tr>'+strategy.slice(0,12).map(r=>'<tr><td><span class="pill">'+h(r.decision)+'</span></td><td><b>'+h(r.category)+'</b></td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(BBUtils.euro(r.profit))+'</td><td class="small">Store: '+h(r.visits||0)+' visite · Keyword: '+h(r.keywords||0)+'</td></tr>').join("")+'</table>':'');
 

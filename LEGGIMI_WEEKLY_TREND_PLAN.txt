@@ -1,0 +1,38 @@
+Aggiornamento Weekly Action Plan + Trend & Idee - 07/07/2026
+
+Cosa cambia:
+- Aggiunta la sezione "Weekly Action Plan".
+- Aggiunta la sezione "Trend & Idee Prodotto".
+- Weekly Action Plan mostra:
+  - azioni della settimana
+  - prodotti da spingere
+  - prodotti da correggere
+  - keyword da aumentare o tagliare
+  - pagine Store da sistemare
+  - varianti da creare
+  - budget test consigliato
+  - promemoria report del martedi
+- Trend & Idee Prodotto suggerisce idee per:
+  - nuovi genitori
+  - mamme
+  - nonni
+  - gift nascita / baby shower
+- Le idee includono target, formato prodotto, palette colori, motivo e azione consigliata.
+
+Logica prodotto:
+- Se una categoria vende e ha profitto, l'app propone nuove varianti.
+- Se una pagina Store riceve visite ma non vende, l'app propone di rifarla.
+- Se una keyword vende, l'app propone di aumentare il budget.
+- Se una keyword spende senza vendere, l'app propone di tagliarla.
+- La stagionalita' cambia in base al periodo dell'anno.
+
+Report da caricare ogni martedi:
+- Business Report / Sales and Traffic
+- Report ordini
+- Profit Report SKU
+- Fatture Ads
+- Sponsored Brands / Sponsored Products
+- Search Terms
+- Inventario / tutte le offerte
+- Brand Analytics
+- Store Amazon: date, livePage, notLivePage, source

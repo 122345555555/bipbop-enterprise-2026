@@ -366,6 +366,60 @@ window.BBAnalytics = {
     const bestDays=dates.filter(r=>r.sales>0).slice().sort((a,b)=>b.sales-a.sales).slice(0,8);
     return {pages:pageDecisions,sources:sourceDecisions,dates,bestDays,categories:this.productStrategyRows(samples),storeSales:c.storeSales,storeUnits:c.storeUnits,storeOrders:c.storeOrders,storeViews:c.storeViews,storeVisitors:c.storeVisitors,storeNewVisitors:c.storeNewVisitors};
   },
+  seasonalFocus(date=new Date()){
+    const month=date.getMonth()+1;
+    if([1,2].includes(month)) return {season:"Gennaio-Febbraio",focus:"Cameretta calma e ordine dopo le feste",action:"Spingi linee soft, neutre, stelle/luna e gift nascita non stagionali."};
+    if([3,4,5].includes(month)) return {season:"Primavera",focus:"Restyling cameretta e casa piu' luminosa",action:"Testa palette salvia, sabbia, cipria, animali soft e mongolfiere."};
+    if([6,7].includes(month)) return {season:"Estate",focus:"Viaggio, leggerezza e preparazione autunno",action:"Prepara lancio Back to room: mongolfiere, aerei, mappe, greche leggere."};
+    if([8,9].includes(month)) return {season:"Back to school / nuova cameretta",focus:"Rinnovo stanza e organizzazione",action:"Spingi set coordinati, quadri + adesivi, greche e temi ordinati."};
+    if([10,11].includes(month)) return {season:"Pre-Natale",focus:"Gift, nonni e regali emozionali",action:"Lancia bundle regalo, personalizzazioni nome e set premium."};
+    return {season:"Natale",focus:"Regalo nascita e cameretta pronta",action:"Spingi gift box, set premium, temi luna/stelle, animali e messaggi personalizzati."};
+  },
+  trendIdeas(samples,c){
+    const strategy=this.productStrategyRows(samples);
+    const hasCat=name=>strategy.some(r=>BBUtils.low(r.category).includes(BBUtils.low(name)) && (r.sales>0 || r.visits>0 || r.keywords>0));
+    const ideas=[
+      {idea:"Mongolfiere vintage soft",target:"Mamme / nuovi genitori",why:"Tema gia' vicino al tuo catalogo e adatto a camerette calme.",format:"Set adesivi + quadro coordinato",palette:"sabbia, cipria, salvia, cacao",trigger:"Se Mongolfiere / viaggio vende o riceve visite",linked:hasCat("Mongolfiere")},
+      {idea:"Animali dolci da nanna",target:"Gift nascita / nonni",why:"Facile da regalare, tenero, comprensibile anche da chi non conosce il brand.",format:"Set premium con nome bambino",palette:"beige, crema, verde salvia",trigger:"Se Animali vende o ha buone keyword",linked:hasCat("Animali")},
+      {idea:"Greche minimal premium",target:"Mamme che arredano camerette ordinate",why:"Prodotto piu' adulto e decorativo, buono per differenziarti dagli adesivi troppo cartoon.",format:"Bordo murale + mini adesivi coordinati",palette:"terracotta soft, mocha, rosa antico",trigger:"Se Greche murali porta margine o Store",linked:hasCat("Greche")},
+      {idea:"Luna, stelle e sogni",target:"Regalo nascita / baby shower",why:"Tema sempreverde, molto adatto a messaggi emozionali e confezione regalo.",format:"Kit nanna: luna + stelle + nome",palette:"blu polvere, avorio, oro tenue",trigger:"Se Stelle / luna vende ma margine e pagina vanno corretti",linked:hasCat("Stelle")},
+      {idea:"Safari beige e salvia",target:"Nuovi genitori",why:"Trend caldo/naturale, meno saturo del safari colorato classico.",format:"Set animali soft + crescita coordinata",palette:"sabbia, salvia, ocra chiaro",trigger:"Da testare come nuova linea se Animali ha segnali positivi",linked:hasCat("Animali")},
+      {idea:"Quadri coordinati agli adesivi",target:"Gift / nonni",why:"Aumenta valore medio ordine e rende il prodotto piu' regalo.",format:"Bundle quadro + adesivo + biglietto",palette:"coerente con tema vincente",trigger:"Se una categoria vende ma vuoi aumentare ticket medio",linked:strategy.some(r=>r.sales>100)}
+    ];
+    return ideas.map(i=>({
+      ...i,
+      decision:i.linked?"Priorita' alta":"Da testare",
+      action:i.linked?"Crea 2 varianti e una mini campagna test.":"Prepara mockup e valida con piccolo test Store/Ads."
+    }));
+  },
+  weeklyActionPlan(samples,c,counts){
+    const asin=this.asinDecisionRows(samples);
+    const keywords=this.keywordRows(samples);
+    const store=this.storeInsights(samples,c);
+    const trends=this.trendIdeas(samples,c);
+    const pick=(rows,n)=>rows.slice(0,n);
+    const actions=[];
+    pick(asin.filter(r=>r.decision==="scale"),3).forEach(r=>actions.push({group:"Prodotti da spingere",priority:"Alta",item:r.asin,detail:r.title||r.sku,why:"Profitto "+BBUtils.euro(r.profit)+" e margine "+BBUtils.pct(r.margin)+".",action:"Aumenta visibilita', proteggi stock e collega keyword migliori."}));
+    pick(asin.filter(r=>r.decision==="fix"),3).forEach(r=>actions.push({group:"Prodotti da correggere",priority:"Alta",item:r.asin,detail:r.title||r.sku,why:"Margine/profitto non convincono.",action:"Rivedi prezzo, formato, costi produzione o Ads prima di spingere."}));
+    pick(keywords.filter(r=>r.decision==="scale"),3).forEach(r=>actions.push({group:"Keyword da aumentare",priority:"Media",item:r.term,detail:r.source,why:"Vendite "+BBUtils.euro(r.sales)+" con ACOS "+BBUtils.pct(r.acos)+".",action:"Aumenta offerta con budget controllato."}));
+    pick(keywords.filter(r=>r.decision==="cut"),3).forEach(r=>actions.push({group:"Keyword da tagliare",priority:"Alta",item:r.term,detail:r.source,why:"Spesa "+BBUtils.euro(r.spend)+" senza vendite.",action:"Riduci, metti negativa o cambia landing prodotto."}));
+    pick(store.pages.filter(r=>r.decision==="Da correggere"),3).forEach(r=>actions.push({group:"Pagine Store da sistemare",priority:"Media",item:r.name,detail:r.kind,why:r.visits+" visite e "+BBUtils.euro(r.sales)+" vendite.",action:r.action}));
+    pick(store.categories.filter(r=>r.decision==="Crea varianti"),3).forEach(r=>actions.push({group:"Varianti da creare",priority:"Alta",item:r.category,detail:r.pages||r.products,why:"Categoria validata da vendite/profitto.",action:"Crea 2 nuovi disegni e un bundle gift."}));
+    pick(trends.filter(r=>r.decision==="Priorita' alta"),3).forEach(r=>actions.push({group:"Trend da trasformare in prodotto",priority:"Media",item:r.idea,detail:r.target,why:r.why,action:r.action}));
+    if(!counts?.store_date || !counts?.store_live_page || !counts?.store_source){
+      actions.push({group:"Dati da caricare",priority:"Alta",item:"Report Store Amazon",detail:"date, livePage, notLivePage, source",why:"Servono per capire pagine, fonti traffico e stagionalita'.",action:"Caricali ogni martedi insieme agli altri report."});
+    }
+    if(!actions.length){
+      actions.push({group:"Prossimo passo",priority:"Media",item:"Carica report completi",detail:"Amazon + Store + Ads",why:"Servono piu' dati per generare priorita' affidabili.",action:"Importa i report settimanali e aggiorna la dashboard."});
+    }
+    const budgetTests=store.categories.filter(r=>["Crea varianti","Spingi test"].includes(r.decision)).slice(0,3).map((r,i)=>({
+      test:r.category,
+      budget:i===0?"15-25 €":"10-15 €",
+      goal:i===0?"validare variante o bundle":"capire se il tema merita nuovi disegni",
+      metric:"CTR, vendite, ACOS e visite Store"
+    }));
+    return {actions:actions.slice(0,24),budgetTests,season:this.seasonalFocus()};
+  },
   inventoryRows(samples){
     const rows=samples.inventory||[];
     return rows.map(r=>{
