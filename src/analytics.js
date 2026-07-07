@@ -34,11 +34,13 @@ window.BBAnalytics = {
     const salesProfit=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"])),0);
     const sales=salesBR||salesTX||salesOrders||salesProfit;
 
+    const unitsProfit=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"])),0);
     const units=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"])),0)||
-      orders.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità"])),0);
+      orders.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità"])),0)||unitsProfit;
     const sessions=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sessions","Sessioni"])),0);
 
     const amazonFeesTX=tx.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Commissioni Amazon","Amazon fees","commissioni"])),0);
+    const referralFeesProfit=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Commissione per segnalazione: Totale","Referral fee: Total","Referral fees: Total"])),0);
     const amazonFeesProfit=profitRows.reduce((a,r)=>{
       const cols=Object.keys(r||{}).filter(k=>BBUtils.low(k).startsWith("totale:"));
       return a+cols.reduce((s,k)=>s+Math.abs(BBUtils.num(r[k])),0);
@@ -61,12 +63,17 @@ window.BBAnalytics = {
     const profit=netProfitReport || (sales+amazonFees-ads);
     const rules=BBUtils.rules();
     const subscriptionCost=BBUtils.num(rules.monthlyFee)*BBUtils.num(rules.subscriptionMonths);
+    const productionCost=BBUtils.num(rules.productionCostPerUnit)*units;
+    const shippingCost=BBUtils.num(rules.shippingCostPerUnit)*units;
+    const extraFixedCosts=BBUtils.num(rules.extraFixedCosts);
     const adsExtra=netProfitReport ? Math.max(ads-adsProfitReport,0) : ads;
     const reconciledProfit=(netProfitReport||profit)-adsExtra-subscriptionCost;
     const conservativeProfit=(netProfitReport||profit)-ads-subscriptionCost;
+    const avgPrice=units?sales/units:NaN;
+    const manualBalance=sales-referralFeesProfit-ads-subscriptionCost-productionCost-shippingCost-extraFixedCosts;
 
     return {
-      sales,salesBR,salesTX,salesOrders,salesProfit,units,sessions,amazonFees,amazonFeesTX,amazonFeesProfit,ads,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,reconciledProfit,conservativeProfit,
+      sales,salesBR,salesTX,salesOrders,salesProfit,units,unitsProfit,avgPrice,sessions,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
       tacos:sales?ads/sales*100:NaN,
       acos:adsSales?ads/adsSales*100:NaN,
       roas:ads?adsSales/ads:NaN,

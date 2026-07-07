@@ -163,13 +163,19 @@ function bind(){
   BBUtils.el("ruleMargin").value=ru.margin;
   BBUtils.el("ruleMonthlyFee").value=ru.monthlyFee;
   BBUtils.el("ruleSubscriptionMonths").value=ru.subscriptionMonths;
+  BBUtils.el("ruleProductionCost").value=ru.productionCostPerUnit;
+  BBUtils.el("ruleShippingCost").value=ru.shippingCostPerUnit;
+  BBUtils.el("ruleExtraFixedCosts").value=ru.extraFixedCosts;
   BBUtils.el("saveRules").addEventListener("click",()=>{
     localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({
       tacos:BBUtils.num(BBUtils.el("ruleTacos").value),
       acos:BBUtils.num(BBUtils.el("ruleAcos").value),
       margin:BBUtils.num(BBUtils.el("ruleMargin").value),
       monthlyFee:BBUtils.num(BBUtils.el("ruleMonthlyFee").value),
-      subscriptionMonths:BBUtils.num(BBUtils.el("ruleSubscriptionMonths").value)
+      subscriptionMonths:BBUtils.num(BBUtils.el("ruleSubscriptionMonths").value),
+      productionCostPerUnit:BBUtils.num(BBUtils.el("ruleProductionCost").value),
+      shippingCostPerUnit:BBUtils.num(BBUtils.el("ruleShippingCost").value),
+      extraFixedCosts:BBUtils.num(BBUtils.el("ruleExtraFixedCosts").value)
     }));
     alert("Regole salvate");
     BBRender.renderAll();

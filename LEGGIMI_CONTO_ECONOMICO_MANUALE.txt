@@ -1,0 +1,39 @@
+BipBop Enterprise 2026 - Conto economico manuale v2.8
+
+Cosa aggiunge
+- Nel Profit Center compare una nuova sezione "Conto economico manuale".
+- Mostra:
+  - Vendite totali
+  - Numero vendite / unita
+  - Prezzo medio
+  - Canone Amazon
+  - Commissioni per segnalazione
+  - Spese ADS
+  - Produzione
+  - Spedizione
+  - Altri costi fissi
+  - Saldo manuale
+
+Dove inserire produzione e spedizione
+1. Vai in Setup.
+2. Apri Regole economiche BipBop.
+3. Compila:
+  - Produzione euro/unita
+  - Spedizione euro/unita
+  - Altri costi fissi euro
+4. Premi Salva regole.
+5. Torna in Profit Center.
+
+Formula
+Saldo manuale =
+Vendite totali
+- commissioni per segnalazione
+- spese ADS
+- canone Amazon
+- produzione
+- spedizione
+- altri costi fissi
+
+Nota
+- La produzione e la spedizione sono calcolate moltiplicando il costo unitario per il numero di unita vendute.
+- Questa sezione serve per capire se il business e davvero in attivo dopo i costi non presenti nei report Amazon.

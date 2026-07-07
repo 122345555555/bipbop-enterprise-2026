@@ -248,6 +248,18 @@ window.BBRender = {
       ["Canone stimato",BBUtils.euro(c.subscriptionCost)],
       ["Saldo finale stimato",BBUtils.euro(c.reconciledProfit)]
     ].map(x=>'<div class="kpi '+(x[0]==="Saldo finale stimato" ? ((c.reconciledProfit||0)<0?'recon-bad':'recon-good') : '')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Formula: Profitto Amazon - ADS extra non già incluse - canone stimato. Saldo prudente sottraendo tutte le ADS fatturate: <b>'+h(BBUtils.euro(c.conservativeProfit))+'</b>.</p>';
+    BBUtils.el("profitBox").innerHTML += '<h3>Conto economico manuale</h3><div class="grid3">'+[
+      ["Vendite totali",BBUtils.euro(c.sales)],
+      ["N. vendite",c.units||"—"],
+      ["Prezzo medio",Number.isFinite(c.avgPrice)?BBUtils.euro(c.avgPrice):"—"],
+      ["Canone Amazon",BBUtils.euro(c.subscriptionCost)],
+      ["Commissioni segnalazione",BBUtils.euro(c.referralFeesProfit)],
+      ["Spese ADS",BBUtils.euro(c.ads)],
+      ["Produzione",BBUtils.euro(c.productionCost)],
+      ["Spedizione",BBUtils.euro(c.shippingCost)],
+      ["Altri costi fissi",BBUtils.euro(c.extraFixedCosts)],
+      ["Saldo manuale",BBUtils.euro(c.manualBalance)]
+    ].map(x=>'<div class="kpi '+(x[0]==="Saldo manuale" ? ((c.manualBalance||0)<0?'recon-bad':'recon-good') : '')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Formula manuale: vendite totali - commissioni segnalazione - ADS - canone - produzione - spedizione - altri costi fissi. Inserisci produzione e spedizione in Setup.</p>';
     if(profitFiles.length>1){
       BBUtils.el("profitBox").innerHTML += '<div class="action yellow"><b>Attenzione: più Profit Report attivi</b><br>Per evitare doppi conteggi sto usando solo l’ultimo Profit Report caricato: <b>'+h(activeProfitFile)+'</b>. Gli altri restano in archivio ma non vengono sommati nei KPI principali.</div>';
     }
