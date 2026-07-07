@@ -1,0 +1,24 @@
+BipBop Enterprise 2026 - Profit Report senza doppi conteggi v2.6
+
+Cosa corregge
+- Se sono caricati piu Profit Report attivi, l'app non li somma piu tutti nei KPI principali.
+- Questo evita risultati gonfiati quando un report copre 2025, uno copre 2026 e un altro report copre un periodo complessivo gia incluso.
+
+Nuovo comportamento
+- Nei KPI principali di Profit Center, Executive, ASIN Decision e AI Decision Center viene usato solo l'ultimo Profit Report caricato.
+- Gli altri Profit Report restano in Archivio e non vengono cancellati.
+- Nel Profit Center appare un avviso giallo quando ci sono piu Profit Report attivi.
+
+Perche serviva
+- Sommando report economici sovrapposti il profitto poteva risultare troppo alto.
+- Esempio: il report "senza anno" poteva gia includere dati presenti nei report 2025 e 2026.
+
+Cosa fare dopo il deploy
+1. Carica questa versione su GitHub/Vercel.
+2. Apri l'app.
+3. Premi Aggiorna dati.
+4. Vai in Profit Center.
+5. Controlla l'avviso giallo e il nuovo profitto.
+
+Nota
+- Se vuoi analizzare solo un periodo preciso, lascia attivo in Archivio solo il Profit Report di quel periodo ed elimina gli altri Profit Report sovrapposti.

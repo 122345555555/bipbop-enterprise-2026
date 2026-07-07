@@ -3,6 +3,18 @@ window.BBRender = {
   setState(s){ this.state=s; },
   fileCount(type){ return this.state.files.filter(f=>f.report_type===type && !f.is_duplicate).length; },
   latest(type){ return this.state.files.find(f=>f.report_type===type); },
+  activeProfitFiles(state=this.state){
+    return (state.files||[]).filter(f=>f.report_type==="profit_report" && !f.is_duplicate);
+  },
+  profitScopedSamples(state=this.state){
+    const files=this.activeProfitFiles(state);
+    if(files.length<=1) return state.samples;
+    const latest=files[0]?.file_name;
+    return {
+      ...state.samples,
+      profit_report:(state.samples.profit_report||[]).filter(r=>r.__file_name===latest)
+    };
+  },
   inventoryControls(){
     const get=id=>BBUtils.el(id);
     return {
@@ -135,7 +147,10 @@ window.BBRender = {
   renderAll(){
     const s=this.state;
     const h=BBUtils.html;
-    const c=BBAnalytics.calc(s.samples);
+    const scopedSamples=this.profitScopedSamples(s);
+    const profitFiles=this.activeProfitFiles(s);
+    const activeProfitFile=profitFiles[0]?.file_name || "";
+    const c=BBAnalytics.calc(scopedSamples);
     const rs=BBAnalytics.recommendations(c,s.counts);
     const totalRows=Object.values(s.counts).reduce((a,b)=>a+(b||0),0);
     const imported=BBAnalytics.reportDefs.filter(r=>(s.counts[r[0]]||0)>0).length;
@@ -172,7 +187,7 @@ window.BBRender = {
     const adFiles=s.files.filter(x=>["sponsored_products","sponsored_brands","sponsored_display"].includes(x.report_type)&&!x.is_duplicate);
     BBUtils.el("adsFilesBox").innerHTML=adFiles.length?'<h3>File Ads attivi</h3><table><tr><th>Tipo</th><th>File</th><th>Righe</th></tr>'+adFiles.map(f=>'<tr><td>'+h(BBAnalytics.label(f.report_type))+'</td><td>'+h(f.file_name)+'</td><td>'+h(f.row_count)+'</td></tr>').join("")+'</table>':'';
 
-    const adr=BBAnalytics.asinDecisionRows ? BBAnalytics.asinDecisionRows(s.samples) : [];
+    const adr=BBAnalytics.asinDecisionRows ? BBAnalytics.asinDecisionRows(scopedSamples) : [];
     const adf=this.filteredAsinDecisionRows(adr);
     const asinCount=key=>adr.filter(r=>r.decision===key).length;
     BBUtils.el("asinBox").innerHTML=adr.length?'<div class="grid3">'+[
@@ -225,8 +240,11 @@ window.BBRender = {
       ["Ricavi",BBUtils.euro(c.sales)],["Commissioni Amazon",BBUtils.euro(c.amazonFees)],["Ads",BBUtils.euro(c.ads)],["Profitto",BBUtils.euro(c.profit)],["Margine",BBUtils.pct(c.margin)],["TACOS",BBUtils.pct(c.tacos)],
       ["Da Profit Report",c.netProfitReport?BBUtils.euro(c.netProfitReport):"—"],["Ricavi Profit Report",c.salesProfit?BBUtils.euro(c.salesProfit):"—"],["Fee Profit Report",c.amazonFeesProfit?BBUtils.euro(c.amazonFeesProfit):"—"]
     ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>';
-    const pr=BBAnalytics.profitRows ? BBAnalytics.profitRows(s.samples) : [];
-    const py=BBAnalytics.profitYearRows ? BBAnalytics.profitYearRows(s.samples) : [];
+    if(profitFiles.length>1){
+      BBUtils.el("profitBox").innerHTML += '<div class="action yellow"><b>Attenzione: più Profit Report attivi</b><br>Per evitare doppi conteggi sto usando solo l’ultimo Profit Report caricato: <b>'+h(activeProfitFile)+'</b>. Gli altri restano in archivio ma non vengono sommati nei KPI principali.</div>';
+    }
+    const pr=BBAnalytics.profitRows ? BBAnalytics.profitRows(scopedSamples) : [];
+    const py=BBAnalytics.profitYearRows ? BBAnalytics.profitYearRows(scopedSamples) : [];
     this.syncProfitYears(py);
     const pf=this.filteredProfitRows(pr);
     BBUtils.el("profitBox").innerHTML += py.length?'<h3>Riepilogo per anno</h3><div class="grid3">'+py.map(r=>'<div class="kpi"><small>'+h(r.year)+' — '+h(r.asinCount)+' ASIN/SKU</small><strong>'+h(BBUtils.euro(r.profit))+'</strong><br><span class="small">Vendite '+h(BBUtils.euro(r.sales))+' · Margine '+h(BBUtils.pct(r.margin))+'</span></div>').join("")+'</div>':'';
@@ -236,7 +254,7 @@ window.BBRender = {
 
     const decisionEl=BBUtils.el("decisionBox");
     if(decisionEl){
-      const dr=BBAnalytics.decisionRows ? BBAnalytics.decisionRows(s.samples,s.counts) : [];
+      const dr=BBAnalytics.decisionRows ? BBAnalytics.decisionRows(scopedSamples,s.counts) : [];
       const asinDecisions=dr.filter(r=>["ASIN","Inventario"].includes(r.area));
       const keywordDecisions=dr.filter(r=>r.area==="Keyword");
       const otherDecisions=dr.filter(r=>!["ASIN","Inventario","Keyword"].includes(r.area));
