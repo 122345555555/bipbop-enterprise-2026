@@ -104,6 +104,17 @@ function bind(){
     BBUtils.el("inventorySort").value="title";
     BBRender.renderAll();
   });
+  ["keywordSearch","keywordFilter","keywordMinClicks","keywordSort"].forEach(id=>{
+    const el=BBUtils.el(id);
+    if(el) el.addEventListener(id==="keywordSearch"?"input":"change",()=>BBRender.renderAll());
+  });
+  BBUtils.el("keywordReset")?.addEventListener("click",()=>{
+    BBUtils.el("keywordSearch").value="";
+    BBUtils.el("keywordFilter").value="all";
+    BBUtils.el("keywordMinClicks").value="0";
+    BBUtils.el("keywordSort").value="priority";
+    BBRender.renderAll();
+  });
 
   const dz=BBUtils.el("dropZone");
   dz.addEventListener("click",()=>BBUtils.el("multiFile").click());

@@ -80,14 +80,80 @@ window.BBAnalytics = {
     return Array.from(map.values()).sort((a,b)=>b.sales-a.sales).slice(0,100);
   },
   keywordRows(samples){
-    const st=samples.search_terms||[];
-    return st.map(r=>{
-      const term=BBUtils.pick(r,["Customer Search Term","Search Term","Termine di ricerca","Keyword","Parola chiave"])||"";
-      const spend=BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"]));
-      const sales=BBUtils.num(BBUtils.pick(r,["Sales","Vendite","7 Day Total Sales","14 Day Total Sales"]));
-      const clicks=BBUtils.num(BBUtils.pick(r,["Clicks","Clic","Click"]));
-      return {term,spend,sales,clicks,acos:sales?spend/sales*100:NaN,roas:spend?sales/spend:NaN};
-    }).filter(x=>x.term).sort((a,b)=>b.spend-a.spend).slice(0,100);
+    const rows=[
+      ...((samples.search_terms||[]).map(r=>({row:r,source:"Search Terms"}))),
+      ...((samples.sponsored_products||[]).map(r=>({row:r,source:"Sponsored Products"}))),
+      ...((samples.sponsored_brands||[]).map(r=>({row:r,source:"Sponsored Brands"}))),
+      ...((samples.sponsored_display||[]).map(r=>({row:r,source:"Sponsored Display"})))
+    ];
+    const map=new Map();
+    rows.forEach(item=>{
+      const r=item.row;
+      const term=BBUtils.pick(r,[
+        "Customer Search Term","Search Term","Termine di ricerca","Termine ricerca",
+        "Keyword","Parola chiave","Targeting","Targeting Expression","Target"
+      ])||"";
+      const key=BBUtils.low(term);
+      if(!key || key==="*") return;
+      const o=map.get(key)||{
+        term:BBUtils.short(term,90),
+        rawTerm:term,
+        source:new Set(),
+        spend:0,
+        sales:0,
+        clicks:0,
+        impressions:0,
+        orders:0,
+        units:0
+      };
+      o.source.add(item.source);
+      o.spend+=BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"]));
+      o.sales+=BBUtils.num(BBUtils.pick(r,["Sales","Vendite","7 Day Total Sales","14 Day Total Sales","7 Day Total Sales (€)"]));
+      o.clicks+=BBUtils.num(BBUtils.pick(r,["Clicks","Clic","Click"]));
+      o.impressions+=BBUtils.num(BBUtils.pick(r,["Impressions","Impressioni","Viewable impressions","Impressioni visualizzabili"]));
+      o.orders+=BBUtils.num(BBUtils.pick(r,["Orders","Ordini","7 Day Total Orders","14 Day Total Orders","Purchases","Acquisti"]));
+      o.units+=BBUtils.num(BBUtils.pick(r,["Units","Unità","7 Day Total Units","14 Day Total Units"]));
+      map.set(key,o);
+    });
+    return Array.from(map.values()).map(o=>{
+      const acos=o.sales?o.spend/o.sales*100:NaN;
+      const roas=o.spend?o.sales/o.spend:NaN;
+      const ctr=o.impressions?o.clicks/o.impressions*100:NaN;
+      const cpc=o.clicks?o.spend/o.clicks:NaN;
+      const cvr=o.clicks?(o.orders||o.units)/o.clicks*100:NaN;
+      let decision="observe", action="Osserva";
+      if(o.sales>0 && Number.isFinite(acos) && acos<=25 && o.clicks>=3){
+        decision="scale"; action="Aumenta budget / offerta";
+      }else if(o.sales>0 && Number.isFinite(acos) && acos<=40){
+        decision="protect"; action="Mantieni e proteggi";
+      }else if(o.sales>0){
+        decision="optimize"; action="Riduci offerta o migliora scheda";
+      }else if(o.spend>=10 || o.clicks>=15){
+        decision="cut"; action="Taglia o metti negativa";
+      }else if(o.clicks>=3 || o.impressions>=500){
+        decision="test"; action="Continua test con budget controllato";
+      }
+      const priority={scale:1,cut:2,optimize:3,protect:4,test:5,observe:6}[decision]||9;
+      return {
+        term:o.term,
+        source:Array.from(o.source).join(", "),
+        spend:o.spend,
+        sales:o.sales,
+        clicks:o.clicks,
+        impressions:o.impressions,
+        orders:o.orders,
+        units:o.units,
+        acos,
+        roas,
+        ctr,
+        cpc,
+        cvr,
+        decision,
+        action,
+        priority,
+        search:[o.rawTerm,Array.from(o.source).join(" ")].join(" ").toLowerCase()
+      };
+    }).sort((a,b)=>a.priority-b.priority || b.sales-a.sales || b.spend-a.spend).slice(0,500);
   }
 ,
   inventoryRows(samples){

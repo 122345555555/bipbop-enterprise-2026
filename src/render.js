@@ -33,6 +33,41 @@ window.BBRender = {
     else out.sort((a,b)=>String(a.title||"").localeCompare(String(b.title||"")));
     return out;
   },
+  keywordControls(){
+    const get=id=>BBUtils.el(id);
+    return {
+      q:BBUtils.low(get("keywordSearch")?.value || ""),
+      filter:get("keywordFilter")?.value || "all",
+      sort:get("keywordSort")?.value || "priority",
+      minClicks:Math.max(0, BBUtils.num(get("keywordMinClicks")?.value || 0))
+    };
+  },
+  filteredKeywordRows(rows){
+    const c=this.keywordControls();
+    let out=rows.filter(r=>{
+      if(c.q && !String(r.search || "").includes(c.q)) return false;
+      if(c.filter!=="all" && r.decision!==c.filter) return false;
+      if((r.clicks || 0)<c.minClicks) return false;
+      return true;
+    }).slice();
+    if(c.sort==="sales_desc") out.sort((a,b)=>(b.sales||0)-(a.sales||0));
+    else if(c.sort==="spend_desc") out.sort((a,b)=>(b.spend||0)-(a.spend||0));
+    else if(c.sort==="acos_desc") out.sort((a,b)=>(Number.isFinite(b.acos)?b.acos:-1)-(Number.isFinite(a.acos)?a.acos:-1));
+    else if(c.sort==="acos_asc") out.sort((a,b)=>(Number.isFinite(a.acos)?a.acos:999999)-(Number.isFinite(b.acos)?b.acos:999999));
+    else if(c.sort==="clicks_desc") out.sort((a,b)=>(b.clicks||0)-(a.clicks||0));
+    else out.sort((a,b)=>(a.priority||9)-(b.priority||9) || (b.sales||0)-(a.sales||0) || (b.spend||0)-(a.spend||0));
+    return out;
+  },
+  keywordDecisionLabel(decision){
+    return {
+      scale:"Da spingere",
+      protect:"Da proteggere",
+      optimize:"Da ottimizzare",
+      cut:"Da tagliare",
+      test:"Da testare",
+      observe:"Da osservare"
+    }[decision] || "Da osservare";
+  },
   renderAll(){
     const s=this.state;
     const h=BBUtils.html;
@@ -94,7 +129,16 @@ window.BBRender = {
     }
 
     const kr=BBAnalytics.keywordRows(s.samples);
-    BBUtils.el("keywordBox").innerHTML=kr.length?'<table><tr><th>Keyword / Search Term</th><th>Spesa</th><th>Vendite</th><th>Click</th><th>ACOS</th><th>ROAS</th></tr>'+kr.map(r=>'<tr><td>'+h(r.term)+'</td><td>'+h(BBUtils.euro(r.spend))+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.clicks)+'</td><td>'+h(BBUtils.pct(r.acos))+'</td><td>'+h(Number.isFinite(r.roas)?r.roas.toFixed(2):"—")+'</td></tr>').join("")+'</table>':'<div class="action">Importa Search Terms per vedere le keyword.</div>';
+    const kf=this.filteredKeywordRows(kr);
+    const decisionCount=key=>kr.filter(r=>r.decision===key).length;
+    BBUtils.el("keywordBox").innerHTML=kr.length?'<div class="grid3">'+[
+      ["Da spingere",decisionCount("scale")],
+      ["Da proteggere",decisionCount("protect")],
+      ["Da ottimizzare",decisionCount("optimize")],
+      ["Da tagliare",decisionCount("cut")],
+      ["Da testare",decisionCount("test")],
+      ["Spesa analizzata",BBUtils.euro(kr.reduce((a,r)=>a+(r.spend||0),0))]
+    ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Risultati mostrati: '+kf.length+' su '+kr.length+'. Le decisioni sono una prima lettura automatica: conferma sempre con margine prodotto e disponibilità inventario.</p><table class="decision-table"><tr><th>Decisione</th><th>Keyword / Search Term</th><th>Azione</th><th>Spesa</th><th>Vendite</th><th>Click</th><th>CTR</th><th>CPC</th><th>ACOS</th><th>ROAS</th><th>Fonte</th></tr>'+kf.map(r=>'<tr><td><span class="pill decision-'+h(r.decision)+'">'+h(this.keywordDecisionLabel(r.decision))+'</span></td><td>'+h(r.term)+'</td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.spend))+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.clicks)+'</td><td>'+h(BBUtils.pct(r.ctr))+'</td><td>'+h(Number.isFinite(r.cpc)?BBUtils.euro(r.cpc):"—")+'</td><td>'+h(BBUtils.pct(r.acos))+'</td><td>'+h(Number.isFinite(r.roas)?r.roas.toFixed(2):"—")+'</td><td class="small">'+h(r.source)+'</td></tr>').join("")+'</table>':'<div class="action">Importa Search Terms o report Sponsored Products per capire keyword decisive, sprechi e opportunità di investimento.</div>';
 
     
     const ba=BBAnalytics.brandAnalyticsRows ? BBAnalytics.brandAnalyticsRows(s.samples) : [];

@@ -1,0 +1,25 @@
+Aggiornamento BipBop v1.4 - Keyword Intelligence
+
+Cosa cambia:
+- la sezione Keyword non mostra solo una tabella;
+- classifica le keyword/search term in gruppi operativi:
+  - Da spingere: vendono bene con ACOS basso;
+  - Da proteggere: vendono con costo accettabile;
+  - Da ottimizzare: vendono ma costano troppo;
+  - Da tagliare: spendono/cliccano ma non vendono;
+  - Da testare: hanno segnali iniziali ma non abbastanza dati.
+- puoi cercare una keyword;
+- puoi filtrare per decisione;
+- puoi impostare click minimi;
+- puoi ordinare per priorita, vendite, spesa, ACOS o click.
+
+Report utili:
+- Search Terms e il report principale;
+- Sponsored Products;
+- Sponsored Brands;
+- Sponsored Display, se lo usi.
+
+Nota:
+Le decisioni sono una prima lettura automatica. Prima di aumentare budget
+conviene sempre guardare anche margine prodotto, disponibilita inventario
+e obiettivo della campagna.
