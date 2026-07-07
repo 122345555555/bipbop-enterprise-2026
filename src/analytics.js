@@ -9,6 +9,10 @@ window.BBAnalytics = {
     ["search_terms","Search Terms","consigliato"],
     ["orders","Report ordini","consigliato"],
     ["inventory","Inventario","consigliato"],
+    ["store_date","Store - andamento date","consigliato"],
+    ["store_live_page","Store - pagine attive","consigliato"],
+    ["store_not_live_page","Store - pagine non attive","opzionale"],
+    ["store_source","Store - fonti traffico","consigliato"],
     ["brand_analytics","Brand Analytics","consigliato"],
     ["profit_report","Profit Report","consigliato"]
   ],
@@ -22,6 +26,7 @@ window.BBAnalytics = {
   },
   calc(samples){
     const br=samples.business_report||[], tx=samples.transactions||[], inv=samples.ad_invoices||[], profitRows=samples.profit_report||[];
+    const storeDate=samples.store_date||[], storeLive=samples.store_live_page||[];
     const adsRows=[...(samples.sponsored_products||[]),...(samples.sponsored_brands||[]),...(samples.sponsored_display||[])];
     const orders=samples.orders||[];
 
@@ -38,6 +43,17 @@ window.BBAnalytics = {
     const units=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"])),0)||
       orders.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità"])),0)||unitsProfit;
     const sessions=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sessions","Sessioni"])),0);
+    const storeSales=storeDate.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Vendite","Sales"])),0) ||
+      storeLive.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Vendite","Sales"])),0);
+    const storeUnits=storeDate.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Unità","Units"])),0) ||
+      storeLive.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Unità","Units"])),0);
+    const storeOrders=storeDate.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Ordini","Orders"])),0) ||
+      storeLive.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Ordini","Orders"])),0);
+    const storeViews=storeDate.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Visualizzazioni","Views"])),0) ||
+      storeLive.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Visualizzazioni","Views"])),0);
+    const storeVisitors=storeDate.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Visitatori","Visite","Visitors","Visits"])),0) ||
+      storeLive.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Visite","Visitatori","Visits","Visitors"])),0);
+    const storeNewVisitors=storeDate.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Nuovi visitatori dello Store","New Store Visitors","Nuovi visitatori"])),0);
 
     const amazonFeesTX=tx.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Commissioni Amazon","Amazon fees","commissioni"])),0);
     const referralFeesProfit=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Commissione per segnalazione: Totale","Referral fee: Total","Referral fees: Total"])),0);
@@ -73,7 +89,10 @@ window.BBAnalytics = {
     const manualBalance=sales-referralFeesProfit-ads-subscriptionCost-productionCost-shippingCost-extraFixedCosts;
 
     return {
-      sales,salesBR,salesTX,salesOrders,salesProfit,units,unitsProfit,avgPrice,sessions,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
+      sales,salesBR,salesTX,salesOrders,salesProfit,units,unitsProfit,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
+      storeSalesShare:sales&&storeSales?storeSales/sales*100:NaN,
+      storeConversion:storeVisitors&&storeOrders?storeOrders/storeVisitors*100:NaN,
+      storeSalesPerVisitor:storeVisitors?storeSales/storeVisitors:NaN,
       tacos:sales?ads/sales*100:NaN,
       acos:adsSales?ads/adsSales*100:NaN,
       roas:ads?adsSales/ads:NaN,
@@ -88,6 +107,7 @@ window.BBAnalytics = {
     if(!counts.business_report) out.push(["red","Importa Business Report","Serve per sessioni, conversione e vendite per ASIN."]);
     if(!counts.transactions) out.push(["red","Importa Transazioni","Serve per commissioni Amazon e movimenti reali."]);
     if(!counts.ad_invoices) out.push(["yellow","Importa Fatture Ads","Serve per la spesa pubblicitaria reale fatturata."]);
+    if(!counts.store_date && !counts.store_live_page) out.push(["yellow","Importa Store Amazon","Serve per capire se conviene spingere greche, quadri, adesivi o nuove varianti."]);
     if(Number.isFinite(c.tacos)&&c.tacos>r.tacos) out.push(["red","TACOS alto","TACOS "+BBUtils.pct(c.tacos)+" sopra target "+r.tacos+"%."]);
     if(Number.isFinite(c.acos)&&c.acos>r.acos) out.push(["red","ACOS alto","ACOS "+BBUtils.pct(c.acos)+" sopra target "+r.acos+"%."]);
     if(Number.isFinite(c.ctr)&&c.ctr<0.25) out.push(["yellow","CTR basso","CTR "+BBUtils.pct(c.ctr)+": controlla immagine, titolo e pertinenza keyword."]);
@@ -241,6 +261,111 @@ window.BBAnalytics = {
     }).sort((a,b)=>a.priority-b.priority || b.sales-a.sales || b.spend-a.spend).slice(0,500);
   }
 ,
+  storeMetricRows(rows,labelKey,kind){
+    return (rows||[]).map(r=>{
+      const name=BBUtils.pick(r,[labelKey,"Fonte","Pagine attive","Altre pagine","Data"])||"";
+      const sales=BBUtils.num(BBUtils.pick(r,["Vendite","Sales"]));
+      const units=BBUtils.num(BBUtils.pick(r,["Unità","Units"]));
+      const orders=BBUtils.num(BBUtils.pick(r,["Ordini","Orders"]));
+      const views=BBUtils.num(BBUtils.pick(r,["Visualizzazioni","Views"]));
+      const visits=BBUtils.num(BBUtils.pick(r,["Visite","Visitatori","Visits","Visitors"]));
+      const stay=BBUtils.num(BBUtils.pick(r,["Tempo medio di permanenza","Average Dwell Time"]));
+      const bounce=BBUtils.num(BBUtils.pick(r,["Frequenza media di rimbalzo","Bounce Rate"]));
+      const salesPerVisit=visits?sales/visits:NaN;
+      const orderRate=visits?orders/visits*100:NaN;
+      return {kind,name,sales,units,orders,views,visits,stay,bounce,salesPerVisit,orderRate,search:String(name||"").toLowerCase()};
+    }).filter(r=>r.name).sort((a,b)=>b.sales-a.sales || b.visits-a.visits);
+  },
+  categoryForText(text){
+    const t=BBUtils.low(text);
+    if(t.includes("grech")) return "Greche murali";
+    if(t.includes("mongolfier") || t.includes("aerei") || t.includes("viaggio")) return "Mongolfiere / viaggio";
+    if(t.includes("quadri")) return "Quadri cameretta";
+    if(t.includes("animali")) return "Animali";
+    if(t.includes("stelle") || t.includes("luna") || t.includes("sogni")) return "Stelle / luna";
+    if(t.includes("dinosauri") || t.includes("dinosauro")) return "Dinosauri";
+    if(t.includes("unicorno") || t.includes("fate") || t.includes("principess")) return "Fiaba / unicorni";
+    if(t.includes("natali")) return "Natale";
+    if(t.includes("bordo") || t.includes("greca")) return "Greche murali";
+    return "Adesivi murali";
+  },
+  productStrategyRows(samples){
+    const map=new Map();
+    const ensure=cat=>{
+      const o=map.get(cat)||{category:cat,sales:0,units:0,profit:0,views:0,visits:0,orders:0,keywords:0,keywordSales:0,keywordSpend:0,pages:new Set(),products:new Set()};
+      map.set(cat,o);
+      return o;
+    };
+    this.profitRows(samples).forEach(r=>{
+      const cat=this.categoryForText((r.title||"")+" "+(r.sku||"")+" "+(r.asin||""));
+      const o=ensure(cat);
+      o.sales+=r.sales||0;
+      o.units+=r.units||0;
+      o.profit+=r.profit||0;
+      if(r.title) o.products.add(r.title);
+    });
+    this.storeMetricRows(samples.store_live_page||[],"Pagine attive","Pagina Store").forEach(r=>{
+      const cat=this.categoryForText(r.name);
+      const o=ensure(cat);
+      o.views+=r.views||0;
+      o.visits+=r.visits||0;
+      o.orders+=r.orders||0;
+      o.sales+=r.sales||0;
+      o.units+=r.units||0;
+      o.pages.add(r.name);
+    });
+    this.keywordRows(samples).forEach(r=>{
+      const cat=this.categoryForText(r.term);
+      const o=ensure(cat);
+      o.keywords+=1;
+      o.keywordSales+=r.sales||0;
+      o.keywordSpend+=r.spend||0;
+    });
+    return Array.from(map.values()).map(o=>{
+      const margin=o.sales?o.profit/o.sales*100:NaN;
+      const conversion=o.visits&&o.orders?o.orders/o.visits*100:NaN;
+      let decision="Da osservare", action="Monitora altri dati";
+      if(o.profit>=100 && o.units>=5){
+        decision="Crea varianti";
+        action="Crea nuove varianti di disegno sul tema che vende gia'.";
+      }else if(o.visits>=100 && o.orders===0){
+        decision="Rifai pagina";
+        action="La pagina attira traffico ma non converte: migliora immagini, ordine prodotti e promessa.";
+      }else if(o.sales>0 && Number.isFinite(margin) && margin<25){
+        decision="Correggi margine";
+        action="Rivedi prezzo, formato o costo produzione prima di spingere.";
+      }else if(o.keywordSales>0 || o.sales>0){
+        decision="Spingi test";
+        action="Testa Ads mirate e una variante nuova con budget controllato.";
+      }
+      return {...o,margin,conversion,decision,action,pages:Array.from(o.pages).join(", "),products:Array.from(o.products).slice(0,2).join(" | ")};
+    }).filter(o=>o.sales||o.views||o.keywordSpend||o.keywords).sort((a,b)=>(b.profit||0)-(a.profit||0) || (b.sales||0)-(a.sales||0)).slice(0,50);
+  },
+  storeInsights(samples,c){
+    const pages=this.storeMetricRows(samples.store_live_page||[],"Pagine attive","Pagina Store");
+    const oldPages=this.storeMetricRows(samples.store_not_live_page||[],"Altre pagine","Pagina non attiva");
+    const sources=this.storeMetricRows(samples.store_source||[],"Fonte","Fonte traffico");
+    const dates=this.storeMetricRows(samples.store_date||[],"Data","Giorno");
+    const pageDecisions=pages.concat(oldPages).map(r=>{
+      let decision="Da monitorare", action="Osserva";
+      if(r.sales>0 && r.visits>0 && r.orderRate>=1){
+        decision="Da spingere"; action="Aumenta visibilita' e collega Ads/Search Terms.";
+      }else if(r.visits>=20 && r.sales===0){
+        decision="Da correggere"; action="Pagina con traffico ma zero vendite: migliora hero, immagini e prodotti.";
+      }else if(r.views>0 && r.visits<20){
+        decision="Da testare"; action="Porta traffico mirato prima di giudicarla.";
+      }
+      return {...r,decision,action};
+    });
+    const sourceDecisions=sources.map(r=>{
+      let decision="Da monitorare", action="Osserva";
+      if(r.sales>0 && r.salesPerVisit>=0.1){ decision="Da spingere"; action="Fonte che genera vendite: valuta budget o contenuti dedicati."; }
+      else if(r.visits>=100 && r.sales===0){ decision="Da correggere"; action="Molto traffico senza vendite: controlla pertinenza e landing."; }
+      return {...r,decision,action};
+    });
+    const bestDays=dates.filter(r=>r.sales>0).slice().sort((a,b)=>b.sales-a.sales).slice(0,8);
+    return {pages:pageDecisions,sources:sourceDecisions,dates,bestDays,categories:this.productStrategyRows(samples),storeSales:c.storeSales,storeUnits:c.storeUnits,storeOrders:c.storeOrders,storeViews:c.storeViews,storeVisitors:c.storeVisitors,storeNewVisitors:c.storeNewVisitors};
+  },
   inventoryRows(samples){
     const rows=samples.inventory||[];
     return rows.map(r=>{
@@ -388,7 +513,17 @@ window.BBAnalytics = {
         out.push({area:"Keyword",priority:2,type:"yellow",title:"Ottimizza keyword costosa",item:r.term,why:"Vendite presenti ma ACOS "+BBUtils.pct(r.acos)+".",action:r.action});
       }
     });
-    if(!counts?.business_report?.activeRows) out.push({area:"Dati",priority:4,type:"yellow",title:"Manca Business Report",item:"Sessioni e conversione",why:"Serve per capire traffico e conversione per ASIN.",action:"Carica Sales and Traffic by Child Item quando lo trovi."});
+    this.storeInsights(samples,this.calc(samples)).categories.forEach(r=>{
+      if(r.decision==="Crea varianti"){
+        out.push({area:"Prodotto",priority:3,type:"green",title:"Crea nuove varianti",item:r.category,why:"Categoria con vendite/profitto: "+BBUtils.euro(r.sales)+" vendite e "+BBUtils.euro(r.profit)+" profitto.",action:r.action});
+      }else if(r.decision==="Rifai pagina"){
+        out.push({area:"Store",priority:2,type:"yellow",title:"Pagina Store da correggere",item:r.category,why:"Traffico presente ("+r.visits+" visite) ma ordini bassi o assenti.",action:r.action});
+      }else if(r.decision==="Spingi test"){
+        out.push({area:"Prodotto",priority:3,type:"green",title:"Testa categoria promettente",item:r.category,why:"Segnali positivi da vendite Store, keyword o Profit Report.",action:r.action});
+      }
+    });
+    if(!counts?.business_report) out.push({area:"Dati",priority:4,type:"yellow",title:"Manca Business Report",item:"Sessioni e conversione",why:"Serve per capire traffico e conversione per ASIN.",action:"Carica Sales and Traffic by Child Item quando lo trovi."});
+    if(!counts?.store_date && !counts?.store_live_page) out.push({area:"Dati",priority:4,type:"yellow",title:"Mancano dati Store",item:"Store Amazon",why:"Servono per capire se conviene creare varianti, greche, quadri o adesivi murali.",action:"Carica Store date, livePage, source e notLivePage."});
     if(!out.length) out.push({area:"Sistema",priority:9,type:"green",title:"Nessuna urgenza critica",item:"Base dati",why:"I dati caricati non evidenziano blocchi prioritari.",action:"Continua monitoraggio e importa altri report."});
     return out.sort((a,b)=>a.priority-b.priority).slice(0,30);
   }

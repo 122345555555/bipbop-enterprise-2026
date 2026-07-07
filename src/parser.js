@@ -104,6 +104,10 @@ window.BBParser = {
     if(fn.includes("sponsored products") || fn.includes("sponsored product") || fn.includes("prodotti sponsorizzati")) return "sponsored_products";
     if(fn.includes("sponsored display") || fn.includes("display sponsorizzato")) return "sponsored_display";
     if(fn.includes("business report") || fn.includes("report aziendale")) return "business_report";
+    if(fn.includes("source") && this.hasAny(h,["fonte","vendite","visualizzazioni","visite","frequenza media di rimbalzo"])) return "store_source";
+    if(fn.includes("notlivepage") && this.hasAny(h,["altre pagine","vendite","visualizzazioni","visite"])) return "store_not_live_page";
+    if(fn.includes("livepage") && this.hasAny(h,["pagine attive","vendite","visualizzazioni","visite"])) return "store_live_page";
+    if(fn.includes("date") && this.hasAny(h,["data","vendite","visualizzazioni","visitatori","nuovi visitatori dello store"])) return "store_date";
     if(fn.includes("transaction") || fn.includes("transazioni") || fn.includes("pagamenti")) return "transactions";
     if(fn.includes("invoice") || fn.includes("fattura") || fn.includes("statement")) return "ad_invoices";
     if(fn.includes("inventory") || fn.includes("inventario") || fn.includes("tutte le offerte") || fn.includes("all listings")) return "inventory";
@@ -115,6 +119,10 @@ window.BBParser = {
     if(this.hasAny(h,["paese","tipo di account","nome account","fattura","data di emissione della fattura","importo pagato (convertito)","stato del pagamento"])) return "ad_invoices";
     if(this.hasAny(h,["stato della transazione","tipo di transazione","numero di ordine","commissioni amazon","totale (eur)","transaction type"])) return "transactions";
     if(this.hasAny(h,["ordered product sales","unit session percentage","sessions - total","unità ordinate","vendite prodotto ordinate","child asin","parent asin"])) return "business_report";
+    if(this.hasAny(h,["fonte","vendite","unità","ordini","visualizzazioni","visite","frequenza media di rimbalzo"])) return "store_source";
+    if(this.hasAny(h,["pagine attive","vendite","unità","ordini","visualizzazioni","visite"])) return "store_live_page";
+    if(this.hasAny(h,["altre pagine","vendite","unità","ordini","visualizzazioni","visite"])) return "store_not_live_page";
+    if(this.hasAny(h,["data","vendite","unità","ordini","visualizzazioni","visitatori","nuovi visitatori dello store"])) return "store_date";
     if(this.hasAny(h,["invoice","fattura","paid amount","importo pagato"]) && this.hasAny(h,["advertising","pubblicità","ads","statement","account"])) return "ad_invoices";
     if(this.hasAny(h,["order-id","purchase-date","quantity-purchased","item-price"])) return "orders";
     if(this.hasAny(h,["fulfillable","available","inventory","afn","mfn"]) && h.includes("sku")) return "inventory";

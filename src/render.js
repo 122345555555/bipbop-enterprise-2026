@@ -159,7 +159,7 @@ window.BBRender = {
     BBUtils.el("subline").textContent=imported?"Dati attivi deduplicati e aggregati dallo storico.":"Importa i report Amazon per generare KPI, alert e priorità.";
     BBUtils.el("kpis").innerHTML=[
       ["Vendite",c.sales?BBUtils.euro(c.sales):"—"],["Profitto",c.sales?BBUtils.euro(c.profit):"—"],["Margine",BBUtils.pct(c.margin)],["TACOS",BBUtils.pct(c.tacos)],
-      ["ACOS",BBUtils.pct(c.acos)],["ROAS",Number.isFinite(c.roas)?c.roas.toFixed(2):"—"],["Sessioni",c.sessions||"—"],["Conversione",BBUtils.pct(c.conversion)]
+      ["ACOS",BBUtils.pct(c.acos)],["ROAS",Number.isFinite(c.roas)?c.roas.toFixed(2):"—"],["Store",c.storeSales?BBUtils.euro(c.storeSales):"—"],["Conversione Store",BBUtils.pct(c.storeConversion)]
     ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("");
 
     BBUtils.el("topActions").innerHTML=rs.slice(0,6).map(r=>'<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("");
@@ -217,6 +217,29 @@ window.BBRender = {
       ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Risultati mostrati: '+fr.length+' su '+ir.length+'.</p><table class="compact-table"><tr><th>SKU</th><th>ASIN</th><th>Prodotto</th><th>Prezzo</th><th>Quantità</th><th>Stato</th><th>Canale</th></tr>'+fr.map(r=>'<tr><td>'+h(r.sku)+'</td><td>'+h(r.asin)+'</td><td class="product-cell">'+h(r.title)+'</td><td>'+h(BBUtils.euro(r.price))+'</td><td class="'+((r.quantity||0)<=0?'stock-bad':((r.quantity||0)<=lowStock?'stock-warn':''))+'">'+h(r.quantity)+'</td><td>'+h(r.status)+'</td><td>'+h(r.channel)+'</td></tr>').join("")+'</table>':'<div class="action">Importa il Report di tutte le offerte per vedere SKU, ASIN, prezzo, quantità e stato.</div>';
     }
 
+    const storeEl=BBUtils.el("storeBox");
+    if(storeEl){
+      const st=BBAnalytics.storeInsights ? BBAnalytics.storeInsights(scopedSamples,c) : null;
+      const fmtRate=v=>Number.isFinite(v)?v.toFixed(2):"—";
+      const storeHasData=st && (st.storeViews || st.pages.length || st.sources.length || st.categories.length);
+      storeEl.innerHTML=storeHasData?'<div class="grid3">'+[
+        ["Vendite Store",BBUtils.euro(st.storeSales)],
+        ["Unità Store",st.storeUnits||"—"],
+        ["Ordini Store",st.storeOrders||"—"],
+        ["Visitatori",st.storeVisitors||"—"],
+        ["Nuovi visitatori",st.storeNewVisitors||"—"],
+        ["Vendite / visitatore",Number.isFinite(c.storeSalesPerVisitor)?BBUtils.euro(c.storeSalesPerVisitor):"—"]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      '<h3>Scelta prodotto: cosa conviene sviluppare</h3><p class="hint">Lettura pratica per decidere se creare varianti di disegno, greche, adesivi murali o quadri. Incrocia Profit Report, keyword e dati Store.</p>'+
+      (st.categories.length?'<table class="decision-table"><tr><th>Decisione</th><th>Categoria</th><th>Azione</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Visite Store</th><th>Conversione</th><th>Pagine / prodotti</th></tr>'+st.categories.map(r=>'<tr><td><span class="pill">'+h(r.decision)+'</span></td><td><b>'+h(r.category)+'</b></td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(r.visits||"—")+'</td><td>'+h(BBUtils.pct(r.conversion))+'</td><td class="small">'+h(r.pages || r.products || "—")+'</td></tr>').join("")+'</table>':'<div class="action">Carica Profit Report, Keyword e Store per generare scelte prodotto.</div>')+
+      '<h3>Fonti traffico Store</h3>'+
+      (st.sources.length?'<table><tr><th>Decisione</th><th>Fonte</th><th>Azione</th><th>Vendite</th><th>Unità</th><th>Visite</th><th>Vendite / visita</th><th>Rimbalzo</th></tr>'+st.sources.map(r=>'<tr><td><span class="pill">'+h(r.decision)+'</span></td><td>'+h(r.name)+'</td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(r.visits)+'</td><td>'+h(BBUtils.euro(r.salesPerVisit))+'</td><td>'+h(BBUtils.pct(r.bounce*100))+'</td></tr>').join("")+'</table>':'<div class="action">Carica il report Store source per capire da dove arrivano traffico e vendite.</div>')+
+      '<h3>Pagine Store</h3>'+
+      (st.pages.length?'<table><tr><th>Decisione</th><th>Pagina</th><th>Azione</th><th>Vendite</th><th>Ordini</th><th>Visualizzazioni</th><th>Visite</th><th>Conv.</th></tr>'+st.pages.map(r=>'<tr><td><span class="pill">'+h(r.decision)+'</span></td><td>'+h(r.name)+'</td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.orders)+'</td><td>'+h(r.views)+'</td><td>'+h(r.visits)+'</td><td>'+h(BBUtils.pct(r.orderRate))+'</td></tr>').join("")+'</table>':'<div class="action">Carica livePage e notLivePage per valutare le pagine Store.</div>')+
+      '<h3>Periodo e stagionalità</h3>'+
+      (st.bestDays.length?'<p class="hint">Giorni con vendite Store: utili per capire quando il pubblico reagisce meglio e se una categoria e\' stagionale.</p><table><tr><th>Giorno</th><th>Vendite</th><th>Unità</th><th>Ordini</th><th>Visitatori</th><th>Visualizzazioni</th></tr>'+st.bestDays.map(r=>'<tr><td>'+h(r.name)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(r.orders)+'</td><td>'+h(r.visits)+'</td><td>'+h(r.views)+'</td></tr>').join("")+'</table>':'<div class="action">Carica il report Store per data per leggere periodo e stagionalità.</div>'):'<div class="action">Importa i report Store Amazon: date, livePage, notLivePage e source. Servono per capire traffico, pagine e categorie da sviluppare.</div>';
+    }
+
     const kr=BBAnalytics.keywordRows(s.samples);
     const kf=this.filteredKeywordRows(kr);
     const decisionCount=key=>kr.filter(r=>r.decision===key).length;
@@ -270,7 +293,9 @@ window.BBRender = {
     BBUtils.el("profitBox").innerHTML += py.length?'<h3>Riepilogo per anno</h3><div class="grid3">'+py.map(r=>'<div class="kpi"><small>'+h(r.year)+' — '+h(r.asinCount)+' ASIN/SKU</small><strong>'+h(BBUtils.euro(r.profit))+'</strong><br><span class="small">Vendite '+h(BBUtils.euro(r.sales))+' · Margine '+h(BBUtils.pct(r.margin))+'</span></div>').join("")+'</div>':'';
     BBUtils.el("profitBox").innerHTML += pr.length?'<h3>Profitto per ASIN</h3><p class="hint">Risultati mostrati: '+pf.length+' su '+pr.length+'.</p><table><tr><th>Anno</th><th>ASIN / Prodotto</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th></tr>'+pf.map(r=>'<tr><td>'+h(r.year)+'</td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td></tr>').join("")+'</table>':'<p class="hint">Carica il Profit Report per vedere profitto e margine per ASIN. I costi interni potranno essere collegati dopo.</p>';
 
-    BBUtils.el("growthBox").innerHTML='<div class="grid3">'+rs.map(r=>'<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("")+'</div>';
+    const strategy=BBAnalytics.productStrategyRows ? BBAnalytics.productStrategyRows(scopedSamples) : [];
+    BBUtils.el("growthBox").innerHTML='<div class="grid3">'+rs.map(r=>'<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("")+'</div>'+
+      (strategy.length?'<h3>Piano prodotto</h3><table class="decision-table"><tr><th>Decisione</th><th>Categoria</th><th>Azione</th><th>Vendite</th><th>Profitto</th><th>Segnali</th></tr>'+strategy.slice(0,12).map(r=>'<tr><td><span class="pill">'+h(r.decision)+'</span></td><td><b>'+h(r.category)+'</b></td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(BBUtils.euro(r.profit))+'</td><td class="small">Store: '+h(r.visits||0)+' visite · Keyword: '+h(r.keywords||0)+'</td></tr>').join("")+'</table>':'');
 
     const decisionEl=BBUtils.el("decisionBox");
     if(decisionEl){

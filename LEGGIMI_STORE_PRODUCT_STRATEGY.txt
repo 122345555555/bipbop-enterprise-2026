@@ -1,0 +1,21 @@
+Aggiornamento Store Intelligence + Product Strategy - 07/07/2026
+
+Cosa cambia:
+- Aggiunta la nuova sezione "Store Intelligence".
+- Il parser riconosce i report Store Amazon:
+  - date
+  - livePage
+  - notLivePage
+  - source
+- La dashboard Store mostra vendite, unita', ordini, visitatori, nuovi visitatori e vendite per visitatore.
+- Le pagine Store vengono divise tra da spingere, da correggere, da testare e da monitorare.
+- Le fonti traffico Store indicano quali canali portano vendite.
+- Aggiunta una lettura "Scelta prodotto" per capire se conviene creare varianti, spingere greche, adesivi murali, quadri o altre categorie.
+- Il Growth Plan ora include un "Piano prodotto".
+- AI Decision Center usa anche Store e categorie prodotto per suggerire nuove varianti o pagine da correggere.
+
+Come usarlo:
+- Carica i report Store Amazon in Import Amazon.
+- Puoi caricare insieme: 20250707-20260706-date.csv, livePage.csv, notLivePage.csv e source.csv.
+- Dopo il caricamento vai in Store Intelligence e AI Decision Center.
+- I dati Store non sostituiscono Profit Center: servono per capire traffico, conversione, categorie e nuove idee prodotto.
