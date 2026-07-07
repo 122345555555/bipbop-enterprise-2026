@@ -80,20 +80,17 @@ window.BBAnalytics = {
     return Array.from(map.values()).sort((a,b)=>b.sales-a.sales).slice(0,100);
   },
   keywordRows(samples){
-    const rows=[
-      ...((samples.search_terms||[]).map(r=>({row:r,source:"Search Terms"}))),
-      ...((samples.sponsored_products||[]).map(r=>({row:r,source:"Sponsored Products"}))),
-      ...((samples.sponsored_brands||[]).map(r=>({row:r,source:"Sponsored Brands"}))),
-      ...((samples.sponsored_display||[]).map(r=>({row:r,source:"Sponsored Display"})))
-    ];
+    const rows=(samples.search_terms||[]).map(r=>({row:r,source:"Search Terms"}));
     const map=new Map();
     rows.forEach(item=>{
       const r=item.row;
       const term=BBUtils.pick(r,[
-        "Customer Search Term","Search Term","Termine di ricerca","Termine ricerca",
-        "Keyword","Parola chiave","Targeting","Targeting Expression","Target"
+        "Customer Search Term","Termine di ricerca del cliente","Search Term",
+        "Termine di ricerca","Termine ricerca","Keyword","Parole chiave","Parola chiave"
       ])||"";
       const key=BBUtils.low(term);
+      const words=String(term||"").trim().split(/\s+/).filter(Boolean).length;
+      if(/^\d+$/.test(key) || words<2) return;
       if(!key || key==="*") return;
       const o=map.get(key)||{
         term:BBUtils.short(term,90),

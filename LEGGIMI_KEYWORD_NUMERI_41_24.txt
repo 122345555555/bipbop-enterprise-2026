@@ -1,0 +1,17 @@
+Aggiornamento BipBop v1.7 - Pulizia Keyword Intelligence
+
+Problema visto:
+Nella sezione Keyword comparivano righe come "41" e "24".
+
+Perche succedeva:
+L'app leggeva anche la colonna Target dei report Sponsored Brands.
+In alcuni report Amazon quel Target puo essere un numero tecnico, non una keyword.
+
+Cosa cambia:
+- Keyword Intelligence usa solo i report Search Terms veri;
+- vengono scartati i termini puramente numerici;
+- le righe "41" e "24" non compariranno piu come keyword;
+- i report Sponsored Brands restano utili nella sezione Advertising/Sponsored Brands.
+
+Dopo il deploy:
+Apri l'app, premi Aggiorna dati e torna nella sezione Keyword.
