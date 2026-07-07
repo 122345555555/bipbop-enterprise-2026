@@ -1,0 +1,16 @@
+Aggiornamento AI Decision Center - 07/07/2026
+
+Cosa cambia:
+- AI Decision Center ora e' diviso per tipologia di decisione, come richiesto.
+- Le sezioni sono:
+  1. Da correggere subito
+  2. Da controllare / ottimizzare
+  3. Da spingere
+  4. Dati e sistema
+- Ogni riga mostra priorita', tipo, elemento analizzato, motivo e azione consigliata.
+- Per gli ASIN viene mostrato anche il titolo prodotto quando disponibile.
+- Le sezioni restano visibili anche se non hanno urgenze, cosi' la pagina e' piu' facile da leggere.
+
+Come usarlo:
+- Carica tutti i file di questa cartella su GitHub sostituendo quelli attuali.
+- Vercel aggiornera' l'app automaticamente dopo il deploy.

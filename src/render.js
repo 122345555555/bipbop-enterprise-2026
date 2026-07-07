@@ -275,19 +275,23 @@ window.BBRender = {
     const decisionEl=BBUtils.el("decisionBox");
     if(decisionEl){
       const dr=BBAnalytics.decisionRows ? BBAnalytics.decisionRows(scopedSamples,s.counts) : [];
-      const asinDecisions=dr.filter(r=>["ASIN","Inventario"].includes(r.area));
-      const keywordDecisions=dr.filter(r=>r.area==="Keyword");
-      const otherDecisions=dr.filter(r=>!["ASIN","Inventario","Keyword"].includes(r.area));
       const priorityPill=(r,i)=>'<span class="pill decision-'+(r.type==="red"?"fix":(r.type==="yellow"?"stock":"scale"))+'">'+(i+1)+'</span>';
-      const section=(title,subtitle,rows,kind)=>rows.length?'<div class="decision-section"><h3>'+h(title)+'</h3><p class="hint">'+h(subtitle)+'</p><table class="decision-table"><tr><th>Priorità</th><th>Cosa</th><th>Perché</th><th>Azione</th></tr>'+rows.map((r,i)=>'<tr><td>'+priorityPill(r,i)+'</td><td><b>'+h(r.title)+'</b><br>'+(kind==="asin"?this.asinCell(r.item,r.itemTitle):this.textCell(r.item,r.area))+'</td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table></div>':'';
+      const itemCell=r=>["ASIN","Inventario"].includes(r.area)?this.asinCell(r.item,r.itemTitle):this.textCell(r.item,r.area);
+      const section=(title,subtitle,rows)=>'<div class="decision-section"><h3>'+h(title)+'</h3><p class="hint">'+h(subtitle)+'</p>'+(rows.length?'<table class="decision-table"><tr><th>Priorità</th><th>Tipo</th><th>Cosa</th><th>Perché</th><th>Azione</th></tr>'+rows.map((r,i)=>'<tr><td>'+priorityPill(r,i)+'</td><td><span class="pill">'+h(r.area)+'</span></td><td><b>'+h(r.title)+'</b><br>'+itemCell(r)+'</td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>':'<div class="action green">Nessuna urgenza in questa tipologia.</div>')+'</div>';
+      const critical=dr.filter(r=>r.type==="red");
+      const check=dr.filter(r=>r.type==="yellow" && r.area!=="Dati");
+      const opportunity=dr.filter(r=>r.type==="green" && r.area!=="Sistema");
+      const data=dr.filter(r=>r.area==="Dati" || r.area==="Sistema");
       decisionEl.innerHTML=dr.length?'<div class="grid3">'+[
-        ["Priorità critiche",dr.filter(r=>r.type==="red").length],
-        ["Da controllare",dr.filter(r=>r.type==="yellow").length],
-        ["Opportunità",dr.filter(r=>r.type==="green").length]
+        ["Da correggere",critical.length],
+        ["Da controllare",check.length],
+        ["Da spingere",opportunity.length],
+        ["Dati / sistema",data.length]
       ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
-      section("ASIN / Prodotti","Decisioni sui prodotti: perdite, stock, margine e articoli da spingere.",asinDecisions,"asin")+
-      section("Keyword / Search Term","Decisioni sulle parole chiave: dove investire, cosa ottimizzare e cosa tagliare.",keywordDecisions,"keyword")+
-      section("Dati e controllo","Report mancanti o controlli necessari per rendere le decisioni piu precise.",otherDecisions,"other"):'<div class="action">Importa report per generare decisioni operative.</div>';
+      section("Da correggere subito","Problemi che bruciano margine: ASIN in perdita o keyword che spendono senza vendite.",critical)+
+      section("Da controllare / ottimizzare","Situazioni da verificare prima di investire: stock, ACOS alto o dati da raffinare.",check)+
+      section("Da spingere","Opportunità dove aumentare budget, proteggere ranking o dare priorità commerciale.",opportunity)+
+      section("Dati e sistema","Report mancanti o messaggi di stato che aiutano a rendere le decisioni piu affidabili.",data):'<div class="action">Importa report per generare decisioni operative.</div>';
     }
     BBUtils.el("alertsBox").innerHTML=rs.map(r=>'<div class="action '+r[0]+'">🚨 <b>'+r[1]+'</b><br>'+r[2]+'</div>').join("");
     BBUtils.el("diagnosticBox").innerHTML='<div class="action"><b>SOLO TABELLE BB100 GROWTH ENGINE</b><br>Report files: '+s.files.length+'<br>Raw rows attive: '+totalRows+'<br>Report configurati: '+BBAnalytics.reportDefs.length+'<br>Storage: '+window.BIPBOP_CONFIG.storageKey+'</div>';
