@@ -38,7 +38,11 @@ async function importFiles(files){
         ? "forzato in "+BBUtils.html(BBAnalytics.label(reportType))+" (automatico: "+BBUtils.html(BBAnalytics.label(detectedType))+")"
         : "rilevato come "+BBUtils.html(BBAnalytics.label(reportType));
       if(result.isDuplicate){
-        lines.push("⚠️ "+safeFileName+": duplicato già presente per "+BBUtils.html(BBAnalytics.label(reportType))+". Salvato in archivio ma NON sommato.");
+        const existing=result.duplicateFile;
+        const existingInfo=existing
+          ? " Era già stato caricato come "+BBUtils.html(existing.file_name)+" ("+BBUtils.html(existing.row_count)+" righe)."
+          : "";
+        lines.push("ℹ️ "+safeFileName+": riconosciuto correttamente come "+BBUtils.html(BBAnalytics.label(reportType))+", ma è un duplicato."+existingInfo+" Non lo sommo di nuovo per evitare dati doppi.");
       }else{
         lines.push("✅ "+safeFileName+": "+placement+", "+parsed.rows.length+" righe, "+parsed.headers.length+" colonne, separatore "+BBUtils.html(parsed.delimiter==="\\t"?"TAB":parsed.delimiter)+".");
       }

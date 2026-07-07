@@ -1,0 +1,24 @@
+Aggiornamento BipBop v1.5 - Messaggio duplicati Brand Analytics
+
+Il file:
+IT_Performance_delle_query_di_ricerca_Visualizzazione_marchio_Completo_Quarter_2026_06_30(1).csv
+
+viene riconosciuto correttamente come Brand Analytics.
+
+Risultato del test:
+- tipo report: Brand Analytics
+- righe dati: 351
+- colonne: 34
+- separatore: virgola
+
+Perche l'app mostrava il messaggio:
+Il file era gia presente nel database. L'app evita di sommare due volte lo
+stesso report, quindi lo segnala come duplicato.
+
+Cosa cambia:
+- il messaggio ora dice chiaramente che il file e riconosciuto;
+- spiega che e un duplicato;
+- indica che non viene sommato per evitare dati doppi.
+
+Dove vedere i dati:
+Vai nella sezione Brand Analytics e premi Aggiorna dati.

@@ -13,7 +13,7 @@ window.BBStorage = {
     const db=this.client();
     if(!db) throw new Error("Supabase non configurato.");
 
-    const dup=await db.from("bb100_report_files").select("id").eq("fingerprint",fingerprint).eq("report_type",reportType).limit(1);
+    const dup=await db.from("bb100_report_files").select("id,file_name,imported_at,row_count,column_count").eq("fingerprint",fingerprint).eq("report_type",reportType).limit(1);
     if(dup.error) throw new Error(dup.error.message);
     const isDuplicate=(dup.data||[]).length>0;
 
@@ -53,7 +53,7 @@ window.BBStorage = {
       }
     }
 
-    return {isDuplicate,file:insFile.data};
+    return {isDuplicate,file:insFile.data,duplicateFile:(dup.data||[])[0]||null};
   },
   async listFiles(){
     const db=this.client();
