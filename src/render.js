@@ -231,12 +231,17 @@ window.BBRender = {
         ["Featured Offer",rec.featured.latest?BBUtils.pct(rec.featured.latest.value):"—"]
       ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
       '<h3>Problemi identificati</h3><table class="decision-table"><tr><th>Priorità</th><th>Area</th><th>Problema</th><th>Perché</th><th>Azione</th></tr>'+rec.actions.map((r,i)=>'<tr><td><span class="pill '+(r.type==="red"?'red':(r.type==="green"?'green':''))+'">'+h(i+1)+'</span></td><td>'+h(r.area)+'</td><td><b>'+h(r.title)+'</b><br><span class="small">'+h(r.item)+'</span></td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>'+
-      '<h3>Inventario e stock</h3><div class="grid3">'+[
+      '<h3>Modello logistico</h3><div class="grid3">'+[
+        ["Modello",rec.logistics.label],
+        ["Giorni preparazione",rec.logistics.handlingDays],
+        ["Capacità/settimana",rec.logistics.weeklyCapacity||"—"]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><div class="action '+(rec.logistics.mode==="merchant"?'green':'yellow')+'"><b>'+h(rec.logistics.mode==="merchant"?"Produzione su ordine attiva":"Modello logistico da controllare")+'</b><br>'+h(rec.logistics.mode==="merchant"?"La dashboard non interpreta automaticamente stock fisico zero come errore FBA. Controlla invece che l'offerta sia acquistabile, producibile e con tempi competitivi.":"Se usi stock o FBA su alcuni prodotti, verifica disponibilita' reale dei top seller.")+'</div>'+
+      '<h3>Acquistabilita\' e disponibilita\'</h3><div class="grid3">'+[
         ["SKU inventario",rec.inventory.total||"—"],
-        ["Stock zero",rec.inventory.outOfStock||0],
+        [rec.logistics.mode==="fba"?"Stock zero":"Quantita' zero da verificare",rec.inventory.outOfStock||0],
         ["Sotto scorta",rec.inventory.lowStock||0]
       ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
-      (rec.inventory.topOutOfStock.length?'<table><tr><th>ASIN / Prodotto</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Stock</th><th>Azione</th></tr>'+rec.inventory.topOutOfStock.map(r=>'<tr><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku||"")+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(BBUtils.euro(r.profit))+'</td><td class="stock-bad">'+h(r.stock)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>':'<div class="action '+(rec.hasInventory?'green':'yellow')+'"><b>Stock critico non evidente</b><br>'+(rec.hasInventory?'Nei dati caricati non vedo top seller con stock zero.':'Carica il report Inventario per controllare stock zero e prodotti bloccati.')+'</div>')+
+      (rec.inventory.topOutOfStock.length?'<table><tr><th>ASIN / Prodotto</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Quantità</th><th>Azione</th></tr>'+rec.inventory.topOutOfStock.map(r=>'<tr><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku||"")+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(BBUtils.euro(r.profit))+'</td><td class="stock-bad">'+h(r.stock)+'</td><td>'+h(rec.logistics.mode==="fba"?r.action:"Verifica che l'offerta FBM sia acquistabile e che tu riesca a produrlo/spedirlo nei tempi dichiarati.")+'</td></tr>').join("")+'</table>':'<div class="action '+(rec.hasInventory?'green':'yellow')+'"><b>Disponibilita\' critica non evidente</b><br>'+(rec.hasInventory?'Nei dati caricati non vedo top seller con quantita\' zero da trattare come blocco immediato.':'Carica il report Inventario per controllare prodotti non attivi, quantita\' offerta e disponibilita\'.')+'</div>')+
       '<h3>Featured Offer / Buy Box</h3><div class="grid3">'+[
         ["Stato",statusText],
         ["Ultimo valore",rec.featured.latest?BBUtils.pct(rec.featured.latest.value):"—"],

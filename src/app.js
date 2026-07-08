@@ -163,6 +163,9 @@ function bind(){
   BBUtils.el("ruleMargin").value=ru.margin;
   BBUtils.el("ruleMonthlyFee").value=ru.monthlyFee;
   BBUtils.el("ruleSubscriptionMonths").value=ru.subscriptionMonths;
+  BBUtils.el("ruleFulfillmentMode").value=ru.fulfillmentMode || "merchant";
+  BBUtils.el("ruleHandlingDays").value=ru.handlingDays;
+  BBUtils.el("ruleWeeklyProductionCapacity").value=ru.weeklyProductionCapacity;
   BBUtils.el("ruleProductionCost").value=ru.productionCostPerUnit;
   BBUtils.el("ruleShippingCost").value=ru.shippingCostPerUnit;
   BBUtils.el("ruleExtraFixedCosts").value=ru.extraFixedCosts;
@@ -173,6 +176,9 @@ function bind(){
       margin:BBUtils.num(BBUtils.el("ruleMargin").value),
       monthlyFee:BBUtils.num(BBUtils.el("ruleMonthlyFee").value),
       subscriptionMonths:BBUtils.num(BBUtils.el("ruleSubscriptionMonths").value),
+      fulfillmentMode:BBUtils.el("ruleFulfillmentMode").value,
+      handlingDays:BBUtils.num(BBUtils.el("ruleHandlingDays").value),
+      weeklyProductionCapacity:BBUtils.num(BBUtils.el("ruleWeeklyProductionCapacity").value),
       productionCostPerUnit:BBUtils.num(BBUtils.el("ruleProductionCost").value),
       shippingCostPerUnit:BBUtils.num(BBUtils.el("ruleShippingCost").value),
       extraFixedCosts:BBUtils.num(BBUtils.el("ruleExtraFixedCosts").value)

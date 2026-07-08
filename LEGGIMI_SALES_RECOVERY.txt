@@ -8,8 +8,9 @@ La sezione controlla automaticamente:
 1. Giorni senza vendite
    Usa Store per data, Business Report e Report ordini quando disponibili.
 
-2. Inventario / stock
-   Evidenzia prodotti con stock zero o sotto scorta, soprattutto se hanno gia' venduto.
+2. Acquistabilita' / disponibilita'
+   Per il modello BipBop predefinito considera produzione su ordine e spedizione diretta.
+   Quindi stock fisico zero non e' per forza un errore: diventa un controllo su offerta acquistabile, tempi di preparazione e capacita' produttiva.
 
 3. Featured Offer / Buy Box
    Se il Business Report contiene la colonna Featured Offer / Buy Box, segnala se scende sotto le soglie:
@@ -21,7 +22,8 @@ La sezione controlla automaticamente:
 
 5. Azioni immediate
    Mostra checklist operative:
-   - ripristina inventario FBA
+   - verifica offerta acquistabile
+   - controlla tempi di produzione e spedizione
    - controlla inventario bloccato
    - recupera Featured Offer
    - ottimizza listing con traffico
@@ -29,8 +31,11 @@ La sezione controlla automaticamente:
 
 IMPORTANTE
 
-L'app non puo' entrare da sola in Amazon e creare spedizioni FBA.
-Pero' puo' dirti quando devi farlo e su quali prodotti concentrarti.
+L'app non puo' entrare da sola in Amazon e modificare offerte, tempi o spedizioni.
+Pero' puo' dirti quando devi controllare acquistabilita', prezzo, Featured Offer e capacita' produttiva.
+
+FBA non e' il modello predefinito.
+Se un giorno vorrai testarlo, usalo solo su pochi top seller, non su tutto il catalogo.
 
 Ogni martedi carica questi report:
 - Business Report
@@ -42,4 +47,3 @@ Ogni martedi carica questi report:
 - Search Terms
 - Brand Analytics
 - Store: date, livePage, notLivePage, source
-

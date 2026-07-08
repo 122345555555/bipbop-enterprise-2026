@@ -472,6 +472,11 @@ window.BBAnalytics = {
       .slice(0,20);
   },
   salesRecovery(samples,c,counts){
+    const rules=BBUtils.rules();
+    const mode=rules.fulfillmentMode || "merchant";
+    const isFbaMode=mode==="fba";
+    const isHybridMode=mode==="hybrid";
+    const logisticsLabel=isFbaMode?"FBA":(isHybridMode?"Ibrido":"Produzione su ordine");
     const timeline=this.salesTimelineRows(samples);
     const latest=timeline.length?timeline[timeline.length-1]:null;
     const salesDays=timeline.filter(r=>(r.sales||0)>0 || (r.units||0)>0);
@@ -489,6 +494,10 @@ window.BBAnalytics = {
     const outOfStock=inv.filter(r=>(r.quantity||0)<=0);
     const lowStock=inv.filter(r=>(r.quantity||0)>0 && (r.quantity||0)<=5);
     const topOutOfStock=asin.filter(r=>(r.stock!==null && r.stock<=0) && ((r.sales||0)>0 || (r.units||0)>0 || (r.profit||0)>0)).slice(0,10);
+    const weeklyCapacity=BBUtils.num(rules.weeklyProductionCapacity);
+    const handlingDays=BBUtils.num(rules.handlingDays);
+    const capacityRisk=weeklyCapacity>0 && unitsLast30>weeklyCapacity;
+    const handlingRisk=handlingDays>3;
 
     const featured=this.featuredOfferRows(samples);
     const featuredLatest=featured.length?featured[featured.length-1]:null;
@@ -502,10 +511,18 @@ window.BBAnalytics = {
     const zeroTraffic=this.trafficNoSalesRows(samples);
     const actions=[];
     if(daysWithoutSales!==null && daysWithoutSales>=7){
-      actions.push({area:"Vendite",type:"red",priority:1,title:"Periodo senza vendite",item:daysWithoutSales+" giorni",why:"Ultima vendita rilevata il "+lastSale.date.toLocaleDateString("it-IT")+".",action:"Controlla subito stock FBA, Featured Offer e listing con traffico."});
+      actions.push({area:"Vendite",type:"red",priority:1,title:"Periodo senza vendite",item:daysWithoutSales+" giorni",why:"Ultima vendita rilevata il "+lastSale.date.toLocaleDateString("it-IT")+".",action:"Controlla subito acquistabilità dell'offerta, Featured Offer, prezzo e listing con traffico."});
     }
-    if(topOutOfStock.length || outOfStock.length){
-      actions.push({area:"Inventario",type:"red",priority:1,title:"Ripristina inventario FBA / stock",item:(topOutOfStock.length||outOfStock.length)+" prodotti critici",why:"Prodotti con stock zero possono bloccare vendite e Buy Box.",action:"Verifica spedizioni FBA in arrivo, inventario bloccato e crea rifornimento per i top seller."});
+    if(isFbaMode && (topOutOfStock.length || outOfStock.length)){
+      actions.push({area:"Inventario",type:"red",priority:1,title:"Ripristina stock FBA",item:(topOutOfStock.length||outOfStock.length)+" prodotti critici",why:"In modello FBA, prodotti con stock zero possono bloccare vendite e Featured Offer.",action:"Verifica spedizioni FBA in arrivo, inventario bloccato e rifornimento dei top seller."});
+    }else if((!isFbaMode) && (topOutOfStock.length || outOfStock.length)){
+      actions.push({area:"Offerta",type:"yellow",priority:2,title:"Verifica acquistabilità FBM",item:(topOutOfStock.length||outOfStock.length)+" prodotti con quantita' zero",why:"Nel tuo modello produci su ordine: stock fisico zero va bene, ma su Amazon l'offerta deve risultare acquistabile.",action:"Controlla quantita' offerta, tempi di preparazione, template spedizione e prodotti non attivi/bloccati."});
+    }
+    if(capacityRisk){
+      actions.push({area:"Produzione",type:"yellow",priority:2,title:"Capacita' produttiva da controllare",item:unitsLast30+" unita' negli ultimi 30 giorni",why:"Le vendite recenti superano la capacita' settimanale impostata nel Setup.",action:"Aumenta capacita', allunga tempi realistici o crea mini stock solo sui top seller."});
+    }
+    if(handlingRisk){
+      actions.push({area:"Spedizione",type:"yellow",priority:2,title:"Tempi di preparazione alti",item:handlingDays+" giorni",why:"Tempi lunghi possono ridurre conversione e Featured Offer rispetto a offerte piu' rapide.",action:"Valuta template spedizione piu' chiari, produzione piu' rapida o mini stock sui prodotti vincenti."});
     }
     if(featuredStatus==="critical" || featuredStatus==="warning"){
       actions.push({area:"Featured Offer",type:featuredStatus==="critical"?"red":"yellow",priority:featuredStatus==="critical"?1:2,title:"Recupera Featured Offer",item:BBUtils.pct(featuredLatest.value),why:"Quando scende sotto il 95% perdi visibilita' rispetto ad altri venditori.",action:"Controlla prezzo, disponibilita', tempi spedizione, salute account e competitor."});
@@ -520,6 +537,7 @@ window.BBAnalytics = {
     return {
       daysWithoutSales,lastSale,latest,trafficLast30,salesLast30,unitsLast30,
       inventory:{total:inv.length,outOfStock:outOfStock.length,lowStock:lowStock.length,topOutOfStock},
+      logistics:{mode,label:logisticsLabel,handlingDays,weeklyCapacity,capacityRisk,handlingRisk},
       featured:{rows:featured,latest:featuredLatest,avg:featuredAvg,min:featuredMin,status:featuredStatus},
       zeroTraffic,
       actions:actions.sort((a,b)=>a.priority-b.priority),
@@ -527,10 +545,10 @@ window.BBAnalytics = {
       hasInventory:!!counts?.inventory,
       hasStore:!!(counts?.store_date || counts?.store_live_page),
       checklists:[
-        {title:"Priorita' 1: ripristina inventario FBA",steps:["Vai in Catena di distribuzione > Spedizioni FBA e verifica spedizioni in arrivo o bloccate.","Controlla inventario bloccato/stranded e risolvi eventuali problemi.","Rifornisci prima i top seller e gli ASIN con traffico ma stock zero."]},
-        {title:"Priorita' 2: recupera Featured Offer",steps:["Confronta prezzo e consegna con i competitor sugli ASIN principali.","Mantieni tempi di spedizione rapidi e controlla salute account.","Se la Featured Offer scende sotto 85%, agisci prima di aumentare Ads."]},
+        {title:isFbaMode?"Priorita' 1: ripristina stock FBA":"Priorita' 1: offerta acquistabile e producibile",steps:isFbaMode?["Vai in Catena di distribuzione > Spedizioni FBA e verifica spedizioni in arrivo o bloccate.","Controlla inventario bloccato/stranded e risolvi eventuali problemi.","Rifornisci prima i top seller e gli ASIN con traffico ma stock zero."]:["Controlla che i prodotti risultino acquistabili anche se li produci su ordine.","Verifica tempi di preparazione, template spedizione e quantita' offerta su Amazon.","Tieni mini stock solo sui 3-5 top seller se i dati mostrano domanda stabile."]},
+        {title:"Priorita' 2: recupera Featured Offer",steps:["Confronta prezzo e consegna con i competitor sugli ASIN principali.","Mantieni tempi di preparazione e spedizione realistici ma rapidi.","Se la Featured Offer scende sotto 85%, agisci prima di aumentare Ads."]},
         {title:"Priorita' 3: ottimizza listing con traffico",steps:["Aggiorna immagini principali, infografiche e foto ambientate.","Riscrivi titoli e bullet con keyword precise: adesivi murali bambini, greche cameretta, gift nascita.","Controlla recensioni, varianti, prezzo e coerenza tra annuncio e pagina prodotto."]},
-        {title:"Monitoraggio continuo",steps:["Ogni martedi carica Business Report, Inventario, Store, Search Terms, Ads, Profit Report e Ordini.","Controlla giorni senza vendite, Featured Offer, stock e traffico senza conversione.","Se resti senza vendite per 7 giorni, apri subito questa sezione."]}
+        {title:"Monitoraggio continuo",steps:["Ogni martedi carica Business Report, Inventario, Store, Search Terms, Ads, Profit Report e Ordini.","Controlla giorni senza vendite, Featured Offer, acquistabilita' offerta e traffico senza conversione.","Se resti senza vendite per 7 giorni, apri subito questa sezione."]}
       ]
     };
   },
