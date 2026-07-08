@@ -182,15 +182,17 @@ window.BBRender = {
     BBUtils.el("headline").textContent=imported?"Stato operativo: "+healthText:"Configura il cruscotto decisionale";
     BBUtils.el("subline").textContent=firstDecision?firstDecision.title+" — "+firstDecision.action:"Importa i report Amazon per vedere priorita', margine, vendite e prossime azioni.";
     BBUtils.el("kpis").innerHTML=[
-      ["Score operativo",health+"/100",healthClass],
-      ["Saldo stimato",c.sales?BBUtils.euro(profitValue):"—",profitValue<0?"red":"green"],
-      ["Vendite",c.sales?BBUtils.euro(c.sales):"—",""],
-      ["Unita' vendute",c.units||"—",""],
-      ["Giorni senza vendite",execRecovery?.daysWithoutSales===null?"—":execRecovery?.daysWithoutSales,(execRecovery?.daysWithoutSales||0)>=7?"red":""],
-      ["TACOS",BBUtils.pct(c.tacos),Number.isFinite(c.tacos)&&c.tacos>execRules.tacos?"red":""],
-      ["Margine dopo costi",execCostSummary?.rows?.length?BBUtils.pct(execCostSummary.totals.margin):BBUtils.pct(c.margin),(execCostSummary?.totals?.margin||c.margin)<execRules.margin?"yellow":""],
-      ["Competitor monitorati",execCompetitor?.rows?.length||0,""]
-    ].map(x=>'<div class="kpi '+(x[2]==="red"?'recon-bad':(x[2]==="green"?'recon-good':''))+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("");
+      ["Score operativo",health+"/100",healthClass,"Obiettivo: almeno 70/100"],
+      ["Saldo stimato",c.sales?BBUtils.euro(profitValue):"—",profitValue<0?"red":"green","Obiettivo: sopra 0 euro"],
+      ["Vendite",c.sales?BBUtils.euro(c.sales):"—","","Obiettivo: crescita settimanale"],
+      ["Unita' vendute",c.units||"—","","Obiettivo: crescita stabile"],
+      ["Giorni senza vendite",execRecovery?.daysWithoutSales===null?"—":execRecovery?.daysWithoutSales,(execRecovery?.daysWithoutSales||0)>=7?"red":"","Obiettivo: 0-2 giorni"],
+      ["TACOS",BBUtils.pct(c.tacos),Number.isFinite(c.tacos)&&c.tacos>execRules.tacos?"red":"green","Target massimo: "+execRules.tacos+"%"],
+      ["ACOS",BBUtils.pct(c.acos),Number.isFinite(c.acos)&&c.acos>execRules.acos?"red":"green","Target massimo: "+execRules.acos+"%"],
+      ["Margine dopo costi",execCostSummary?.rows?.length?BBUtils.pct(execCostSummary.totals.margin):BBUtils.pct(c.margin),(execCostSummary?.totals?.margin||c.margin)<execRules.margin?"red":"green","Target minimo: "+execRules.margin+"%"],
+      ["Completezza dati",Math.round(dataScore)+"%",dataScore>=80?"green":(dataScore>=50?"yellow":"red"),"Obiettivo: almeno 80%"],
+      ["Competitor monitorati",execCompetitor?.rows?.length||0,"","Obiettivo: 3-5 prodotti competitor"]
+    ].map(x=>'<div class="kpi '+(x[2]==="red"?'recon-bad':(x[2]==="green"?'recon-good':(x[2]==="yellow"?'stock-warn':'')))+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[3]||"")+'</span></div>').join("");
 
     BBUtils.el("topActions").innerHTML='<div class="executive-status '+healthClass+'"><b>'+h(healthText)+'</b><span>'+h(health>=70?"La base e' utilizzabile: investi sulle opportunita' migliori, ma continua a controllare margini e competitor.":(health>=45?"Ci sono segnali buoni, ma prima di spingere devi risolvere le priorita' sotto.":"Serve mettere ordine: correggi i blocchi prima di aumentare budget o creare troppe varianti."))+'</span></div>'+
       (actionRows.length?'<table class="decision-table"><tr><th>Priorita</th><th>Area</th><th>Perche</th><th>Azione</th></tr>'+actionRows.map((r,i)=>'<tr><td><span class="pill '+(r.type==="red"?'red':(r.type==="green"?'green':''))+'">'+h(i+1)+'</span></td><td><b>'+h(r.title)+'</b><br><span class="small">'+h(r.area)+'</span></td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>':'<div class="action green"><b>Nessuna urgenza critica</b><br>Continua con monitoraggio, caricamento report e test controllati.</div>');
@@ -318,7 +320,7 @@ window.BBRender = {
     const competitorEl=BBUtils.el("competitorBox");
     if(competitorEl){
       const comp=BBAnalytics.competitorSummary ? BBAnalytics.competitorSummary(scopedSamples,c) : {rows:[],opportunities:[]};
-      const incompleteCompetitors=(comp.rows||[]).filter(r=>!r.isOwn && !r.totalPrice && !r.deliveryDays && !r.strengths && !r.weaknesses && !r.notes);
+      const incompleteCompetitors=(comp.rows||[]).filter(r=>!r.isOwn && !r.totalPrice && !r.deliveryDays && !r.reviews && !r.rating && !r.bsr && !r.monthlySales && !r.strengths && !r.weaknesses && !r.notes);
       const linkFor=domain=>{
         const d=String(domain||"").trim();
         if(!d) return "";
@@ -326,33 +328,37 @@ window.BBRender = {
         return '<a href="'+h(url)+'" target="_blank" rel="noopener">Apri</a>';
       };
       competitorEl.innerHTML='<div class="grid3">'+[
-        ["Competitor salvati",comp.rows.length],
+        ["Prodotti monitorati",comp.rows.length],
         ["Prezzo medio Amazon/BipBop",Number.isFinite(comp.avgAmazonPrice)?BBUtils.euro(comp.avgAmazonPrice):"—"],
         ["Prezzo medio competitor",Number.isFinite(comp.avgCompetitor)?BBUtils.euro(comp.avgCompetitor):"—"],
-        ["Piu economico",comp.cheapest?comp.cheapest.name:"—"],
+        ["Domanda piu alta",comp.bestDemand?comp.bestDemand.name:"—"],
         ["Consegna piu veloce",comp.fastest?comp.fastest.name:"—"],
         ["Canale Shopify",comp.own?comp.own.domain:"bipbopstickers.it"]
       ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
-      '<h3>Aggiungi competitor o benchmark</h3><p class="hint">Inserisci competitor Amazon, negozi Shopify, siti esterni o marketplace. Per Amazon puoi mettere una ricerca tipo amazon.it/s?k=adesivi+murali+bambini e annotare i prezzi principali.</p>'+
+      '<h3>Aggiungi prodotto competitor</h3><p class="hint">Inserisci prodotti concorrenti Amazon o web. Se Amazon mostra “venduti nell’ultimo mese”, recensioni, rating o classifica Bestseller, inseriscili: l’app stima la domanda e ti dice se conviene creare un articolo simile.</p>'+
       '<div class="grid3">'+
-        '<div><label>Nome</label><input id="competitorName" placeholder="Es. brand competitor"></div>'+
-        '<div><label>Dominio / URL</label><input id="competitorDomain" placeholder="competitor.it oppure amazon.it/s?k=..."></div>'+
+        '<div><label>Prodotto / titolo</label><input id="competitorName" placeholder="Es. adesivo murale animali safari"></div>'+
+        '<div><label>URL prodotto</label><input id="competitorDomain" placeholder="Link Amazon o sito competitor"></div>'+
         '<div><label>Canale</label><select id="competitorType"><option value="site">Sito competitor</option><option value="amazon">Amazon / Marketplace</option><option value="shopify">Shopify tuo</option><option value="marketplace">Altro marketplace</option></select></div>'+
-        '<div><label>Categoria</label><input id="competitorCategory" placeholder="Greche, adesivi, quadri, gift..."></div>'+
-        '<div><label>Prezzo medio €</label><input id="competitorPrice" type="number" step="0.01" min="0" placeholder="19.90"></div>'+
+        '<div><label>Tipologia prodotto</label><input id="competitorCategory" placeholder="Greche, adesivi, quadri, gift..."></div>'+
+        '<div><label>Prezzo €</label><input id="competitorPrice" type="number" step="0.01" min="0" placeholder="19.90"></div>'+
         '<div><label>Spedizione €</label><input id="competitorShipping" type="number" step="0.01" min="0" placeholder="0"></div>'+
         '<div><label>Giorni consegna</label><input id="competitorDelivery" type="number" step="1" min="0" placeholder="2"></div>'+
-        '<div><label>Punti forti</label><input id="competitorStrengths" placeholder="personalizzazione, bundle, prezzo..."></div>'+
-        '<div><label>Punti deboli / note</label><input id="competitorWeaknesses" placeholder="poche varianti, consegna lenta..."></div>'+
+        '<div><label>Recensioni</label><input id="competitorReviews" type="number" step="1" min="0" placeholder="125"></div>'+
+        '<div><label>Rating</label><input id="competitorRating" type="number" step="0.1" min="0" max="5" placeholder="4.5"></div>'+
+        '<div><label>BSR / classifica</label><input id="competitorBsr" type="number" step="1" min="0" placeholder="3500"></div>'+
+        '<div><label>Venduti ultimo mese</label><input id="competitorMonthlySales" type="number" step="1" min="0" placeholder="100"></div>'+
+        '<div><label>Punti forti prodotto</label><input id="competitorStrengths" placeholder="tema, colori, bundle, personalizzazione..."></div>'+
+        '<div><label>Punti deboli / spazio BipBop</label><input id="competitorWeaknesses" placeholder="poche varianti, immagini deboli, non personalizzato..."></div>'+
       '</div>'+
-      '<label>Note operative</label><textarea id="competitorNotes" placeholder="Cosa possiamo imparare o fare meglio?"></textarea>'+
-      '<button id="saveCompetitorBtn">Salva competitor</button> <button id="clearCompetitorFormBtn" class="secondaryBtn" type="button">Pulisci</button>'+
-      '<h3>Piano Shopify e confronto mercato</h3>'+
+      '<label>Idea articolo simile</label><textarea id="competitorNotes" placeholder="Che prodotto BipBop potremmo creare senza copiare? Es. variante tema safari salvia + nome bambino + bundle gift"></textarea>'+
+      '<button id="saveCompetitorBtn">Salva prodotto competitor</button> <button id="clearCompetitorFormBtn" class="secondaryBtn" type="button">Pulisci</button>'+
+      '<h3>Opportunita prodotti e mercato</h3>'+
       (comp.opportunities.length?'<div class="grid2">'+comp.opportunities.map(r=>'<div class="action"><b>'+h(r.title)+'</b><br>'+h(r.why)+'<br><span class="small">'+h(r.action)+'</span></div>').join("")+'</div>':'')+
-      (incompleteCompetitors.length?'<div class="action yellow"><b>Risultato competitor incompleto</b><br>Hai salvato '+h(incompleteCompetitors.map(r=>r.name).join(", "))+', ma mancano prezzo, spedizione e tempi consegna. Finche restano vuoti, l’app puo solo archiviarlo come benchmark e non puo dire se costa meno, consegna prima o conviene copiarne una leva.</div>':'')+
-      '<div class="action yellow"><b>Nota pratica</b><br>Questa sezione non scarica automaticamente dati da Amazon o dai siti: molti portali bloccano letture automatiche. Qui raccogli benchmark manuali e li trasformi in decisioni per prezzo, bundle, varianti e traffico verso Shopify.</div>'+
-      '<h3>Competitor inseriti</h3>'+
-      (comp.rows.length?'<table class="decision-table"><tr><th>Decisione</th><th>Competitor</th><th>Canale</th><th>Categoria</th><th>Prezzo + sped.</th><th>Gap prezzo</th><th>Consegna</th><th>Azione</th><th>Punti forti / note</th><th></th></tr>'+comp.rows.map(r=>'<tr><td><span class="pill '+(r.isOwn?'green':'')+'">'+h(r.decision)+'</span></td><td><b>'+h(r.name)+'</b><br><span class="small">'+h(r.domain||"—")+' '+linkFor(r.domain)+'</span></td><td>'+h(r.type)+'</td><td>'+h(r.category)+'</td><td>'+h(r.totalPrice?BBUtils.euro(r.totalPrice):"—")+'</td><td>'+h(Number.isFinite(r.priceGap)?BBUtils.euro(r.priceGap):"—")+'</td><td>'+h(r.deliveryDays?r.deliveryDays+" gg":"—")+'</td><td>'+h(r.action)+'</td><td class="small">'+h([r.strengths,r.weaknesses,r.notes].filter(Boolean).join(" | ")||"—")+'</td><td><button class="secondaryBtn deleteCompetitorBtn" data-competitor-id="'+h(r.id)+'">Elimina</button></td></tr>').join("")+'</table>':'<div class="action">Inserisci almeno 3 competitor: uno Amazon, uno sito esterno e il tuo Shopify. BipBop Shopify e gia preimpostato nelle regole.</div>');
+      (incompleteCompetitors.length?'<div class="action yellow"><b>Risultato prodotto incompleto</b><br>Hai salvato '+h(incompleteCompetitors.map(r=>r.name).join(", "))+', ma mancano segnali domanda: prezzo, recensioni/rating, BSR o venduti nell ultimo mese. Finche restano vuoti, l’app non puo stimare se conviene creare un articolo simile.</div>':'')+
+      '<div class="action yellow"><b>Nota pratica</b><br>I dati di vendita reali dei competitor non sono pubblici. Qui usiamo segnali osservabili: recensioni, rating, classifica Bestseller, badge venduti nell ultimo mese, prezzo e consegna. Non e una certezza, ma e molto utile per scegliere cosa testare.</div>'+
+      '<h3>Prodotti competitor monitorati</h3>'+
+      (comp.rows.length?'<table class="decision-table"><tr><th>Decisione</th><th>Prodotto</th><th>Tipo</th><th>Domanda stimata</th><th>Prezzo + sped.</th><th>Review / rating</th><th>BSR / venduti</th><th>Azione BipBop</th><th>Idea / note</th><th></th></tr>'+comp.rows.map(r=>'<tr><td><span class="pill '+(r.isOwn?'green':'')+'">'+h(r.decision)+'</span></td><td><b>'+h(r.name)+'</b><br><span class="small">'+h(r.domain||"—")+' '+linkFor(r.domain)+'</span></td><td>'+h(r.productType||r.category)+'</td><td><b>'+h(Math.round(r.demandScore||0))+'/100</b><br><span class="small">'+h(r.estimatedDemand||"—")+'</span></td><td>'+h(r.totalPrice?BBUtils.euro(r.totalPrice):"—")+'</td><td>'+h(r.reviews||"—")+' / '+h(r.rating||"—")+'</td><td>'+h(r.bsr||"—")+' / '+h(r.monthlySales||"—")+'</td><td>'+h(r.action)+'</td><td class="small">'+h([r.strengths,r.weaknesses,r.notes].filter(Boolean).join(" | ")||"—")+'</td><td><button class="secondaryBtn deleteCompetitorBtn" data-competitor-id="'+h(r.id)+'">Elimina</button></td></tr>').join("")+'</table>':'<div class="action">Inserisci almeno 3 prodotti competitor: uno best seller Amazon, uno sito esterno e uno prodotto gift/personalizzato.</div>');
     }
 
     const kr=BBAnalytics.keywordRows(s.samples);

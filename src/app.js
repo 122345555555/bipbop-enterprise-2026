@@ -115,7 +115,7 @@ function bind(){
     const saveBtn=e.target.closest("#saveCompetitorBtn");
     const clearBtn=e.target.closest("#clearCompetitorFormBtn");
     const deleteBtn=e.target.closest(".deleteCompetitorBtn");
-    const formIds=["competitorName","competitorDomain","competitorCategory","competitorPrice","competitorShipping","competitorDelivery","competitorStrengths","competitorWeaknesses","competitorNotes"];
+    const formIds=["competitorName","competitorDomain","competitorCategory","competitorPrice","competitorShipping","competitorDelivery","competitorReviews","competitorRating","competitorBsr","competitorMonthlySales","competitorStrengths","competitorWeaknesses","competitorNotes"];
     if(clearBtn){
       formIds.forEach(id=>{ const el=BBUtils.el(id); if(el) el.value=""; });
       const type=BBUtils.el("competitorType");
@@ -145,9 +145,14 @@ function bind(){
       domain,
       type:BBUtils.el("competitorType")?.value || "site",
       category:BBUtils.el("competitorCategory")?.value.trim() || "Generale",
+      productType:BBUtils.el("competitorCategory")?.value.trim() || "Generale",
       price:BBUtils.num(BBUtils.el("competitorPrice")?.value),
       shipping:BBUtils.num(BBUtils.el("competitorShipping")?.value),
       deliveryDays:BBUtils.num(BBUtils.el("competitorDelivery")?.value),
+      reviews:BBUtils.num(BBUtils.el("competitorReviews")?.value),
+      rating:BBUtils.num(BBUtils.el("competitorRating")?.value),
+      bsr:BBUtils.num(BBUtils.el("competitorBsr")?.value),
+      monthlySales:BBUtils.num(BBUtils.el("competitorMonthlySales")?.value),
       strengths:BBUtils.el("competitorStrengths")?.value.trim() || "",
       weaknesses:BBUtils.el("competitorWeaknesses")?.value.trim() || "",
       notes:BBUtils.el("competitorNotes")?.value.trim() || "",

@@ -823,6 +823,10 @@ window.BBAnalytics = {
       const price=BBUtils.num(raw.price);
       const shipping=BBUtils.num(raw.shipping);
       const deliveryDays=BBUtils.num(raw.deliveryDays);
+      const reviews=BBUtils.num(raw.reviews);
+      const rating=BBUtils.num(raw.rating);
+      const bsr=BBUtils.num(raw.bsr);
+      const monthlySales=BBUtils.num(raw.monthlySales);
       const totalPrice=price+shipping;
       const priceGap=totalPrice && avgAmazonPrice ? totalPrice-avgAmazonPrice : NaN;
       const deliveryGap=deliveryDays && handlingDays ? deliveryDays-handlingDays : NaN;
@@ -830,12 +834,28 @@ window.BBAnalytics = {
       const strengths=String(raw.strengths||"").trim();
       const weaknesses=String(raw.weaknesses||"").trim();
       const notes=String(raw.notes||"").trim();
+      const productType=String(raw.productType||raw.category||"Generale").trim();
+      const demandScore=Math.min(100,
+        (monthlySales?Math.min(monthlySales,300)/3:0)+
+        (reviews?Math.min(reviews,1000)/20:0)+
+        (rating>=4.4?15:(rating>=4?8:0))+
+        (bsr?Math.max(0,30-Math.min(bsr,30000)/1000):0)
+      );
+      const estimatedDemand=monthlySales?monthlySales+" vendite/mese dichiarate":(demandScore>=65?"Domanda alta stimata":(demandScore>=35?"Domanda media stimata":(demandScore>0?"Domanda debole da verificare":"Domanda non stimabile")));
       let decision="Da osservare";
-      let action="Completa prezzo, spedizione e punti forti per confrontarlo meglio.";
+      let action="Completa prezzo, recensioni/rating e segnali vendita per capire se creare un prodotto simile.";
       let priority=5;
       if(isOwn){
         decision="Da spingere Shopify";
         action="Crea bundle esclusivi, varianti personalizzate e pagine SEO per nuovi genitori, mamme, nonni e gift.";
+        priority=2;
+      }else if(demandScore>=65 && totalPrice>=15){
+        decision="Crea articolo simile";
+        action="Prodotto con domanda forte: crea una versione BipBop differenziata per stile, qualita, bundle o personalizzazione.";
+        priority=1;
+      }else if(demandScore>=35){
+        decision="Testa variante";
+        action="Domanda interessante: crea una variante leggera o mockup e validala con Ads/Shopify prima di produrre troppo.";
         priority=2;
       }else if(totalPrice && avgAmazonPrice && totalPrice<avgAmazonPrice*0.9){
         decision="Competitor prezzo";
@@ -845,9 +865,9 @@ window.BBAnalytics = {
         decision="Competitor consegna";
         action="Migliora promessa di consegna o crea mini stock solo sui top seller.";
         priority=2;
-      }else if(domain && !totalPrice && !deliveryDays && !strengths && !weaknesses && !notes){
+      }else if(domain && !totalPrice && !deliveryDays && !reviews && !rating && !bsr && !monthlySales && !strengths && !weaknesses && !notes){
         decision="Dati da completare";
-        action="Inserisci prezzo medio, spedizione, giorni consegna e 1-2 punti forti: poi calcolo gap e azione.";
+        action="Inserisci almeno prezzo, recensioni/rating o venduti nell'ultimo mese: poi calcolo domanda stimata e azione.";
         priority=1;
       }else if(BBUtils.low(strengths+" "+notes).match(/personal|nome|regalo|gift|bundle|premium/)){
         decision="Idea da copiare meglio";
@@ -862,9 +882,11 @@ window.BBAnalytics = {
         id:raw.id||String(i),
         name,domain,type,
         category:raw.category||"Generale",
+        productType,
         price,shipping,deliveryDays,totalPrice,priceGap,deliveryGap,
+        reviews,rating,bsr,monthlySales,demandScore,estimatedDemand,
         strengths,weaknesses,notes,isOwn,decision,action,priority,
-        search:[name,domain,raw.category,strengths,weaknesses,notes,type].join(" ").toLowerCase()
+        search:[name,domain,raw.category,productType,strengths,weaknesses,notes,type].join(" ").toLowerCase()
       };
     });
     return competitors.sort((a,b)=>a.priority-b.priority || (a.totalPrice||999999)-(b.totalPrice||999999));
@@ -875,11 +897,13 @@ window.BBAnalytics = {
     const avgCompetitor=priced.length?priced.reduce((a,r)=>a+r.totalPrice,0)/priced.length:NaN;
     const fastest=rows.filter(r=>r.deliveryDays>0).sort((a,b)=>a.deliveryDays-b.deliveryDays)[0]||null;
     const cheapest=priced.sort((a,b)=>a.totalPrice-b.totalPrice)[0]||null;
+    const bestDemand=rows.filter(r=>!r.isOwn && r.demandScore>0).sort((a,b)=>b.demandScore-a.demandScore)[0]||null;
     const own=rows.find(r=>r.isOwn)||null;
     const opportunities=[];
     if(own) opportunities.push({title:"Spingi il sito proprietario",why:"Su Shopify puoi costruire relazione diretta, bundle e personalizzazioni senza dipendere solo da Amazon.",action:"Crea una landing per gift nascita e una per camerette con set coordinati."});
     if(cheapest && !cheapest.isOwn) opportunities.push({title:"Controlla competitor economico",why:cheapest.name+" ha prezzo totale "+BBUtils.euro(cheapest.totalPrice)+".",action:"Difenditi con valore percepito: bundle, materiali, immagini, garanzia e consegna chiara."});
     if(fastest && !fastest.isOwn) opportunities.push({title:"Controlla competitor rapido",why:fastest.name+" dichiara "+fastest.deliveryDays+" giorni.",action:"Se perdi conversioni, riduci tempi dichiarati solo dove riesci davvero a produrre e spedire."});
+    if(bestDemand) opportunities.push({title:"Prodotto competitor promettente",why:bestDemand.name+" ha punteggio domanda "+Math.round(bestDemand.demandScore)+"/100.",action:"Valuta un articolo simile ma differenziato: non copia, ma variante BipBop con stile, bundle o personalizzazione."});
     if(!rows.length) opportunities.push({title:"Aggiungi competitor",why:"Senza benchmark non possiamo capire prezzo, consegna e posizionamento.",action:"Inserisci almeno 3 competitor: uno Amazon, uno Shopify/sito esterno e uno specializzato in camerette."});
     return {
       rows,
@@ -887,6 +911,7 @@ window.BBAnalytics = {
       avgCompetitor,
       cheapest,
       fastest,
+      bestDemand,
       own,
       opportunities
     };
