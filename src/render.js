@@ -176,6 +176,15 @@ window.BBRender = {
     const firstDecision=execDecisions[0];
     const actionRows=execDecisions.slice(0,5);
     const missingCore=BBAnalytics.reportDefs.filter(r=>["business_report","transactions","ad_invoices","orders","inventory","search_terms","profit_report","store_date","store_live_page","store_source"].includes(r[0]) && !(s.counts[r[0]]||0));
+    const targetPlan=[
+      ["TACOS <= "+execRules.tacos+"%","Aumenta vendite organiche e riduci spesa Ads non produttiva.","Taglia keyword senza vendite, spingi solo campagne con ROAS buono, migliora schede prodotto e porta traffico verso Shopify."],
+      ["ACOS <= "+execRules.acos+"%","Fai rendere meglio ogni euro pubblicitario.","Se una keyword spende e non vende, riduci offerta o mettila negativa. Se vende con ACOS basso, aumenta budget gradualmente."],
+      ["Margine >= "+execRules.margin+"%","Alza margine per prodotto prima di aumentare volume.","Controlla costi produzione, imballo, spedizione e commissioni. Su prodotti sotto margine: prezzo, formato, bundle o stop Ads."],
+      ["Saldo > 0 euro","Incrocia ricavi, Ads, canone, commissioni e costi interni.","Se il saldo resta basso, prima correggi costi e Ads; poi investi su prodotti con margine e domanda gia dimostrata."],
+      ["0-2 giorni senza vendite","Evita blocchi lunghi e intervieni presto.","Controlla offerta acquistabile, prezzo, consegna, Featured Offer, traffico senza conversione e top seller senza disponibilita reale."],
+      ["Dati >= 80%","Ogni martedi carica i report chiave.","Business Report, Ordini, Profit Report, Ads, Search Terms, Inventario, Brand Analytics e Store. Senza dati l Executive ragiona a meta."],
+      ["3-5 prodotti competitor","Trova prodotti da imitare senza copiare.","Per ogni prodotto competitor inserisci prezzo, rating, recensioni, venduti ultimo mese/BSR e idea variante BipBop."]
+    ];
 
     BBUtils.el("healthScore").textContent=health;
     BBUtils.el("healthScore").className="circle "+healthClass;
@@ -201,6 +210,7 @@ window.BBRender = {
       '<div class="action"><b>Prossima leva commerciale</b><br>'+h(execCompetitor?.own?"Spingi Shopify con bundle, gift nascita e varianti personalizzate.":"Inserisci bipbopstickers.it e almeno 3 competitor per capire dove differenziarti.")+'</div>'+
       '<div class="action"><b>Focus prodotto</b><br>'+h((BBAnalytics.productStrategyRows ? (BBAnalytics.productStrategyRows(scopedSamples)[0]?.category || "Carica dati Store e Profit Report per scegliere la categoria.") : "Carica dati Store e Profit Report.") )+'</div>'+
       '</div>'+
+      '<h3>Come raggiungere i target</h3><div class="target-guide">'+targetPlan.map(r=>'<div class="target-card"><b>'+h(r[0])+'</b><span>'+h(r[1])+'</span><small>'+h(r[2])+'</small></div>').join("")+'</div>'+
       '<h3>Qualita dati</h3><div class="executive-data-grid">'+BBAnalytics.reportDefs.map(r=>{
         const ok=(s.counts[r[0]]||0)>0;
         return '<span class="data-chip '+(ok?'ok':(r[2]==="obbligatorio"?'bad':'warn'))+'">'+h(r[1])+'</span>';
