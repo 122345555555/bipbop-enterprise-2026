@@ -21,6 +21,7 @@
     <button class="nav" data-view="inventory">📋 Inventario</button>
     <button class="nav" data-view="recovery">🛟 Sales Recovery</button>
     <button class="nav" data-view="store">🏬 Store Intelligence</button>
+    <button class="nav" data-view="competitors">🕵️ Competitor</button>
     <button class="nav" data-view="keyword">🔎 Keyword</button>
     <button class="nav" data-view="brandanalytics">🏷️ Brand Analytics</button>
     <button class="nav" data-view="profit">💰 Profit Center</button>
@@ -49,7 +50,7 @@
 
     <section id="executive" class="view active">
       <div class="hero">
-        <div class="circle">7.0</div>
+        <div id="healthScore" class="circle">0</div>
         <div>
           <h2 id="headline">Amazon Growth Engine pronto</h2>
           <p id="subline">Importa i report Amazon per generare KPI, alert e priorità operative.</p>
@@ -163,6 +164,13 @@
         <h3>Store Intelligence</h3>
         <p class="hint">Qui capiamo quali categorie attirano traffico, quali pagine convertono e dove conviene creare nuove varianti di disegno.</p>
         <div id="storeBox"></div>
+      </div>
+    </section>
+    <section id="competitors" class="view">
+      <div class="card">
+        <h3>Competitor & Shopify Intelligence</h3>
+        <p class="hint">Inserisci competitor Amazon, siti esterni e il tuo Shopify bipbopstickers.it. La dashboard confronta prezzo, spedizione, posizionamento e opportunita' per spostare clienti fuori da Amazon.</p>
+        <div id="competitorBox"></div>
       </div>
     </section>
     <section id="keyword" class="view">
@@ -279,12 +287,12 @@
     </section>
   </main>
 
-  <script src="config.js?v=3.4"></script>
-  <script src="src/utils.js?v=3.4"></script>
-  <script src="src/parser.js?v=3.4"></script>
-  <script src="src/storage.js?v=3.4"></script>
-  <script src="src/analytics.js?v=3.4"></script>
-  <script src="src/render.js?v=3.4"></script>
-  <script src="src/app.js?v=3.4"></script>
+  <script src="config.js?v=3.6"></script>
+  <script src="src/utils.js?v=3.6"></script>
+  <script src="src/parser.js?v=3.6"></script>
+  <script src="src/storage.js?v=3.6"></script>
+  <script src="src/analytics.js?v=3.6"></script>
+  <script src="src/render.js?v=3.6"></script>
+  <script src="src/app.js?v=3.6"></script>
 </body>
 </html>

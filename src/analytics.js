@@ -812,6 +812,81 @@ window.BBAnalytics = {
       return o;
     }).filter(o=>o.asin!=="N/D" || o.sku || o.sales || o.profit).sort((a,b)=>(b.profit||0)-(a.profit||0)).slice(0,300);
   },
+  competitorRows(samples,c){
+    const rules=BBUtils.rules();
+    const avgAmazonPrice=Number.isFinite(c.avgPrice) ? c.avgPrice : 0;
+    const handlingDays=BBUtils.num(rules.handlingDays);
+    const competitors=(rules.competitors||[]).map((raw,i)=>{
+      const name=String(raw.name||"Competitor "+(i+1)).trim();
+      const domain=String(raw.domain||"").trim();
+      const type=raw.type||"site";
+      const price=BBUtils.num(raw.price);
+      const shipping=BBUtils.num(raw.shipping);
+      const deliveryDays=BBUtils.num(raw.deliveryDays);
+      const totalPrice=price+shipping;
+      const priceGap=totalPrice && avgAmazonPrice ? totalPrice-avgAmazonPrice : NaN;
+      const deliveryGap=deliveryDays && handlingDays ? deliveryDays-handlingDays : NaN;
+      const isOwn=type==="shopify" || BBUtils.low(domain).includes("bipbopstickers.it");
+      const strengths=String(raw.strengths||"").trim();
+      const weaknesses=String(raw.weaknesses||"").trim();
+      const notes=String(raw.notes||"").trim();
+      let decision="Da osservare";
+      let action="Completa prezzo, spedizione e punti forti per confrontarlo meglio.";
+      let priority=5;
+      if(isOwn){
+        decision="Da spingere Shopify";
+        action="Crea bundle esclusivi, varianti personalizzate e pagine SEO per nuovi genitori, mamme, nonni e gift.";
+        priority=2;
+      }else if(totalPrice && avgAmazonPrice && totalPrice<avgAmazonPrice*0.9){
+        decision="Competitor prezzo";
+        action="Non copiare al ribasso: valuta bundle, formato piu ricco o promo Shopify mirata.";
+        priority=1;
+      }else if(deliveryDays && handlingDays && deliveryDays<handlingDays){
+        decision="Competitor consegna";
+        action="Migliora promessa di consegna o crea mini stock solo sui top seller.";
+        priority=2;
+      }else if(BBUtils.low(strengths+" "+notes).match(/personal|nome|regalo|gift|bundle|premium/)){
+        decision="Idea da copiare meglio";
+        action="Trasforma il punto forte in variante BipBop: regalo nascita, nome bambino, set coordinato o bundle.";
+        priority=3;
+      }else if(totalPrice || domain){
+        decision="Benchmark utile";
+        action="Usalo come riferimento per prezzo, promessa, immagini e garanzie.";
+        priority=4;
+      }
+      return {
+        id:raw.id||String(i),
+        name,domain,type,
+        category:raw.category||"Generale",
+        price,shipping,deliveryDays,totalPrice,priceGap,deliveryGap,
+        strengths,weaknesses,notes,isOwn,decision,action,priority,
+        search:[name,domain,raw.category,strengths,weaknesses,notes,type].join(" ").toLowerCase()
+      };
+    });
+    return competitors.sort((a,b)=>a.priority-b.priority || (a.totalPrice||999999)-(b.totalPrice||999999));
+  },
+  competitorSummary(samples,c){
+    const rows=this.competitorRows(samples,c);
+    const priced=rows.filter(r=>r.totalPrice>0);
+    const avgCompetitor=priced.length?priced.reduce((a,r)=>a+r.totalPrice,0)/priced.length:NaN;
+    const fastest=rows.filter(r=>r.deliveryDays>0).sort((a,b)=>a.deliveryDays-b.deliveryDays)[0]||null;
+    const cheapest=priced.sort((a,b)=>a.totalPrice-b.totalPrice)[0]||null;
+    const own=rows.find(r=>r.isOwn)||null;
+    const opportunities=[];
+    if(own) opportunities.push({title:"Spingi il sito proprietario",why:"Su Shopify puoi costruire relazione diretta, bundle e personalizzazioni senza dipendere solo da Amazon.",action:"Crea una landing per gift nascita e una per camerette con set coordinati."});
+    if(cheapest && !cheapest.isOwn) opportunities.push({title:"Controlla competitor economico",why:cheapest.name+" ha prezzo totale "+BBUtils.euro(cheapest.totalPrice)+".",action:"Difenditi con valore percepito: bundle, materiali, immagini, garanzia e consegna chiara."});
+    if(fastest && !fastest.isOwn) opportunities.push({title:"Controlla competitor rapido",why:fastest.name+" dichiara "+fastest.deliveryDays+" giorni.",action:"Se perdi conversioni, riduci tempi dichiarati solo dove riesci davvero a produrre e spedire."});
+    if(!rows.length) opportunities.push({title:"Aggiungi competitor",why:"Senza benchmark non possiamo capire prezzo, consegna e posizionamento.",action:"Inserisci almeno 3 competitor: uno Amazon, uno Shopify/sito esterno e uno specializzato in camerette."});
+    return {
+      rows,
+      avgAmazonPrice:Number.isFinite(c.avgPrice)?c.avgPrice:NaN,
+      avgCompetitor,
+      cheapest,
+      fastest,
+      own,
+      opportunities
+    };
+  },
   decisionRows(samples,counts){
     const out=[];
     const recovery=this.salesRecovery ? this.salesRecovery(samples,this.calc(samples),counts) : null;
@@ -844,6 +919,9 @@ window.BBAnalytics = {
       }else if(r.decision==="Spingi test"){
         out.push({area:"Prodotto",priority:3,type:"green",title:"Testa categoria promettente",item:r.category,why:"Segnali positivi da vendite Store, keyword o Profit Report.",action:r.action});
       }
+    });
+    this.competitorSummary(samples,this.calc(samples)).opportunities.slice(0,4).forEach(r=>{
+      out.push({area:"Competitor",priority:3,type:r.title.includes("Controlla")?"yellow":"green",title:r.title,item:"Benchmark mercato",why:r.why,action:r.action});
     });
     if(!counts?.business_report) out.push({area:"Dati",priority:4,type:"yellow",title:"Manca Business Report",item:"Sessioni e conversione",why:"Serve per capire traffico e conversione per ASIN.",action:"Carica Sales and Traffic by Child Item quando lo trovi."});
     if(!counts?.store_date && !counts?.store_live_page) out.push({area:"Dati",priority:4,type:"yellow",title:"Mancano dati Store",item:"Store Amazon",why:"Servono per capire se conviene creare varianti, greche, quadri o adesivi murali.",action:"Carica Store date, livePage, source e notLivePage."});

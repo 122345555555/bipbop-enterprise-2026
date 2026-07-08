@@ -8,7 +8,7 @@ function show(view){
   document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active",s.id===view));
   const active=document.querySelector('.nav[data-view="'+view+'"]');
-  if(active) BBUtils.el("pageTitle").textContent=active.textContent.replace(/[📊📥💶📈📦📋🛟🏬🔎🏷️💰🧾🗓️🎨🚀🧠🚨📁🧪⚙️]/g,"").trim();
+  if(active) BBUtils.el("pageTitle").textContent=active.textContent.replace(/[📊📥💶📈📦📋🛟🏬🕵️🔎🏷️💰🧾🗓️🎨🚀🧠🚨📁🧪⚙️]/g,"").trim();
 }
 
 async function importFiles(files){
@@ -109,6 +109,54 @@ function bind(){
     });
     localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,productCosts}));
     alert("Costi prodotto salvati");
+    BBRender.renderAll();
+  });
+  document.addEventListener("click",e=>{
+    const saveBtn=e.target.closest("#saveCompetitorBtn");
+    const clearBtn=e.target.closest("#clearCompetitorFormBtn");
+    const deleteBtn=e.target.closest(".deleteCompetitorBtn");
+    const formIds=["competitorName","competitorDomain","competitorCategory","competitorPrice","competitorShipping","competitorDelivery","competitorStrengths","competitorWeaknesses","competitorNotes"];
+    if(clearBtn){
+      formIds.forEach(id=>{ const el=BBUtils.el(id); if(el) el.value=""; });
+      const type=BBUtils.el("competitorType");
+      if(type) type.value="site";
+      return;
+    }
+    if(deleteBtn){
+      const rules=BBUtils.rules();
+      const id=deleteBtn.dataset.competitorId;
+      const competitors=(rules.competitors||[]).filter(c=>String(c.id)!==String(id));
+      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,competitors}));
+      BBRender.renderAll();
+      return;
+    }
+    if(!saveBtn) return;
+    const name=BBUtils.el("competitorName")?.value.trim() || "";
+    const domain=BBUtils.el("competitorDomain")?.value.trim() || "";
+    if(!name && !domain){
+      alert("Inserisci almeno nome o dominio del competitor.");
+      return;
+    }
+    const rules=BBUtils.rules();
+    const competitors=(rules.competitors||[]).slice();
+    const entry={
+      id:"comp-"+Date.now().toString(36),
+      name:name || domain,
+      domain,
+      type:BBUtils.el("competitorType")?.value || "site",
+      category:BBUtils.el("competitorCategory")?.value.trim() || "Generale",
+      price:BBUtils.num(BBUtils.el("competitorPrice")?.value),
+      shipping:BBUtils.num(BBUtils.el("competitorShipping")?.value),
+      deliveryDays:BBUtils.num(BBUtils.el("competitorDelivery")?.value),
+      strengths:BBUtils.el("competitorStrengths")?.value.trim() || "",
+      weaknesses:BBUtils.el("competitorWeaknesses")?.value.trim() || "",
+      notes:BBUtils.el("competitorNotes")?.value.trim() || "",
+      updatedAt:new Date().toISOString()
+    };
+    localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,competitors:[entry,...competitors].slice(0,100)}));
+    formIds.forEach(id=>{ const el=BBUtils.el(id); if(el) el.value=""; });
+    const type=BBUtils.el("competitorType");
+    if(type) type.value="site";
     BBRender.renderAll();
   });
 

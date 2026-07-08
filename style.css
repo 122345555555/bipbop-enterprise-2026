@@ -16,6 +16,9 @@ h2,h3{margin-top:0}
 .card{margin-bottom:20px}
 .hero{display:flex;gap:22px;align-items:center;margin-bottom:20px}
 .circle{width:76px;height:76px;border-radius:50%;background:#111827;color:#fff;display:grid;place-items:center;font-size:22px;font-weight:900}
+.circle.green{background:#047857}
+.circle.yellow{background:#b45309}
+.circle.red{background:#be123c}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
 .kpi small{display:block;color:#70819c;text-transform:uppercase;font-weight:900}
 .kpi strong{font-size:24px}
@@ -44,6 +47,18 @@ textarea{min-height:110px}
 .action.red{border-color:#fecdd3;background:#fff7f7}
 .action.green{border-color:#86efac;background:#f7fff9}
 .action.yellow{border-color:#fde68a;background:#fffdf2}
+.executive-status{border-radius:18px;padding:18px;margin-bottom:14px;border:1px solid #e3ebf4;background:#fbfdff}
+.executive-status b{display:block;font-size:24px;margin-bottom:6px}
+.executive-status span{display:block;color:#42526d;line-height:1.4}
+.executive-status.green{border-color:#86efac;background:#f7fff9}
+.executive-status.yellow{border-color:#fde68a;background:#fffdf2}
+.executive-status.red{border-color:#fecdd3;background:#fff7f7}
+.executive-mini{margin-bottom:12px}
+.executive-data-grid{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
+.data-chip{display:inline-block;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900;background:#edf2f7;color:#475569}
+.data-chip.ok{background:#dcfce7;color:#047857}
+.data-chip.warn{background:#fff7d6;color:#a16207}
+.data-chip.bad{background:#ffe4ec;color:#be123c}
 .status-ok{color:#047857;font-weight:900}
 .status-missing{color:#be123c;font-weight:900}
 .status-warn{color:#b45309;font-weight:900}

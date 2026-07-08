@@ -50,7 +50,22 @@ window.BBUtils = {
       bundle:{label:"Bundle / set premium",production:0,packaging:0,shipping:0,other:0},
       altro:{label:"Altro",production:0,packaging:0,shipping:0,other:0}
     };
-    const defaults={tacos:15,acos:35,margin:25,monthlyFee:39,subscriptionMonths:18,productionCostPerUnit:0,shippingCostPerUnit:0,extraFixedCosts:0,fulfillmentMode:"merchant",handlingDays:2,weeklyProductionCapacity:30,productCosts:defaultProductCosts};
+    const defaultCompetitors=[
+      {
+        id:"bipbop-shopify",
+        name:"BipBop Shopify",
+        domain:"bipbopstickers.it",
+        type:"shopify",
+        category:"Tutto il catalogo",
+        price:0,
+        shipping:0,
+        deliveryDays:0,
+        strengths:"Canale proprietario, bundle esclusivi, margine migliore, relazione diretta con clienti.",
+        weaknesses:"Serve traffico esterno e fiducia fuori da Amazon.",
+        notes:"Usalo per offerte regalo, personalizzazioni e contenuti SEO."
+      }
+    ];
+    const defaults={tacos:15,acos:35,margin:25,monthlyFee:39,subscriptionMonths:18,productionCostPerUnit:0,shippingCostPerUnit:0,extraFixedCosts:0,fulfillmentMode:"merchant",handlingDays:2,weeklyProductionCapacity:30,productCosts:defaultProductCosts,competitors:defaultCompetitors};
     try { return {...defaults,...JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.rulesKey) || "{}")}; }
     catch(e){ return defaults; }
   }

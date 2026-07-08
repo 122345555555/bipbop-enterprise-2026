@@ -158,19 +158,52 @@ window.BBRender = {
     const totalRows=Object.values(s.counts).reduce((a,b)=>a+(b||0),0);
     const imported=BBAnalytics.reportDefs.filter(r=>(s.counts[r[0]]||0)>0).length;
 
-    BBUtils.el("headline").textContent=imported?imported+" categorie report importate":"Amazon Growth Engine pronto";
-    BBUtils.el("subline").textContent=imported?"Dati attivi deduplicati e aggregati dallo storico.":"Importa i report Amazon per generare KPI, alert e priorità.";
+    const execRecovery=BBAnalytics.salesRecovery ? BBAnalytics.salesRecovery(scopedSamples,c,s.counts) : null;
+    const execDecisions=BBAnalytics.decisionRows ? BBAnalytics.decisionRows(scopedSamples,s.counts) : [];
+    const execCompetitor=BBAnalytics.competitorSummary ? BBAnalytics.competitorSummary(scopedSamples,c) : null;
+    const execCostSummary=BBAnalytics.productCostSummary ? BBAnalytics.productCostSummary(scopedSamples,c) : null;
+    const execRules=BBUtils.rules();
+    const redCount=execDecisions.filter(r=>r.type==="red").length;
+    const yellowCount=execDecisions.filter(r=>r.type==="yellow").length;
+    const dataScore=BBAnalytics.reportDefs.length ? imported/BBAnalytics.reportDefs.length*100 : 0;
+    const profitValue=Number.isFinite(c.reconciledProfit) ? c.reconciledProfit : c.profit;
+    const profitBoost=profitValue>0?15:(profitValue<0?-25:0);
+    const adsPenalty=Number.isFinite(c.tacos)&&c.tacos>execRules.tacos?15:0;
+    const recoveryPenalty=redCount*10+yellowCount*4+(execRecovery?.daysWithoutSales>=7?12:0);
+    const health=Math.max(0,Math.min(100,Math.round(45+dataScore*.25+profitBoost-adsPenalty-recoveryPenalty+(imported?10:0))));
+    const healthClass=health>=70?"green":(health>=45?"yellow":"red");
+    const healthText=health>=70?"Da spingere":(health>=45?"Da controllare":"Da correggere");
+    const firstDecision=execDecisions[0];
+    const actionRows=execDecisions.slice(0,5);
+    const missingCore=BBAnalytics.reportDefs.filter(r=>["business_report","transactions","ad_invoices","orders","inventory","search_terms","profit_report","store_date","store_live_page","store_source"].includes(r[0]) && !(s.counts[r[0]]||0));
+
+    BBUtils.el("healthScore").textContent=health;
+    BBUtils.el("healthScore").className="circle "+healthClass;
+    BBUtils.el("headline").textContent=imported?"Stato operativo: "+healthText:"Configura il cruscotto decisionale";
+    BBUtils.el("subline").textContent=firstDecision?firstDecision.title+" — "+firstDecision.action:"Importa i report Amazon per vedere priorita', margine, vendite e prossime azioni.";
     BBUtils.el("kpis").innerHTML=[
-      ["Vendite",c.sales?BBUtils.euro(c.sales):"—"],["Profitto",c.sales?BBUtils.euro(c.profit):"—"],["Margine",BBUtils.pct(c.margin)],["TACOS",BBUtils.pct(c.tacos)],
-      ["ACOS",BBUtils.pct(c.acos)],["ROAS",Number.isFinite(c.roas)?c.roas.toFixed(2):"—"],["Store",c.storeSales?BBUtils.euro(c.storeSales):"—"],["Conversione Store",BBUtils.pct(c.storeConversion)]
-    ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("");
+      ["Score operativo",health+"/100",healthClass],
+      ["Saldo stimato",c.sales?BBUtils.euro(profitValue):"—",profitValue<0?"red":"green"],
+      ["Vendite",c.sales?BBUtils.euro(c.sales):"—",""],
+      ["Unita' vendute",c.units||"—",""],
+      ["Giorni senza vendite",execRecovery?.daysWithoutSales===null?"—":execRecovery?.daysWithoutSales,(execRecovery?.daysWithoutSales||0)>=7?"red":""],
+      ["TACOS",BBUtils.pct(c.tacos),Number.isFinite(c.tacos)&&c.tacos>execRules.tacos?"red":""],
+      ["Margine dopo costi",execCostSummary?.rows?.length?BBUtils.pct(execCostSummary.totals.margin):BBUtils.pct(c.margin),(execCostSummary?.totals?.margin||c.margin)<execRules.margin?"yellow":""],
+      ["Competitor monitorati",execCompetitor?.rows?.length||0,""]
+    ].map(x=>'<div class="kpi '+(x[2]==="red"?'recon-bad':(x[2]==="green"?'recon-good':''))+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("");
 
-    BBUtils.el("topActions").innerHTML=rs.slice(0,6).map(r=>'<div class="action '+r[0]+'"><b>'+r[1]+'</b><br>'+r[2]+'</div>').join("");
+    BBUtils.el("topActions").innerHTML='<div class="executive-status '+healthClass+'"><b>'+h(healthText)+'</b><span>'+h(health>=70?"La base e' utilizzabile: investi sulle opportunita' migliori, ma continua a controllare margini e competitor.":(health>=45?"Ci sono segnali buoni, ma prima di spingere devi risolvere le priorita' sotto.":"Serve mettere ordine: correggi i blocchi prima di aumentare budget o creare troppe varianti."))+'</span></div>'+
+      (actionRows.length?'<table class="decision-table"><tr><th>Priorita</th><th>Area</th><th>Perche</th><th>Azione</th></tr>'+actionRows.map((r,i)=>'<tr><td><span class="pill '+(r.type==="red"?'red':(r.type==="green"?'green':''))+'">'+h(i+1)+'</span></td><td><b>'+h(r.title)+'</b><br><span class="small">'+h(r.area)+'</span></td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>':'<div class="action green"><b>Nessuna urgenza critica</b><br>Continua con monitoraggio, caricamento report e test controllati.</div>');
 
-    BBUtils.el("dataHealth").innerHTML=BBAnalytics.reportDefs.map(r=>{
-      const ok=(s.counts[r[0]]||0)>0, fc=this.fileCount(r[0]);
-      return '<div class="action"><b>'+h(r[1])+'</b><br>'+(ok?'<span class="status-ok">✓ importato</span> — '+fc+' file, '+s.counts[r[0]]+' righe':'<span class="'+(r[2]==="obbligatorio"?'status-missing':'status-warn')+'">'+(r[2]==="obbligatorio"?'mancante obbligatorio':'mancante')+'</span>')+'</div>';
-    }).join("");
+    BBUtils.el("dataHealth").innerHTML='<div class="grid2 executive-mini">'+
+      '<div class="action"><b>Prossima leva commerciale</b><br>'+h(execCompetitor?.own?"Spingi Shopify con bundle, gift nascita e varianti personalizzate.":"Inserisci bipbopstickers.it e almeno 3 competitor per capire dove differenziarti.")+'</div>'+
+      '<div class="action"><b>Focus prodotto</b><br>'+h((BBAnalytics.productStrategyRows ? (BBAnalytics.productStrategyRows(scopedSamples)[0]?.category || "Carica dati Store e Profit Report per scegliere la categoria.") : "Carica dati Store e Profit Report.") )+'</div>'+
+      '</div>'+
+      '<h3>Qualita dati</h3><div class="executive-data-grid">'+BBAnalytics.reportDefs.map(r=>{
+        const ok=(s.counts[r[0]]||0)>0;
+        return '<span class="data-chip '+(ok?'ok':(r[2]==="obbligatorio"?'bad':'warn'))+'">'+h(r[1])+'</span>';
+      }).join("")+'</div>'+
+      (missingCore.length?'<div class="action yellow"><b>Report da completare</b><br>'+h(missingCore.slice(0,6).map(r=>r[1]).join(", "))+(missingCore.length>6?"...":"")+'</div>':'<div class="action green"><b>Dati principali presenti</b><br>Ora la qualita dipende soprattutto da aggiornamento settimanale e deduplicazione.</div>');
 
     BBUtils.el("statusGrid").innerHTML=BBAnalytics.reportDefs.map(r=>{
       const ok=(s.counts[r[0]]||0)>0, latest=this.latest(r[0]), fc=this.fileCount(r[0]);
@@ -280,6 +313,44 @@ window.BBRender = {
       (st.pages.length?'<table><tr><th>Decisione</th><th>Pagina</th><th>Azione</th><th>Vendite</th><th>Ordini</th><th>Visualizzazioni</th><th>Visite</th><th>Conv.</th></tr>'+st.pages.map(r=>'<tr><td><span class="pill">'+h(r.decision)+'</span></td><td>'+h(r.name)+'</td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.orders)+'</td><td>'+h(r.views)+'</td><td>'+h(r.visits)+'</td><td>'+h(BBUtils.pct(r.orderRate))+'</td></tr>').join("")+'</table>':'<div class="action">Carica livePage e notLivePage per valutare le pagine Store.</div>')+
       '<h3>Periodo e stagionalità</h3>'+
       (st.bestDays.length?'<p class="hint">Giorni con vendite Store: utili per capire quando il pubblico reagisce meglio e se una categoria e\' stagionale.</p><table><tr><th>Giorno</th><th>Vendite</th><th>Unità</th><th>Ordini</th><th>Visitatori</th><th>Visualizzazioni</th></tr>'+st.bestDays.map(r=>'<tr><td>'+h(r.name)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(r.orders)+'</td><td>'+h(r.visits)+'</td><td>'+h(r.views)+'</td></tr>').join("")+'</table>':'<div class="action">Carica il report Store per data per leggere periodo e stagionalità.</div>'):'<div class="action">Importa i report Store Amazon: date, livePage, notLivePage e source. Servono per capire traffico, pagine e categorie da sviluppare.</div>';
+    }
+
+    const competitorEl=BBUtils.el("competitorBox");
+    if(competitorEl){
+      const comp=BBAnalytics.competitorSummary ? BBAnalytics.competitorSummary(scopedSamples,c) : {rows:[],opportunities:[]};
+      const linkFor=domain=>{
+        const d=String(domain||"").trim();
+        if(!d) return "";
+        const url=/^https?:\/\//i.test(d)?d:"https://"+d;
+        return '<a href="'+h(url)+'" target="_blank" rel="noopener">Apri</a>';
+      };
+      competitorEl.innerHTML='<div class="grid3">'+[
+        ["Competitor salvati",comp.rows.length],
+        ["Prezzo medio Amazon/BipBop",Number.isFinite(comp.avgAmazonPrice)?BBUtils.euro(comp.avgAmazonPrice):"—"],
+        ["Prezzo medio competitor",Number.isFinite(comp.avgCompetitor)?BBUtils.euro(comp.avgCompetitor):"—"],
+        ["Piu economico",comp.cheapest?comp.cheapest.name:"—"],
+        ["Consegna piu veloce",comp.fastest?comp.fastest.name:"—"],
+        ["Canale Shopify",comp.own?comp.own.domain:"bipbopstickers.it"]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      '<h3>Aggiungi competitor o benchmark</h3><p class="hint">Inserisci competitor Amazon, negozi Shopify, siti esterni o marketplace. Per Amazon puoi mettere una ricerca tipo amazon.it/s?k=adesivi+murali+bambini e annotare i prezzi principali.</p>'+
+      '<div class="grid3">'+
+        '<div><label>Nome</label><input id="competitorName" placeholder="Es. brand competitor"></div>'+
+        '<div><label>Dominio / URL</label><input id="competitorDomain" placeholder="competitor.it oppure amazon.it/s?k=..."></div>'+
+        '<div><label>Canale</label><select id="competitorType"><option value="site">Sito competitor</option><option value="amazon">Amazon / Marketplace</option><option value="shopify">Shopify tuo</option><option value="marketplace">Altro marketplace</option></select></div>'+
+        '<div><label>Categoria</label><input id="competitorCategory" placeholder="Greche, adesivi, quadri, gift..."></div>'+
+        '<div><label>Prezzo medio €</label><input id="competitorPrice" type="number" step="0.01" min="0" placeholder="19.90"></div>'+
+        '<div><label>Spedizione €</label><input id="competitorShipping" type="number" step="0.01" min="0" placeholder="0"></div>'+
+        '<div><label>Giorni consegna</label><input id="competitorDelivery" type="number" step="1" min="0" placeholder="2"></div>'+
+        '<div><label>Punti forti</label><input id="competitorStrengths" placeholder="personalizzazione, bundle, prezzo..."></div>'+
+        '<div><label>Punti deboli / note</label><input id="competitorWeaknesses" placeholder="poche varianti, consegna lenta..."></div>'+
+      '</div>'+
+      '<label>Note operative</label><textarea id="competitorNotes" placeholder="Cosa possiamo imparare o fare meglio?"></textarea>'+
+      '<button id="saveCompetitorBtn">Salva competitor</button> <button id="clearCompetitorFormBtn" class="secondaryBtn" type="button">Pulisci</button>'+
+      '<h3>Piano Shopify e confronto mercato</h3>'+
+      (comp.opportunities.length?'<div class="grid2">'+comp.opportunities.map(r=>'<div class="action"><b>'+h(r.title)+'</b><br>'+h(r.why)+'<br><span class="small">'+h(r.action)+'</span></div>').join("")+'</div>':'')+
+      '<div class="action yellow"><b>Nota pratica</b><br>Questa sezione non scarica automaticamente dati da Amazon o dai siti: molti portali bloccano letture automatiche. Qui raccogli benchmark manuali e li trasformi in decisioni per prezzo, bundle, varianti e traffico verso Shopify.</div>'+
+      '<h3>Competitor inseriti</h3>'+
+      (comp.rows.length?'<table class="decision-table"><tr><th>Decisione</th><th>Competitor</th><th>Canale</th><th>Categoria</th><th>Prezzo + sped.</th><th>Gap prezzo</th><th>Consegna</th><th>Azione</th><th>Punti forti / note</th><th></th></tr>'+comp.rows.map(r=>'<tr><td><span class="pill '+(r.isOwn?'green':'')+'">'+h(r.decision)+'</span></td><td><b>'+h(r.name)+'</b><br><span class="small">'+h(r.domain||"—")+' '+linkFor(r.domain)+'</span></td><td>'+h(r.type)+'</td><td>'+h(r.category)+'</td><td>'+h(r.totalPrice?BBUtils.euro(r.totalPrice):"—")+'</td><td>'+h(Number.isFinite(r.priceGap)?BBUtils.euro(r.priceGap):"—")+'</td><td>'+h(r.deliveryDays?r.deliveryDays+" gg":"—")+'</td><td>'+h(r.action)+'</td><td class="small">'+h([r.strengths,r.weaknesses,r.notes].filter(Boolean).join(" | ")||"—")+'</td><td><button class="secondaryBtn deleteCompetitorBtn" data-competitor-id="'+h(r.id)+'">Elimina</button></td></tr>').join("")+'</table>':'<div class="action">Inserisci almeno 3 competitor: uno Amazon, uno sito esterno e il tuo Shopify. BipBop Shopify e gia preimpostato nelle regole.</div>');
     }
 
     const kr=BBAnalytics.keywordRows(s.samples);
