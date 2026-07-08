@@ -318,6 +318,7 @@ window.BBRender = {
     const competitorEl=BBUtils.el("competitorBox");
     if(competitorEl){
       const comp=BBAnalytics.competitorSummary ? BBAnalytics.competitorSummary(scopedSamples,c) : {rows:[],opportunities:[]};
+      const incompleteCompetitors=(comp.rows||[]).filter(r=>!r.isOwn && !r.totalPrice && !r.deliveryDays && !r.strengths && !r.weaknesses && !r.notes);
       const linkFor=domain=>{
         const d=String(domain||"").trim();
         if(!d) return "";
@@ -348,6 +349,7 @@ window.BBRender = {
       '<button id="saveCompetitorBtn">Salva competitor</button> <button id="clearCompetitorFormBtn" class="secondaryBtn" type="button">Pulisci</button>'+
       '<h3>Piano Shopify e confronto mercato</h3>'+
       (comp.opportunities.length?'<div class="grid2">'+comp.opportunities.map(r=>'<div class="action"><b>'+h(r.title)+'</b><br>'+h(r.why)+'<br><span class="small">'+h(r.action)+'</span></div>').join("")+'</div>':'')+
+      (incompleteCompetitors.length?'<div class="action yellow"><b>Risultato competitor incompleto</b><br>Hai salvato '+h(incompleteCompetitors.map(r=>r.name).join(", "))+', ma mancano prezzo, spedizione e tempi consegna. Finche restano vuoti, l’app puo solo archiviarlo come benchmark e non puo dire se costa meno, consegna prima o conviene copiarne una leva.</div>':'')+
       '<div class="action yellow"><b>Nota pratica</b><br>Questa sezione non scarica automaticamente dati da Amazon o dai siti: molti portali bloccano letture automatiche. Qui raccogli benchmark manuali e li trasformi in decisioni per prezzo, bundle, varianti e traffico verso Shopify.</div>'+
       '<h3>Competitor inseriti</h3>'+
       (comp.rows.length?'<table class="decision-table"><tr><th>Decisione</th><th>Competitor</th><th>Canale</th><th>Categoria</th><th>Prezzo + sped.</th><th>Gap prezzo</th><th>Consegna</th><th>Azione</th><th>Punti forti / note</th><th></th></tr>'+comp.rows.map(r=>'<tr><td><span class="pill '+(r.isOwn?'green':'')+'">'+h(r.decision)+'</span></td><td><b>'+h(r.name)+'</b><br><span class="small">'+h(r.domain||"—")+' '+linkFor(r.domain)+'</span></td><td>'+h(r.type)+'</td><td>'+h(r.category)+'</td><td>'+h(r.totalPrice?BBUtils.euro(r.totalPrice):"—")+'</td><td>'+h(Number.isFinite(r.priceGap)?BBUtils.euro(r.priceGap):"—")+'</td><td>'+h(r.deliveryDays?r.deliveryDays+" gg":"—")+'</td><td>'+h(r.action)+'</td><td class="small">'+h([r.strengths,r.weaknesses,r.notes].filter(Boolean).join(" | ")||"—")+'</td><td><button class="secondaryBtn deleteCompetitorBtn" data-competitor-id="'+h(r.id)+'">Elimina</button></td></tr>').join("")+'</table>':'<div class="action">Inserisci almeno 3 competitor: uno Amazon, uno sito esterno e il tuo Shopify. BipBop Shopify e gia preimpostato nelle regole.</div>');

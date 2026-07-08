@@ -845,6 +845,10 @@ window.BBAnalytics = {
         decision="Competitor consegna";
         action="Migliora promessa di consegna o crea mini stock solo sui top seller.";
         priority=2;
+      }else if(domain && !totalPrice && !deliveryDays && !strengths && !weaknesses && !notes){
+        decision="Dati da completare";
+        action="Inserisci prezzo medio, spedizione, giorni consegna e 1-2 punti forti: poi calcolo gap e azione.";
+        priority=1;
       }else if(BBUtils.low(strengths+" "+notes).match(/personal|nome|regalo|gift|bundle|premium/)){
         decision="Idea da copiare meglio";
         action="Trasforma il punto forte in variante BipBop: regalo nascita, nome bambino, set coordinato o bundle.";
