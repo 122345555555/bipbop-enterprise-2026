@@ -8,7 +8,7 @@ function show(view){
   document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active",s.id===view));
   const active=document.querySelector('.nav[data-view="'+view+'"]');
-  if(active) BBUtils.el("pageTitle").textContent=active.textContent.replace(/[📊📥💶📈📦📋🛟🏬🔎🏷️💰🗓️🎨🚀🧠🚨📁🧪⚙️]/g,"").trim();
+  if(active) BBUtils.el("pageTitle").textContent=active.textContent.replace(/[📊📥💶📈📦📋🛟🏬🔎🏷️💰🧾🗓️🎨🚀🧠🚨📁🧪⚙️]/g,"").trim();
 }
 
 async function importFiles(files){
@@ -96,6 +96,21 @@ function bind(){
       BBRender.renderAll();
     }
   });
+  document.addEventListener("click",e=>{
+    if(!e.target.closest("#saveProductCosts")) return;
+    const rules=BBUtils.rules();
+    const productCosts={...rules.productCosts};
+    document.querySelectorAll(".cost-input").forEach(input=>{
+      const profile=input.dataset.profile;
+      const field=input.dataset.field;
+      if(!profile || !field) return;
+      productCosts[profile]=productCosts[profile]||{};
+      productCosts[profile][field]=BBUtils.num(input.value);
+    });
+    localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,productCosts}));
+    alert("Costi prodotto salvati");
+    BBRender.renderAll();
+  });
 
   ["inventorySearch","inventoryFilter","inventoryLowStock","inventorySort"].forEach(id=>{
     const el=BBUtils.el(id);
@@ -170,7 +185,9 @@ function bind(){
   BBUtils.el("ruleShippingCost").value=ru.shippingCostPerUnit;
   BBUtils.el("ruleExtraFixedCosts").value=ru.extraFixedCosts;
   BBUtils.el("saveRules").addEventListener("click",()=>{
+    const currentRules=BBUtils.rules();
     localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({
+      ...currentRules,
       tacos:BBUtils.num(BBUtils.el("ruleTacos").value),
       acos:BBUtils.num(BBUtils.el("ruleAcos").value),
       margin:BBUtils.num(BBUtils.el("ruleMargin").value),

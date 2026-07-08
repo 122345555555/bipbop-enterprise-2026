@@ -144,6 +144,9 @@ window.BBRender = {
     else out.sort((a,b)=>(b.profit||0)-(a.profit||0));
     return out;
   },
+  productCostInput(profileKey,field,value){
+    return '<input class="cost-input" data-profile="'+BBUtils.html(profileKey)+'" data-field="'+BBUtils.html(field)+'" type="number" step="0.01" value="'+BBUtils.html(value||0)+'">';
+  },
   renderAll(){
     const s=this.state;
     const h=BBUtils.html;
@@ -331,6 +334,39 @@ window.BBRender = {
     const pf=this.filteredProfitRows(pr);
     BBUtils.el("profitBox").innerHTML += py.length?'<h3>Riepilogo per anno</h3><div class="grid3">'+py.map(r=>'<div class="kpi"><small>'+h(r.year)+' — '+h(r.asinCount)+' ASIN/SKU</small><strong>'+h(BBUtils.euro(r.profit))+'</strong><br><span class="small">Vendite '+h(BBUtils.euro(r.sales))+' · Margine '+h(BBUtils.pct(r.margin))+'</span></div>').join("")+'</div>':'';
     BBUtils.el("profitBox").innerHTML += pr.length?'<h3>Profitto per ASIN</h3><p class="hint">Risultati mostrati: '+pf.length+' su '+pr.length+'.</p><table><tr><th>Anno</th><th>ASIN / Prodotto</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th></tr>'+pf.map(r=>'<tr><td>'+h(r.year)+'</td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td></tr>').join("")+'</table>':'<p class="hint">Carica il Profit Report per vedere profitto e margine per ASIN. I costi interni potranno essere collegati dopo.</p>';
+
+    const costSummary=BBAnalytics.productCostSummary ? BBAnalytics.productCostSummary(scopedSamples,c) : null;
+    const costEl=BBUtils.el("productCostBox");
+    if(costEl && costSummary){
+      const profiles=costSummary.profiles;
+      const profileRows=Object.keys(profiles).map(key=>({key,...profiles[key]}));
+      costEl.innerHTML='<h3>Costi unitari per tipologia</h3><p class="hint">Valori per singolo ordine/unita. Commissioni Amazon automatiche: fino al 14/01/2026 15% su tutto; dal 15/01/2026 8% sotto 20 euro e 15% da 20 euro in su.</p>'+
+      '<table class="compact-table"><tr><th>Tipologia</th><th>Produzione €</th><th>Imballo €</th><th>Spedizione €</th><th>Altri costi €</th></tr>'+
+      profileRows.map(p=>'<tr><td><b>'+h(p.label)+'</b></td><td>'+this.productCostInput(p.key,"production",p.production)+'</td><td>'+this.productCostInput(p.key,"packaging",p.packaging)+'</td><td>'+this.productCostInput(p.key,"shipping",p.shipping)+'</td><td>'+this.productCostInput(p.key,"other",p.other)+'</td></tr>').join("")+'</table>'+
+      '<button id="saveProductCosts">Salva costi prodotto</button>'+
+      '<h3>Margine simulato con costi interni</h3><div class="grid3">'+[
+        ["Ricavi analizzati",BBUtils.euro(costSummary.totals.sales)],
+        ["Unità",costSummary.totals.units||"—"],
+        ["Produzione",BBUtils.euro(costSummary.totals.production)],
+        ["Imballo",BBUtils.euro(costSummary.totals.packaging)],
+        ["Spedizione",BBUtils.euro(costSummary.totals.shipping)],
+        ["Commissioni stimate",BBUtils.euro(costSummary.totals.referral)],
+        ["Ads allocati",BBUtils.euro(costSummary.totals.adsAllocated)],
+        ["Netto simulato",BBUtils.euro(costSummary.totals.net)],
+        ["Margine simulato",BBUtils.pct(costSummary.totals.margin)]
+      ].map(x=>'<div class="kpi '+(x[0]==="Netto simulato"&&costSummary.totals.net<0?'recon-bad':'')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      '<h3>Riepilogo per tipologia</h3>'+
+      (costSummary.byProfile.length?'<table><tr><th>Tipologia</th><th>Prodotti</th><th>Ricavi</th><th>Unità</th><th>Costi interni</th><th>Comm. stimate</th><th>Ads allocati</th><th>Netto</th><th>Margine</th></tr>'+costSummary.byProfile.map(r=>'<tr><td><b>'+h(r.profileLabel)+'</b></td><td>'+h(r.count)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(BBUtils.euro(r.internal))+'</td><td>'+h(BBUtils.euro(r.referral))+'</td><td>'+h(BBUtils.euro(r.adsAllocated))+'</td><td class="'+(r.net<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.net))+'</td><td>'+h(BBUtils.pct(r.marginAfterCosts))+'</td></tr>').join("")+'</table>':'<div class="action">Carica Profit Report o ordini per simulare i costi per tipologia.</div>')+
+      '<h3>Dettaglio prodotti con margine simulato</h3>'+
+      (costSummary.rows.length?'<table class="decision-table"><tr><th>Tipologia</th><th>ASIN / Prodotto</th><th>SKU</th><th>Ricavi</th><th>Unità</th><th>Costi interni</th><th>Comm.</th><th>Regola</th><th>Ads</th><th>Netto</th><th>Margine</th></tr>'+costSummary.rows.map(r=>'<tr><td><span class="pill">'+h(r.profileLabel)+'</span></td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(BBUtils.euro(r.internal))+'</td><td>'+h(BBUtils.euro(r.referral))+'</td><td>'+h(BBUtils.pct(r.referralRate))+'</td><td>'+h(BBUtils.euro(r.adsAllocated))+'</td><td class="'+(r.net<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.net))+'</td><td>'+h(BBUtils.pct(r.marginAfterCosts))+'</td></tr>').join("")+'</table>':'<div class="action">Quando carichi il Profit Report, qui vedrai il margine per articolo considerando costi di produzione, imballo e spedizione.</div>');
+    }
+    if(costSummary && costSummary.rows.length){
+      BBUtils.el("profitBox").innerHTML += '<h3>Costi prodotto dettagliati</h3><div class="grid3">'+[
+        ["Costi interni",BBUtils.euro(costSummary.totals.internal)],
+        ["Commissioni stimate",BBUtils.euro(costSummary.totals.referral)],
+        ["Netto simulato",BBUtils.euro(costSummary.totals.net)]
+      ].map(x=>'<div class="kpi '+(x[0]==="Netto simulato"&&costSummary.totals.net<0?'recon-bad':'')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Questa simulazione usa i costi inseriti nella sezione Costi prodotto e li incrocia con ricavi, unità, Ads e commissioni stimate.</p>';
+    }
 
     const strategy=BBAnalytics.productStrategyRows ? BBAnalytics.productStrategyRows(scopedSamples) : [];
     const weekly=BBAnalytics.weeklyActionPlan ? BBAnalytics.weeklyActionPlan(scopedSamples,c,s.counts) : null;

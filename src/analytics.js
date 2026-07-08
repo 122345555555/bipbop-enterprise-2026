@@ -289,6 +289,90 @@ window.BBAnalytics = {
     if(t.includes("bordo") || t.includes("greca")) return "Greche murali";
     return "Adesivi murali";
   },
+  costProfileKey(text){
+    const t=BBUtils.low(text);
+    if(t.includes("bundle") || t.includes("set premium") || t.includes("kit")) return "bundle";
+    if(t.includes("quadro") || t.includes("quadri") || t.includes("poster") || t.includes("stampa")) return "quadri";
+    if(t.includes("grech") || t.includes("bordo")) return "greche";
+    if(t.includes("adesiv") || t.includes("stickers") || t.includes("murali")) return "adesivi";
+    return "altro";
+  },
+  costProfiles(){
+    const rules=BBUtils.rules();
+    const defaults=BBUtils.rules().productCosts || {};
+    return {
+      greche:{label:"Greche murali",production:0,packaging:0,shipping:0,other:0,...defaults.greche},
+      adesivi:{label:"Adesivi murali",production:0,packaging:0,shipping:0,other:0,...defaults.adesivi},
+      quadri:{label:"Quadri",production:0,packaging:0,shipping:0,other:0,...defaults.quadri},
+      bundle:{label:"Bundle / set premium",production:0,packaging:0,shipping:0,other:0,...defaults.bundle},
+      altro:{label:"Altro",production:rules.productionCostPerUnit||0,packaging:0,shipping:rules.shippingCostPerUnit||0,other:0,...defaults.altro}
+    };
+  },
+  amazonReferralRate(row){
+    const avgPrice=(row.units||0)?(row.sales||0)/(row.units||1):(row.sales||0);
+    const changeDate=new Date(2026,0,15);
+    if(row.latestDate instanceof Date && !Number.isNaN(row.latestDate.getTime())){
+      return row.latestDate>=changeDate && avgPrice<20 ? 8 : 15;
+    }
+    if(String(row.year)==="2026" && avgPrice<20) return 8;
+    return 15;
+  },
+  productCostRows(samples,c){
+    const profiles=this.costProfiles();
+    const sourceRows=this.profitRows(samples);
+    const salesTotal=sourceRows.reduce((a,r)=>a+(r.sales||0),0) || c.sales || 0;
+    return sourceRows.map(r=>{
+      const text=[r.title,r.sku,r.asin,this.categoryForText(r.title||r.sku||"")].join(" ");
+      const key=this.costProfileKey(text);
+      const profile=profiles[key] || profiles.altro;
+      const units=r.units||0;
+      const production=units*BBUtils.num(profile.production);
+      const packaging=units*BBUtils.num(profile.packaging);
+      const shipping=units*BBUtils.num(profile.shipping);
+      const other=units*BBUtils.num(profile.other);
+      const referralRate=this.amazonReferralRate(r);
+      const referral=(r.sales||0)*referralRate/100;
+      const adsAllocated=salesTotal&&c.ads?(r.sales||0)/salesTotal*c.ads:0;
+      const internal=production+packaging+shipping+other;
+      const totalCost=internal+referral+adsAllocated;
+      const net=(r.sales||0)-totalCost;
+      const margin=(r.sales||0)?net/(r.sales||0)*100:NaN;
+      return {...r,category:this.categoryForText(text),profileKey:key,profileLabel:profile.label,production,packaging,shipping,other,referral,referralRate,adsAllocated,internal,totalCost,net,marginAfterCosts:margin};
+    }).sort((a,b)=>(a.marginAfterCosts||0)-(b.marginAfterCosts||0));
+  },
+  productCostSummary(samples,c){
+    const rows=this.productCostRows(samples,c);
+    const sum=(field)=>rows.reduce((a,r)=>a+(r[field]||0),0);
+    const byProfile=new Map();
+    rows.forEach(r=>{
+      const o=byProfile.get(r.profileKey)||{profileKey:r.profileKey,profileLabel:r.profileLabel,sales:0,units:0,production:0,packaging:0,shipping:0,other:0,referral:0,adsAllocated:0,internal:0,totalCost:0,net:0,marginAfterCosts:NaN,count:0};
+      ["sales","units","production","packaging","shipping","other","referral","adsAllocated","internal","totalCost","net"].forEach(k=>o[k]+=r[k]||0);
+      o.count+=1;
+      o.marginAfterCosts=o.sales?o.net/o.sales*100:NaN;
+      byProfile.set(r.profileKey,o);
+    });
+    const totalSales=sum("sales");
+    const totalNet=sum("net");
+    return {
+      rows,
+      profiles:this.costProfiles(),
+      totals:{
+        sales:totalSales,
+        units:sum("units"),
+        production:sum("production"),
+        packaging:sum("packaging"),
+        shipping:sum("shipping"),
+        other:sum("other"),
+        referral:sum("referral"),
+        adsAllocated:sum("adsAllocated"),
+        internal:sum("internal"),
+        totalCost:sum("totalCost"),
+        net:totalNet,
+        margin:totalSales?totalNet/totalSales*100:NaN
+      },
+      byProfile:Array.from(byProfile.values()).sort((a,b)=>a.net-b.net)
+    };
+  },
   productStrategyRows(samples){
     const map=new Map();
     const ensure=cat=>{
@@ -636,8 +720,10 @@ window.BBAnalytics = {
       const sku=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
       const year=this.rowYear(r);
       const key=[year,asin,sku].join("|");
-      const o=map.get(key)||{year,asin,sku,title:titles.get(asin)||"",sales:0,units:0,profit:0,margin:NaN};
+      const o=map.get(key)||{year,asin,sku,title:titles.get(asin)||"",sales:0,units:0,profit:0,margin:NaN,latestDate:null};
       o.title=o.title||titles.get(asin)||"";
+      const rowDate=this.rowDate(r);
+      if(rowDate && (!o.latestDate || rowDate>o.latestDate)) o.latestDate=rowDate;
       const sales=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
       const units=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
       const profit=BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));

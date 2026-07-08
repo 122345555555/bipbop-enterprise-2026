@@ -43,7 +43,14 @@ window.BBUtils = {
     return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
   },
   rules(){
-    const defaults={tacos:15,acos:35,margin:25,monthlyFee:39,subscriptionMonths:18,productionCostPerUnit:0,shippingCostPerUnit:0,extraFixedCosts:0,fulfillmentMode:"merchant",handlingDays:2,weeklyProductionCapacity:30};
+    const defaultProductCosts={
+      greche:{label:"Greche murali",production:0,packaging:0,shipping:0,other:0},
+      adesivi:{label:"Adesivi murali",production:0,packaging:0,shipping:0,other:0},
+      quadri:{label:"Quadri",production:0,packaging:0,shipping:0,other:0},
+      bundle:{label:"Bundle / set premium",production:0,packaging:0,shipping:0,other:0},
+      altro:{label:"Altro",production:0,packaging:0,shipping:0,other:0}
+    };
+    const defaults={tacos:15,acos:35,margin:25,monthlyFee:39,subscriptionMonths:18,productionCostPerUnit:0,shippingCostPerUnit:0,extraFixedCosts:0,fulfillmentMode:"merchant",handlingDays:2,weeklyProductionCapacity:30,productCosts:defaultProductCosts};
     try { return {...defaults,...JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.rulesKey) || "{}")}; }
     catch(e){ return defaults; }
   }
