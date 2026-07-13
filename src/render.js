@@ -393,6 +393,11 @@ window.BBRender = {
       const baProtect=ba.filter(r=>r.decision==="Proteggi").length;
       const baVolume=ba.reduce((a,r)=>a+(r.volume||0),0);
       const avgBrandShare=ba.length?ba.reduce((a,r)=>a+(r.brandImpShare||0),0)/ba.length:NaN;
+      const topDemand=ba.slice().sort((a,b)=>(b.volume||0)-(a.volume||0)).slice(0,5);
+      const lowShare=ba.filter(r=>(r.volume||0)>=20 && (r.brandImpShare||0)<2).sort((a,b)=>(b.volume||0)-(a.volume||0)).slice(0,5);
+      const clickNoBuy=ba.filter(r=>(r.clickTotal||0)>=10 && (r.purchaseShare||0)<5).sort((a,b)=>(b.clickTotal||0)-(a.clickTotal||0)).slice(0,5);
+      const protectQueries=ba.filter(r=>(r.purchaseShare||0)>=20 || (r.purchaseBrand||0)>=2).sort((a,b)=>(b.purchaseShare||0)-(a.purchaseShare||0)).slice(0,5);
+      const insightList=(title,subtitle,rows,metric)=>'<div class="ba-insight-card"><h3>'+h(title)+'</h3><p>'+h(subtitle)+'</p>'+(rows.length?'<ol>'+rows.map(r=>'<li><b>'+h(r.query)+'</b><span>'+h(metric(r))+'</span></li>').join("")+'</ol>':'<div class="small">Nessun dato critico in questo gruppo.</div>')+'</div>';
       const cls=d=>d==="Grande opportunita"?"decision-scale":d==="Ottimizza conversione"?"decision-optimize":d==="Proteggi"?"decision-protect":"decision-observe";
       baEl.innerHTML=ba.length?
       '<div class="ba-report-shell">'+
@@ -408,6 +413,12 @@ window.BBRender = {
           ["Da proteggere",baProtect]
         ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
         '<div class="action yellow"><b>Come leggere questa sezione</b><br>Brand Analytics non e uguale ai Search Terms pubblicitari: qui vedi la domanda generale Amazon. Se una query ha volume alto e quota BipBop bassa, e una possibile nuova linea prodotto, variante o campagna da testare.</div>'+
+        '<h3>Dati interessanti da guardare prima</h3><div class="ba-insights">'+
+          insightList("Domanda piu alta","Le ricerche piu grandi del mercato: servono per scegliere categorie e nuovi disegni.",topDemand,r=>"Volume "+(r.volume||0)+" · quota BipBop "+BBUtils.pct(r.brandImpShare))+
+          insightList("Opportunita scoperte","Tanta domanda ma presenza BipBop bassa: qui puoi creare variante, listing o campagna.",lowShare,r=>"Volume "+(r.volume||0)+" · quota impression "+BBUtils.pct(r.brandImpShare))+
+          insightList("Clic senza acquisti","Le persone cliccano, ma BipBop non chiude: controlla immagine, prezzo, promessa e prodotto.",clickNoBuy,r=>"Clic "+(r.clickTotal||0)+" · quota acquisti "+BBUtils.pct(r.purchaseShare))+
+          insightList("Da proteggere","Query dove BipBop intercetta acquisti: evita di perderle e proteggi visibilita.",protectQueries,r=>"Quota acquisti "+BBUtils.pct(r.purchaseShare)+" · acquisti brand "+(r.purchaseBrand||0))+
+        '</div>'+
         '<div class="ba-table-meta"><span>Visualizzazione 21 di 33 colonne</span><b>Personalizza colonne</b></div>'+
         '<div class="ba-table-wrap"><table class="ba-table"><tr class="ba-group-row"><th rowspan="2">Decisione</th><th rowspan="2">Query di ricerca</th><th rowspan="2">Cerca punteggio query</th><th rowspan="2">Volume query</th><th colspan="3">Funnel di ricerca - Impression</th><th colspan="4">Cerca funnel - Clic</th><th colspan="4">Cerca funnel - Aggiunte al carrello</th><th colspan="4">Cerca funnel - Acquisti</th><th rowspan="2">Azione BipBop</th></tr>'+
         '<tr class="ba-sub-row"><th>Conteggio totale</th><th>Conteggio marchio</th><th>% marchio</th><th>Conteggio totale</th><th>% clic</th><th>Conteggio marchio</th><th>% marchio</th><th>Conteggio totale</th><th>% carrello</th><th>Conteggio marchio</th><th>% marchio</th><th>Conteggio totale</th><th>% acquisto</th><th>Conteggio marchio</th><th>% marchio</th></tr>'+
