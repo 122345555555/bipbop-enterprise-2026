@@ -60,6 +60,30 @@ textarea{min-height:110px}
 .target-card b{display:block;margin-bottom:6px}
 .target-card span{display:block;color:#14284a;font-weight:700;line-height:1.35}
 .target-card small{display:block;color:#64748b;margin-top:6px;line-height:1.35}
+.ba-report-shell{margin-top:8px}
+.ba-report-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
+.ba-report-head h2{font-size:30px;margin:0 0 8px}
+.ba-report-head p{max-width:1000px;margin:0;color:#42526d;line-height:1.45}
+.ba-market{border:1px solid #cbd5e1;background:#fff;padding:10px 60px 10px 14px;color:#334155;font-weight:700}
+.ba-tabs{display:flex;background:#eef2f7;border-bottom:1px solid #d8e2ee;margin:10px -24px 14px}
+.ba-tabs span{padding:16px 22px;border-right:1px solid #d8e2ee;font-weight:800;color:#334155}
+.ba-tabs span.active{background:#fff;border-top:4px solid #0891b2;color:#14284a}
+.ba-controls{display:grid;grid-template-columns:220px 220px 260px 110px 1fr;gap:14px;align-items:end;margin-bottom:18px}
+.ba-controls label{font-size:13px;font-weight:900;color:#334155}
+.ba-controls select{margin:6px 0 0;border-radius:2px}
+.ba-controls button{border-radius:2px;margin:0;height:39px}
+.ba-controls button.secondaryBtn{justify-self:end;width:180px}
+.ba-summary{margin-bottom:14px}
+.ba-table-meta{display:flex;justify-content:flex-end;gap:16px;color:#94a3b8;font-size:13px;margin:18px 0 8px}
+.ba-table-meta b{color:#008ca8}
+.ba-table-wrap{overflow:auto;border:1px solid #d8e2ee;border-radius:8px;background:#fff}
+.ba-table{min-width:2200px;font-size:13px}
+.ba-table th,.ba-table td{border-right:1px solid #e6edf5;white-space:nowrap}
+.ba-table td:last-child{white-space:normal;min-width:260px}
+.ba-table .ba-group-row th{background:#f8fafc;text-align:center;vertical-align:bottom;font-weight:900;color:#111827}
+.ba-table .ba-sub-row th{background:#f8fafc;color:#334155;font-size:12px}
+.ba-table tr:hover td{background:#f8fbff}
+.ba-pagination{display:flex;justify-content:flex-end;color:#64748b;font-size:13px;margin-top:10px}
 .executive-data-grid{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px}
 .data-chip{display:inline-block;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:900;background:#edf2f7;color:#475569}
 .data-chip.ok{background:#dcfce7;color:#047857}
@@ -107,4 +131,7 @@ pre{white-space:pre-wrap;background:#111827;color:#e5e7eb;padding:16px;border-ra
 aside{position:static;width:100%;min-height:auto}
 main{margin-left:0}
 .kpis,.grid2,.grid3,.import-grid,.tool-row,.target-guide{grid-template-columns:1fr}
+.ba-report-head,.ba-table-meta{display:block}
+.ba-controls{grid-template-columns:1fr}
+.ba-controls button.secondaryBtn{justify-self:stretch;width:auto}
 }

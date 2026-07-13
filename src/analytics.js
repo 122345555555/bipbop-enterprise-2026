@@ -703,11 +703,38 @@ window.BBAnalytics = {
     return rows.map(r=>{
       const query=BBUtils.pick(r,["Query di ricerca","Search Query","Search term"])||"";
       const volume=BBUtils.num(BBUtils.pick(r,["Volume delle query di ricerca","Search Query Volume","Volume"]));
-      const impTotal=BBUtils.num(BBUtils.pick(r,["Impressioni: numero totale","Impressions: Total Count"]));
-      const brandImpShare=BBUtils.num(BBUtils.pick(r,["Impressioni: % quota del marchio","Impressions: Brand Share %"]));
-      const clickShare=BBUtils.num(BBUtils.pick(r,["Clic: % quota del marchio","Clicks: Brand Share %"]));
-      const purchaseShare=BBUtils.num(BBUtils.pick(r,["Acquisti: % quota del marchio","Purchases: Brand Share %"]));
-      return {query,volume,impTotal,brandImpShare,clickShare,purchaseShare};
+      const rank=BBUtils.num(BBUtils.pick(r,["Cerca punteggio query","Search Query Score","Punteggio query","Search Query Rank"]));
+      const impTotal=BBUtils.num(BBUtils.pick(r,["Impressioni: numero totale","Impressions: Total Count","Impression Count: Total"]));
+      const impBrand=BBUtils.num(BBUtils.pick(r,["Impressioni: conteggio marchio","Impressions: Brand Count","Impression Count: Brand"]));
+      const brandImpShare=BBUtils.num(BBUtils.pick(r,["Impressioni: % quota del marchio","Impressions: Brand Share %","Impression Share: Brand"]));
+      const clickTotal=BBUtils.num(BBUtils.pick(r,["Clic: conteggio totale","Clicks: Total Count","Click Count: Total"]));
+      const clickRate=BBUtils.num(BBUtils.pick(r,["Clic: percentuale di clic","Clicks: Click Rate %","Click Rate"]));
+      const clickBrand=BBUtils.num(BBUtils.pick(r,["Clic: conteggio marchio","Clicks: Brand Count","Click Count: Brand"]));
+      const clickShare=BBUtils.num(BBUtils.pick(r,["Clic: % quota del marchio","Clicks: Brand Share %","Click Share: Brand"]));
+      const cartTotal=BBUtils.num(BBUtils.pick(r,["Aggiunte al carrello: conteggio totale","Cart Adds: Total Count","Cart Add Count: Total"]));
+      const cartRate=BBUtils.num(BBUtils.pick(r,["Aggiunte al carrello: percentuale","Cart Adds: Cart Add Rate %","Cart Add Rate"]));
+      const cartBrand=BBUtils.num(BBUtils.pick(r,["Aggiunte al carrello: conteggio marchio","Cart Adds: Brand Count","Cart Add Count: Brand"]));
+      const cartShare=BBUtils.num(BBUtils.pick(r,["Aggiunte al carrello: % quota del marchio","Cart Adds: Brand Share %","Cart Add Share: Brand"]));
+      const purchaseTotal=BBUtils.num(BBUtils.pick(r,["Acquisti: conteggio totale","Purchases: Total Count","Purchase Count: Total"]));
+      const purchaseRate=BBUtils.num(BBUtils.pick(r,["Acquisti: percentuale di acquisto","Purchases: Purchase Rate %","Purchase Rate"]));
+      const purchaseBrand=BBUtils.num(BBUtils.pick(r,["Acquisti: conteggio marchio","Purchases: Brand Count","Purchase Count: Brand"]));
+      const purchaseShare=BBUtils.num(BBUtils.pick(r,["Acquisti: % quota del marchio","Purchases: Brand Share %","Purchase Share: Brand"]));
+      let decision="Monitora";
+      let action="Tieni sotto controllo: utile per capire domanda e linguaggio clienti.";
+      if(volume>=100 && brandImpShare<2){
+        decision="Grande opportunita";
+        action="Crea contenuto/listing o Ads mirata: tanta domanda, poca presenza BipBop.";
+      } else if(clickTotal>=20 && purchaseShare<5){
+        decision="Ottimizza conversione";
+        action="Migliora titolo, immagine, prezzo o variante: arrivano clic ma pochi acquisti del brand.";
+      } else if(purchaseShare>=20 || purchaseBrand>=2){
+        decision="Proteggi";
+        action="Difendi posizione con listing forte, prezzo coerente e campagne controllate.";
+      } else if(volume>=20 && clickShare>=20){
+        decision="Testa variante";
+        action="La query attira interesse: prova un disegno o bundle collegato.";
+      }
+      return {query,rank,volume,impTotal,impBrand,brandImpShare,clickTotal,clickRate,clickBrand,clickShare,cartTotal,cartRate,cartBrand,cartShare,purchaseTotal,purchaseRate,purchaseBrand,purchaseShare,decision,action};
     }).filter(x=>x.query).sort((a,b)=>b.volume-a.volume).slice(0,100);
   }
 ,

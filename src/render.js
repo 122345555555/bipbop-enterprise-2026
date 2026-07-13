@@ -387,7 +387,33 @@ window.BBRender = {
     const ba=BBAnalytics.brandAnalyticsRows ? BBAnalytics.brandAnalyticsRows(s.samples) : [];
     const baEl=BBUtils.el("brandAnalyticsBox");
     if(baEl){
-      baEl.innerHTML=ba.length?'<table><tr><th>Query</th><th>Volume</th><th>Impression totali</th><th>Quota impression brand</th><th>Quota click brand</th><th>Quota acquisti brand</th></tr>'+ba.map(r=>'<tr><td>'+h(r.query)+'</td><td>'+h(r.volume)+'</td><td>'+h(r.impTotal)+'</td><td>'+h(BBUtils.pct(r.brandImpShare))+'</td><td>'+h(BBUtils.pct(r.clickShare))+'</td><td>'+h(BBUtils.pct(r.purchaseShare))+'</td></tr>').join("")+'</table>':'<div class="action">Importa Brand Analytics – Performance query di ricerca.</div>';
+      const baTop=ba.slice(0,25);
+      const baOpportunity=ba.filter(r=>r.decision==="Grande opportunita").length;
+      const baOptimize=ba.filter(r=>r.decision==="Ottimizza conversione").length;
+      const baProtect=ba.filter(r=>r.decision==="Proteggi").length;
+      const baVolume=ba.reduce((a,r)=>a+(r.volume||0),0);
+      const avgBrandShare=ba.length?ba.reduce((a,r)=>a+(r.brandImpShare||0),0)/ba.length:NaN;
+      const cls=d=>d==="Grande opportunita"?"decision-scale":d==="Ottimizza conversione"?"decision-optimize":d==="Proteggi"?"decision-protect":"decision-observe";
+      baEl.innerHTML=ba.length?
+      '<div class="ba-report-shell">'+
+        '<div class="ba-report-head"><div><h2>Performance delle query di ricerca</h2><p>Vista in stile Amazon Brand Analytics: misura domanda, visibilita del marchio e passaggi del funnel dalla ricerca all acquisto.</p></div><div class="ba-market">Italia</div></div>'+
+        '<div class="ba-tabs"><span class="active">Visualizzazione marchio</span><span>Visualizzazione ASIN</span></div>'+
+        '<div class="ba-controls"><label>Marchio<select><option>Bip Bop stickers</option></select></label><label>Periodo interessato<select><option>Settimanale</option><option>Mensile</option></select></label><label>Settimana caricata<select><option>Ultimo report importato</option></select></label><button type="button">Applica</button><button type="button" class="secondaryBtn">Crea download</button></div>'+
+        '<div class="grid3 ba-summary">'+[
+          ["Query analizzate",ba.length],
+          ["Volume query",baVolume],
+          ["Quota media marchio",BBUtils.pct(avgBrandShare)],
+          ["Opportunita",baOpportunity],
+          ["Da ottimizzare",baOptimize],
+          ["Da proteggere",baProtect]
+        ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+        '<div class="action yellow"><b>Come leggere questa sezione</b><br>Brand Analytics non e uguale ai Search Terms pubblicitari: qui vedi la domanda generale Amazon. Se una query ha volume alto e quota BipBop bassa, e una possibile nuova linea prodotto, variante o campagna da testare.</div>'+
+        '<div class="ba-table-meta"><span>Visualizzazione 21 di 33 colonne</span><b>Personalizza colonne</b></div>'+
+        '<div class="ba-table-wrap"><table class="ba-table"><tr class="ba-group-row"><th rowspan="2">Decisione</th><th rowspan="2">Query di ricerca</th><th rowspan="2">Cerca punteggio query</th><th rowspan="2">Volume query</th><th colspan="3">Funnel di ricerca - Impression</th><th colspan="4">Cerca funnel - Clic</th><th colspan="4">Cerca funnel - Aggiunte al carrello</th><th colspan="4">Cerca funnel - Acquisti</th><th rowspan="2">Azione BipBop</th></tr>'+
+        '<tr class="ba-sub-row"><th>Conteggio totale</th><th>Conteggio marchio</th><th>% marchio</th><th>Conteggio totale</th><th>% clic</th><th>Conteggio marchio</th><th>% marchio</th><th>Conteggio totale</th><th>% carrello</th><th>Conteggio marchio</th><th>% marchio</th><th>Conteggio totale</th><th>% acquisto</th><th>Conteggio marchio</th><th>% marchio</th></tr>'+
+        baTop.map(r=>'<tr><td><span class="pill '+cls(r.decision)+'">'+h(r.decision)+'</span></td><td><b>'+h(r.query)+'</b></td><td>'+h(r.rank||"—")+'</td><td>'+h(r.volume||"—")+'</td><td>'+h(r.impTotal||"—")+'</td><td>'+h(r.impBrand||"—")+'</td><td>'+h(BBUtils.pct(r.brandImpShare))+'</td><td>'+h(r.clickTotal||"—")+'</td><td>'+h(BBUtils.pct(r.clickRate))+'</td><td>'+h(r.clickBrand||"—")+'</td><td>'+h(BBUtils.pct(r.clickShare))+'</td><td>'+h(r.cartTotal||"—")+'</td><td>'+h(BBUtils.pct(r.cartRate))+'</td><td>'+h(r.cartBrand||"—")+'</td><td>'+h(BBUtils.pct(r.cartShare))+'</td><td>'+h(r.purchaseTotal||"—")+'</td><td>'+h(BBUtils.pct(r.purchaseRate))+'</td><td>'+h(r.purchaseBrand||"—")+'</td><td>'+h(BBUtils.pct(r.purchaseShare))+'</td><td class="small">'+h(r.action)+'</td></tr>').join("")+
+        '</table></div><div class="ba-pagination">Pagina 1 di '+h(Math.max(1,Math.ceil(ba.length/25)))+' · Mostrate le prime 25 query ordinate per volume.</div>'+
+      '</div>':'<div class="action">Importa Brand Analytics – Performance query di ricerca.</div>';
     }
 
     BBUtils.el("profitBox").innerHTML='<div class="grid3">'+[
