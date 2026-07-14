@@ -97,6 +97,37 @@ function bind(){
     }
   });
   document.addEventListener("click",e=>{
+    const saveManualSale=e.target.closest("#saveManualSaleBtn");
+    const deleteManualSale=e.target.closest(".deleteManualSaleBtn");
+    if(saveManualSale){
+      const date=BBUtils.el("manualSaleDate")?.value || new Date().toISOString().slice(0,10);
+      const asin=(BBUtils.el("manualSaleAsin")?.value || "").trim().toUpperCase();
+      const units=BBUtils.num(BBUtils.el("manualSaleUnits")?.value || 1);
+      const amount=BBUtils.num(BBUtils.el("manualSaleAmount")?.value);
+      if(!asin){
+        alert("Inserisci l'ASIN della vendita.");
+        return;
+      }
+      if(units<=0 || amount<=0){
+        alert("Inserisci unita e importo vendita maggiori di zero.");
+        return;
+      }
+      const rules=BBUtils.rules();
+      const manualSales=(rules.manualSales||[]).slice();
+      manualSales.unshift({id:"sale-"+Date.now().toString(36),date,asin,units,amount,createdAt:new Date().toISOString()});
+      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,manualSales:manualSales.slice(0,200)}));
+      BBRender.renderAll();
+      return;
+    }
+    if(deleteManualSale){
+      const rules=BBUtils.rules();
+      const id=deleteManualSale.dataset.saleId;
+      const manualSales=(rules.manualSales||[]).filter(r=>String(r.id)!==String(id));
+      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,manualSales}));
+      BBRender.renderAll();
+      return;
+    }
+
     if(!e.target.closest("#saveProductCosts")) return;
     const rules=BBUtils.rules();
     const productCosts={...rules.productCosts};

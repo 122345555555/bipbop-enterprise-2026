@@ -163,6 +163,10 @@ window.BBRender = {
     const execCompetitor=BBAnalytics.competitorSummary ? BBAnalytics.competitorSummary(scopedSamples,c) : null;
     const execCostSummary=BBAnalytics.productCostSummary ? BBAnalytics.productCostSummary(scopedSamples,c) : null;
     const execRules=BBUtils.rules();
+    const manualSales=(execRules.manualSales||[]).slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+    const manualTotal=manualSales.reduce((a,r)=>a+BBUtils.num(r.amount),0);
+    const manualUnits=manualSales.reduce((a,r)=>a+BBUtils.num(r.units),0);
+    const manualToday=new Date().toISOString().slice(0,10);
     const redCount=execDecisions.filter(r=>r.type==="red").length;
     const yellowCount=execDecisions.filter(r=>r.type==="yellow").length;
     const dataScore=BBAnalytics.reportDefs.length ? imported/BBAnalytics.reportDefs.length*100 : 0;
@@ -195,6 +199,7 @@ window.BBRender = {
       ["Saldo stimato",c.sales?BBUtils.euro(profitValue):"—",profitValue<0?"red":"green","Obiettivo: sopra 0 euro"],
       ["Vendite",c.sales?BBUtils.euro(c.sales):"—","","Obiettivo: crescita settimanale"],
       ["Unita' vendute",c.units||"—","","Obiettivo: crescita stabile"],
+      ["Vendite infrasett.",manualSales.length?BBUtils.euro(manualTotal):"—",manualTotal>0?"green":"","Inserite a mano: "+manualUnits+" unita"],
       ["Giorni senza vendite",execRecovery?.daysWithoutSales===null?"—":execRecovery?.daysWithoutSales,(execRecovery?.daysWithoutSales||0)>=7?"red":"","Obiettivo: 0-2 giorni"],
       ["TACOS",BBUtils.pct(c.tacos),Number.isFinite(c.tacos)&&c.tacos>execRules.tacos?"red":"green","Target massimo: "+execRules.tacos+"%"],
       ["ACOS",BBUtils.pct(c.acos),Number.isFinite(c.acos)&&c.acos>execRules.acos?"red":"green","Target massimo: "+execRules.acos+"%"],
@@ -209,6 +214,15 @@ window.BBRender = {
     BBUtils.el("dataHealth").innerHTML='<div class="grid2 executive-mini">'+
       '<div class="action"><b>Prossima leva commerciale</b><br>'+h(execCompetitor?.own?"Spingi Shopify con bundle, gift nascita e varianti personalizzate.":"Inserisci bipbopstickers.it e almeno 3 competitor per capire dove differenziarti.")+'</div>'+
       '<div class="action"><b>Focus prodotto</b><br>'+h((BBAnalytics.productStrategyRows ? (BBAnalytics.productStrategyRows(scopedSamples)[0]?.category || "Carica dati Store e Profit Report per scegliere la categoria.") : "Carica dati Store e Profit Report.") )+'</div>'+
+      '</div>'+
+      '<div class="manual-sales-panel"><h3>Vendite infrasettimanali</h3><p class="hint">Inserisci qui le vendite viste durante la settimana. Restano separate dai report Amazon e servono solo per monitorare l andamento prima del prossimo caricamento.</p>'+
+      '<div class="manual-sales-form"><div><label>Data</label><input id="manualSaleDate" type="date" value="'+h(manualToday)+'"></div><div><label>ASIN</label><input id="manualSaleAsin" placeholder="B0..."></div><div><label>Unita</label><input id="manualSaleUnits" type="number" min="1" step="1" value="1"></div><div><label>Vendite €</label><input id="manualSaleAmount" type="number" min="0" step="0.01" placeholder="19.90"></div><button id="saveManualSaleBtn" type="button">Aggiungi</button></div>'+
+      '<div class="grid3 manual-sales-summary">'+[
+        ["Totale inserito",manualSales.length?BBUtils.euro(manualTotal):"—"],
+        ["Unita inserite",manualUnits||"—"],
+        ["Righe manuali",manualSales.length||"—"]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      (manualSales.length?'<table class="compact-table manual-sales-table"><tr><th>Data</th><th>ASIN</th><th>Unita</th><th>Vendite</th><th>Azione</th></tr>'+manualSales.slice(0,12).map(r=>'<tr><td>'+h(r.date||"—")+'</td><td><b>'+h(r.asin||"—")+'</b></td><td>'+h(r.units||0)+'</td><td>'+h(BBUtils.euro(r.amount||0))+'</td><td><button class="secondaryBtn deleteManualSaleBtn" data-sale-id="'+h(r.id)+'" type="button">Elimina</button></td></tr>').join("")+'</table>':'<div class="action">Nessuna vendita manuale inserita.</div>')+
       '</div>'+
       '<h3>Come raggiungere i target</h3><div class="target-guide">'+targetPlan.map(r=>'<div class="target-card"><b>'+h(r[0])+'</b><span>'+h(r[1])+'</span><small>'+h(r[2])+'</small></div>').join("")+'</div>'+
       '<h3>Qualita dati</h3><div class="executive-data-grid">'+BBAnalytics.reportDefs.map(r=>{

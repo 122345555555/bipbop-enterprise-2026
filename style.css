@@ -60,6 +60,13 @@ textarea{min-height:110px}
 .target-card b{display:block;margin-bottom:6px}
 .target-card span{display:block;color:#14284a;font-weight:700;line-height:1.35}
 .target-card small{display:block;color:#64748b;margin-top:6px;line-height:1.35}
+.manual-sales-panel{border:1px solid #e3ebf4;border-radius:18px;background:#fbfdff;padding:16px;margin:12px 0 18px}
+.manual-sales-form{display:grid;grid-template-columns:1fr 1.4fr .7fr .9fr auto;gap:10px;align-items:end}
+.manual-sales-form label{font-size:12px;font-weight:900;color:#64748b;text-transform:uppercase}
+.manual-sales-form input{margin:6px 0 0}
+.manual-sales-form button{margin:0 0 1px}
+.manual-sales-summary{margin-top:12px}
+.manual-sales-table{margin-top:10px;background:#fff}
 .ba-report-shell{margin-top:8px}
 .ba-report-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
 .ba-report-head h2{font-size:30px;margin:0 0 8px}
@@ -139,7 +146,7 @@ pre{white-space:pre-wrap;background:#111827;color:#e5e7eb;padding:16px;border-ra
 @media(max-width:1000px){body{display:block}
 aside{position:static;width:100%;min-height:auto}
 main{margin-left:0}
-.kpis,.grid2,.grid3,.import-grid,.tool-row,.target-guide,.ba-insights{grid-template-columns:1fr}
+.kpis,.grid2,.grid3,.import-grid,.tool-row,.target-guide,.ba-insights,.manual-sales-form{grid-template-columns:1fr}
 .ba-report-head,.ba-table-meta{display:block}
 .ba-controls{grid-template-columns:1fr}
 .ba-controls button.secondaryBtn{justify-self:stretch;width:auto}

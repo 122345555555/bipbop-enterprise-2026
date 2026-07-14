@@ -70,7 +70,7 @@ window.BBUtils = {
         notes:"Usalo per offerte regalo, personalizzazioni e contenuti SEO."
       }
     ];
-    const defaults={tacos:15,acos:35,margin:25,monthlyFee:39,subscriptionMonths:18,productionCostPerUnit:0,shippingCostPerUnit:0,extraFixedCosts:0,fulfillmentMode:"merchant",handlingDays:2,weeklyProductionCapacity:30,productCosts:defaultProductCosts,competitors:defaultCompetitors};
+    const defaults={tacos:15,acos:35,margin:25,monthlyFee:39,subscriptionMonths:18,productionCostPerUnit:0,shippingCostPerUnit:0,extraFixedCosts:0,fulfillmentMode:"merchant",handlingDays:2,weeklyProductionCapacity:30,productCosts:defaultProductCosts,competitors:defaultCompetitors,manualSales:[]};
     try { return {...defaults,...JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.rulesKey) || "{}")}; }
     catch(e){ return defaults; }
   }
