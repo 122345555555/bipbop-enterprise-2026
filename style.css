@@ -55,6 +55,11 @@ textarea{min-height:110px}
 .executive-status.yellow{border-color:#fde68a;background:#fffdf2}
 .executive-status.red{border-color:#fecdd3;background:#fff7f7}
 .executive-mini{margin-bottom:12px}
+.score-breakdown{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:0 0 14px}
+.score-breakdown div{border:1px solid #e3ebf4;border-radius:14px;background:#fbfdff;padding:12px}
+.score-breakdown small{display:block;color:#70819c;text-transform:uppercase;font-weight:900}
+.score-breakdown b{display:block;font-size:18px;margin-top:4px}
+.score-breakdown span{display:block;color:#64748b;font-size:12px;margin-top:4px}
 .target-guide{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:10px 0 18px}
 .target-card{border:1px solid #e3ebf4;border-radius:16px;padding:14px;background:#fbfdff}
 .target-card b{display:block;margin-bottom:6px}
@@ -146,7 +151,7 @@ pre{white-space:pre-wrap;background:#111827;color:#e5e7eb;padding:16px;border-ra
 @media(max-width:1000px){body{display:block}
 aside{position:static;width:100%;min-height:auto}
 main{margin-left:0}
-.kpis,.grid2,.grid3,.import-grid,.tool-row,.target-guide,.ba-insights,.manual-sales-form{grid-template-columns:1fr}
+.kpis,.grid2,.grid3,.import-grid,.tool-row,.target-guide,.ba-insights,.manual-sales-form,.score-breakdown{grid-template-columns:1fr}
 .ba-report-head,.ba-table-meta{display:block}
 .ba-controls{grid-template-columns:1fr}
 .ba-controls button.secondaryBtn{justify-self:stretch;width:auto}

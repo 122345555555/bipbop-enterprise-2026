@@ -167,14 +167,37 @@ window.BBRender = {
     const manualTotal=manualSales.reduce((a,r)=>a+BBUtils.num(r.amount),0);
     const manualUnits=manualSales.reduce((a,r)=>a+BBUtils.num(r.units),0);
     const manualToday=new Date().toISOString().slice(0,10);
+    const localDate=s=>{
+      if(!s) return null;
+      const m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return m?new Date(Number(m[1]),Number(m[2])-1,Number(m[3])):null;
+    };
+    const manualLastDate=manualSales.length?localDate(manualSales[0].date):null;
+    const reportLastDate=execRecovery?.lastSale?.date||null;
+    const visibleLastSale=manualLastDate && (!reportLastDate || manualLastDate>reportLastDate)
+      ? {date:manualLastDate,source:"manuale"}
+      : (reportLastDate?{date:reportLastDate,source:"report"}:null);
+    const daysSinceVisibleSale=visibleLastSale?Math.max(0,Math.round((new Date()-visibleLastSale.date)/86400000)):null;
+    const salesStatus=daysSinceVisibleSale===null?"Dato mancante":(daysSinceVisibleSale<=2?"Vendite recenti":(daysSinceVisibleSale<=7?"Da monitorare":"Da riattivare"));
     const redCount=execDecisions.filter(r=>r.type==="red").length;
     const yellowCount=execDecisions.filter(r=>r.type==="yellow").length;
     const dataScore=BBAnalytics.reportDefs.length ? imported/BBAnalytics.reportDefs.length*100 : 0;
     const profitValue=Number.isFinite(c.reconciledProfit) ? c.reconciledProfit : c.profit;
-    const profitBoost=profitValue>0?15:(profitValue<0?-25:0);
-    const adsPenalty=Number.isFinite(c.tacos)&&c.tacos>execRules.tacos?15:0;
-    const recoveryPenalty=redCount*10+yellowCount*4+(execRecovery?.daysWithoutSales>=7?12:0);
-    const health=Math.max(0,Math.min(100,Math.round(45+dataScore*.25+profitBoost-adsPenalty-recoveryPenalty+(imported?10:0))));
+    const profitScore=profitValue>0?100:(profitValue<0?25:50);
+    const salesScore=daysSinceVisibleSale===null?45:(daysSinceVisibleSale<=2?100:(daysSinceVisibleSale<=7?70:(daysSinceVisibleSale<=14?40:15)));
+    const adsScore=Number.isFinite(c.tacos)?(c.tacos<=execRules.tacos?100:(c.tacos<=execRules.tacos*2?60:25)):60;
+    const marginValue=execCostSummary?.totals?.margin ?? c.margin;
+    const marginScore=Number.isFinite(marginValue)?(marginValue>=execRules.margin?100:(marginValue>=0?55:20)):50;
+    const competitorScore=Math.min(100,((execCompetitor?.rows?.length||0)/3)*100);
+    const healthParts=[
+      ["Dati",dataScore,20],
+      ["Vendite",salesScore,20],
+      ["Saldo",profitScore,20],
+      ["Ads",adsScore,20],
+      ["Margine",marginScore,15],
+      ["Competitor",competitorScore,5]
+    ];
+    const health=Math.max(0,Math.min(100,Math.round(healthParts.reduce((a,r)=>a+(r[1]*r[2]/100),0))));
     const healthClass=health>=70?"green":(health>=45?"yellow":"red");
     const healthText=health>=70?"Da spingere":(health>=45?"Da controllare":"Da correggere");
     const firstDecision=execDecisions[0];
@@ -185,7 +208,7 @@ window.BBRender = {
       ["ACOS <= "+execRules.acos+"%","Fai rendere meglio ogni euro pubblicitario.","Se una keyword spende e non vende, riduci offerta o mettila negativa. Se vende con ACOS basso, aumenta budget gradualmente."],
       ["Margine >= "+execRules.margin+"%","Alza margine per prodotto prima di aumentare volume.","Controlla costi produzione, imballo, spedizione e commissioni. Su prodotti sotto margine: prezzo, formato, bundle o stop Ads."],
       ["Saldo > 0 euro","Incrocia ricavi, Ads, canone, commissioni e costi interni.","Se il saldo resta basso, prima correggi costi e Ads; poi investi su prodotti con margine e domanda gia dimostrata."],
-      ["0-2 giorni senza vendite","Evita blocchi lunghi e intervieni presto.","Controlla offerta acquistabile, prezzo, consegna, Featured Offer, traffico senza conversione e top seller senza disponibilita reale."],
+      ["Vendite recenti","Evita blocchi lunghi e intervieni presto.","Inserisci le vendite infrasettimanali o carica report aggiornati. Se non vendi da oltre 7 giorni, controlla offerta acquistabile, prezzo, consegna e traffico senza conversione."],
       ["Dati >= 80%","Ogni martedi carica i report chiave.","Business Report, Ordini, Profit Report, Ads, Search Terms, Inventario, Brand Analytics e Store. Senza dati l Executive ragiona a meta."],
       ["3-5 prodotti competitor","Trova prodotti da imitare senza copiare.","Per ogni prodotto competitor inserisci prezzo, rating, recensioni, venduti ultimo mese/BSR e idea variante BipBop."]
     ];
@@ -195,12 +218,12 @@ window.BBRender = {
     BBUtils.el("headline").textContent=imported?"Stato operativo: "+healthText:"Configura il cruscotto decisionale";
     BBUtils.el("subline").textContent=firstDecision?firstDecision.title+" — "+firstDecision.action:"Importa i report Amazon per vedere priorita', margine, vendite e prossime azioni.";
     BBUtils.el("kpis").innerHTML=[
-      ["Score operativo",health+"/100",healthClass,"Obiettivo: almeno 70/100"],
+      ["Stato operativo",health+"/100",healthClass,"Media di dati, vendite, saldo, Ads, margine"],
       ["Saldo stimato",c.sales?BBUtils.euro(profitValue):"—",profitValue<0?"red":"green","Obiettivo: sopra 0 euro"],
       ["Vendite",c.sales?BBUtils.euro(c.sales):"—","","Obiettivo: crescita settimanale"],
       ["Unita' vendute",c.units||"—","","Obiettivo: crescita stabile"],
       ["Vendite infrasett.",manualSales.length?BBUtils.euro(manualTotal):"—",manualTotal>0?"green":"","Inserite a mano: "+manualUnits+" unita"],
-      ["Giorni senza vendite",execRecovery?.daysWithoutSales===null?"—":execRecovery?.daysWithoutSales,(execRecovery?.daysWithoutSales||0)>=7?"red":"","Obiettivo: 0-2 giorni"],
+      ["Stato vendite",salesStatus,(daysSinceVisibleSale!==null&&daysSinceVisibleSale>7)?"red":(daysSinceVisibleSale!==null&&daysSinceVisibleSale<=2?"green":"yellow"),visibleLastSale?"Ultima: "+visibleLastSale.date.toLocaleDateString("it-IT")+" ("+visibleLastSale.source+")":"Inserisci vendita o carica report"],
       ["TACOS",BBUtils.pct(c.tacos),Number.isFinite(c.tacos)&&c.tacos>execRules.tacos?"red":"green","Target massimo: "+execRules.tacos+"%"],
       ["ACOS",BBUtils.pct(c.acos),Number.isFinite(c.acos)&&c.acos>execRules.acos?"red":"green","Target massimo: "+execRules.acos+"%"],
       ["Margine dopo costi",execCostSummary?.rows?.length?BBUtils.pct(execCostSummary.totals.margin):BBUtils.pct(c.margin),(execCostSummary?.totals?.margin||c.margin)<execRules.margin?"red":"green","Target minimo: "+execRules.margin+"%"],
@@ -209,6 +232,7 @@ window.BBRender = {
     ].map(x=>'<div class="kpi '+(x[2]==="red"?'recon-bad':(x[2]==="green"?'recon-good':(x[2]==="yellow"?'stock-warn':'')))+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[3]||"")+'</span></div>').join("");
 
     BBUtils.el("topActions").innerHTML='<div class="executive-status '+healthClass+'"><b>'+h(healthText)+'</b><span>'+h(health>=70?"La base e' utilizzabile: investi sulle opportunita' migliori, ma continua a controllare margini e competitor.":(health>=45?"Ci sono segnali buoni, ma prima di spingere devi risolvere le priorita' sotto.":"Serve mettere ordine: correggi i blocchi prima di aumentare budget o creare troppe varianti."))+'</span></div>'+
+      '<div class="score-breakdown">'+healthParts.map(r=>'<div><small>'+h(r[0])+'</small><b>'+h(Math.round(r[1]))+'/100</b><span>Peso '+h(r[2])+'%</span></div>').join("")+'</div>'+
       (actionRows.length?'<table class="decision-table"><tr><th>Priorita</th><th>Area</th><th>Perche</th><th>Azione</th></tr>'+actionRows.map((r,i)=>'<tr><td><span class="pill '+(r.type==="red"?'red':(r.type==="green"?'green':''))+'">'+h(i+1)+'</span></td><td><b>'+h(r.title)+'</b><br><span class="small">'+h(r.area)+'</span></td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>':'<div class="action green"><b>Nessuna urgenza critica</b><br>Continua con monitoraggio, caricamento report e test controllati.</div>');
 
     BBUtils.el("dataHealth").innerHTML='<div class="grid2 executive-mini">'+
@@ -285,7 +309,7 @@ window.BBRender = {
       const dateLabel=d=>d?d.toLocaleDateString("it-IT"):"—";
       const statusText=rec?.featured.status==="critical"?"Critica":(rec?.featured.status==="warning"?"Da controllare":(rec?.featured.status==="ok"?"Buona":"Dato mancante"));
       recoveryEl.innerHTML=rec?'<div class="grid3">'+[
-        ["Giorni senza vendite",rec.daysWithoutSales===null?"—":rec.daysWithoutSales],
+        ["Stato vendite",rec.daysWithoutSales===null?"—":(rec.daysWithoutSales<=2?"Vendite recenti":(rec.daysWithoutSales<=7?"Da monitorare":"Da riattivare"))],
         ["Ultima vendita",dateLabel(rec.lastSale?.date)],
         ["Traffico ultimi 30gg",rec.trafficLast30||"—"],
         ["Vendite ultimi 30gg",BBUtils.euro(rec.salesLast30)],
