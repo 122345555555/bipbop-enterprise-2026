@@ -101,7 +101,12 @@ function bind(){
     const clearFba=e.target.closest("#clearFbaFormBtn");
     const deleteFba=e.target.closest(".deleteFbaBtn");
     const pickFba=e.target.closest(".pickFbaCandidateBtn");
-    const fbaFormIds=["fbaAsin","fbaTitle","fbaQty","fbaUnitCost","fbaInboundCost","fbaSendDate","fbaStatus","fbaNotes"];
+    const fbaFormIds=["fbaAsin","fbaTitle","fbaQty","fbaUnitCost","fbaInboundCost","fbaAmazonShipCost","fbaSendDate","fbaStatus","fbaNotes"];
+    const printFba=e.target.closest("#printFbaBtn");
+    if(printFba){
+      window.print();
+      return;
+    }
     if(pickFba){
       BBUtils.el("fbaAsin").value=pickFba.dataset.asin || "";
       BBUtils.el("fbaTitle").value=pickFba.dataset.title || "";
@@ -137,6 +142,7 @@ function bind(){
         qty:BBUtils.num(BBUtils.el("fbaQty")?.value || 10),
         unitCost:BBUtils.num(BBUtils.el("fbaUnitCost")?.value),
         inboundCost:BBUtils.num(BBUtils.el("fbaInboundCost")?.value),
+        amazonShipCost:BBUtils.num(BBUtils.el("fbaAmazonShipCost")?.value),
         sendDate:BBUtils.el("fbaSendDate")?.value || "",
         status:BBUtils.el("fbaStatus")?.value || "da_preparare",
         notes:(BBUtils.el("fbaNotes")?.value || "").trim(),
