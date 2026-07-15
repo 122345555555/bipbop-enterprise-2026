@@ -100,23 +100,46 @@ function bind(){
     const saveFba=e.target.closest("#saveFbaBtn");
     const clearFba=e.target.closest("#clearFbaFormBtn");
     const deleteFba=e.target.closest(".deleteFbaBtn");
+    const editFba=e.target.closest(".editFbaBtn");
     const pickFba=e.target.closest(".pickFbaCandidateBtn");
-    const fbaFormIds=["fbaAsin","fbaTitle","fbaQty","fbaUnitCost","fbaInboundCost","fbaAmazonShipCost","fbaSendDate","fbaStatus","fbaNotes"];
+    const fbaFormIds=["fbaEditId","fbaAsin","fbaTitle","fbaQty","fbaUnitCost","fbaInboundCost","fbaAmazonShipCost","fbaSendDate","fbaStatus","fbaNotes"];
     const printFba=e.target.closest("#printFbaBtn");
     if(printFba){
       window.print();
       return;
     }
     if(pickFba){
+      BBUtils.el("fbaEditId").value="";
       BBUtils.el("fbaAsin").value=pickFba.dataset.asin || "";
       BBUtils.el("fbaTitle").value=pickFba.dataset.title || "";
       BBUtils.el("fbaQty").value="10";
+      BBUtils.el("saveFbaBtn").textContent="Salva ASIN FBA";
       return;
     }
     if(clearFba){
       fbaFormIds.forEach(id=>{ const el=BBUtils.el(id); if(el) el.value=""; });
       if(BBUtils.el("fbaQty")) BBUtils.el("fbaQty").value="10";
       if(BBUtils.el("fbaStatus")) BBUtils.el("fbaStatus").value="da_preparare";
+      if(BBUtils.el("saveFbaBtn")) BBUtils.el("saveFbaBtn").textContent="Salva ASIN FBA";
+      return;
+    }
+    if(editFba){
+      const rules=BBUtils.rules();
+      const id=editFba.dataset.fbaId;
+      const item=(rules.fbaItems||[]).find(x=>String(x.id)===String(id));
+      if(!item) return;
+      BBUtils.el("fbaEditId").value=item.id || "";
+      BBUtils.el("fbaAsin").value=item.asin || "";
+      BBUtils.el("fbaTitle").value=item.title || "";
+      BBUtils.el("fbaQty").value=item.qty || 10;
+      BBUtils.el("fbaUnitCost").value=item.unitCost || 0;
+      BBUtils.el("fbaInboundCost").value=item.inboundCost || 0;
+      BBUtils.el("fbaAmazonShipCost").value=item.amazonShipCost || 0;
+      BBUtils.el("fbaSendDate").value=item.sendDate || "";
+      BBUtils.el("fbaStatus").value=item.status || "da_preparare";
+      BBUtils.el("fbaNotes").value=item.notes || "";
+      BBUtils.el("saveFbaBtn").textContent="Aggiorna ASIN FBA";
+      BBUtils.el("fbaAsin").focus();
       return;
     }
     if(deleteFba){
@@ -135,8 +158,9 @@ function bind(){
       }
       const rules=BBUtils.rules();
       const fbaItems=(rules.fbaItems||[]).slice();
+      const editId=BBUtils.el("fbaEditId")?.value || "";
       const item={
-        id:"fba-"+Date.now().toString(36),
+        id:editId || "fba-"+Date.now().toString(36),
         asin,
         title:(BBUtils.el("fbaTitle")?.value || "").trim(),
         qty:BBUtils.num(BBUtils.el("fbaQty")?.value || 10),
@@ -146,12 +170,15 @@ function bind(){
         sendDate:BBUtils.el("fbaSendDate")?.value || "",
         status:BBUtils.el("fbaStatus")?.value || "da_preparare",
         notes:(BBUtils.el("fbaNotes")?.value || "").trim(),
-        createdAt:new Date().toISOString()
+        createdAt:fbaItems.find(x=>String(x.id)===String(editId))?.createdAt || new Date().toISOString(),
+        updatedAt:new Date().toISOString()
       };
-      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,fbaItems:[item,...fbaItems].slice(0,100)}));
+      const nextItems=editId ? fbaItems.map(x=>String(x.id)===String(editId)?item:x) : [item,...fbaItems].slice(0,100);
+      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,fbaItems:nextItems}));
       fbaFormIds.forEach(id=>{ const el=BBUtils.el(id); if(el) el.value=""; });
       if(BBUtils.el("fbaQty")) BBUtils.el("fbaQty").value="10";
       if(BBUtils.el("fbaStatus")) BBUtils.el("fbaStatus").value="da_preparare";
+      if(BBUtils.el("saveFbaBtn")) BBUtils.el("saveFbaBtn").textContent="Salva ASIN FBA";
       BBRender.renderAll();
       return;
     }
