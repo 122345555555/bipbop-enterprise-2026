@@ -302,6 +302,8 @@ window.BBAnalytics = {
     const adhesiveSource=Object.prototype.hasOwnProperty.call(p,"adhesive") ? p.adhesive : (p.production || fallbackProduction);
     return {
       label:p.label || "Altro",
+      salePrice:BBUtils.num(p.salePrice),
+      amazonCommission:BBUtils.num(Object.prototype.hasOwnProperty.call(p,"amazonCommission") ? p.amazonCommission : 8),
       adhesive:BBUtils.num(adhesiveSource),
       ink:BBUtils.num(p.ink),
       packaging:BBUtils.num(p.packaging),
@@ -337,18 +339,21 @@ window.BBAnalytics = {
       const key=this.costProfileKey(text);
       const profile=profiles[key] || profiles.altro;
       const units=r.units||0;
+      const salePrice=BBUtils.num(profile.salePrice) || (units?(r.sales||0)/units:0);
+      const simulatedRevenue=BBUtils.num(profile.salePrice) && units ? units*salePrice : (r.sales||0);
       const adhesive=units*BBUtils.num(profile.adhesive);
       const ink=units*BBUtils.num(profile.ink);
       const packaging=units*BBUtils.num(profile.packaging);
       const shipping=units*BBUtils.num(profile.shipping);
-      const referralRate=this.amazonReferralRate(r);
-      const referral=(r.sales||0)*referralRate/100;
+      const referralRate=BBUtils.num(profile.amazonCommission) || this.amazonReferralRate(r);
+      const referral=simulatedRevenue*referralRate/100;
       const adsAllocated=salesTotal&&c.ads?(r.sales||0)/salesTotal*c.ads:0;
       const internal=adhesive+ink+packaging+shipping;
       const totalCost=internal+referral+adsAllocated;
-      const net=(r.sales||0)-totalCost;
-      const margin=(r.sales||0)?net/(r.sales||0)*100:NaN;
-      return {...r,category:this.categoryForText(text),profileKey:key,profileLabel:profile.label,adhesive,ink,packaging,shipping,referral,referralRate,adsAllocated,internal,totalCost,net,marginAfterCosts:margin};
+      const costPerSale=units?totalCost/units:0;
+      const net=simulatedRevenue-totalCost;
+      const margin=simulatedRevenue?net/simulatedRevenue*100:NaN;
+      return {...r,category:this.categoryForText(text),profileKey:key,profileLabel:profile.label,salePrice,simulatedRevenue,adhesive,ink,packaging,shipping,referral,referralRate,adsAllocated,internal,totalCost,costPerSale,net,marginAfterCosts:margin};
     }).sort((a,b)=>(a.marginAfterCosts||0)-(b.marginAfterCosts||0));
   },
   productCostSummary(samples,c){
@@ -356,10 +361,11 @@ window.BBAnalytics = {
     const sum=(field)=>rows.reduce((a,r)=>a+(r[field]||0),0);
     const byProfile=new Map();
     rows.forEach(r=>{
-      const o=byProfile.get(r.profileKey)||{profileKey:r.profileKey,profileLabel:r.profileLabel,sales:0,units:0,adhesive:0,ink:0,packaging:0,shipping:0,referral:0,adsAllocated:0,internal:0,totalCost:0,net:0,marginAfterCosts:NaN,count:0};
-      ["sales","units","adhesive","ink","packaging","shipping","referral","adsAllocated","internal","totalCost","net"].forEach(k=>o[k]+=r[k]||0);
+      const o=byProfile.get(r.profileKey)||{profileKey:r.profileKey,profileLabel:r.profileLabel,sales:0,simulatedRevenue:0,units:0,adhesive:0,ink:0,packaging:0,shipping:0,referral:0,adsAllocated:0,internal:0,totalCost:0,costPerSale:0,net:0,marginAfterCosts:NaN,count:0};
+      ["sales","simulatedRevenue","units","adhesive","ink","packaging","shipping","referral","adsAllocated","internal","totalCost","net"].forEach(k=>o[k]+=r[k]||0);
       o.count+=1;
-      o.marginAfterCosts=o.sales?o.net/o.sales*100:NaN;
+      o.costPerSale=o.units?o.totalCost/o.units:0;
+      o.marginAfterCosts=o.simulatedRevenue?o.net/o.simulatedRevenue*100:NaN;
       byProfile.set(r.profileKey,o);
     });
     const totalSales=sum("sales");
@@ -369,6 +375,7 @@ window.BBAnalytics = {
       profiles:this.costProfiles(),
       totals:{
         sales:totalSales,
+        simulatedRevenue:sum("simulatedRevenue"),
         units:sum("units"),
         adhesive:sum("adhesive"),
         ink:sum("ink"),
@@ -378,8 +385,9 @@ window.BBAnalytics = {
         adsAllocated:sum("adsAllocated"),
         internal:sum("internal"),
         totalCost:sum("totalCost"),
+        costPerSale:sum("units")?sum("totalCost")/sum("units"):0,
         net:totalNet,
-        margin:totalSales?totalNet/totalSales*100:NaN
+        margin:sum("simulatedRevenue")?totalNet/sum("simulatedRevenue")*100:NaN
       },
       byProfile:Array.from(byProfile.values()).sort((a,b)=>a.net-b.net)
     };
