@@ -8,7 +8,7 @@ function show(view){
   document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active",s.id===view));
   const active=document.querySelector('.nav[data-view="'+view+'"]');
-  if(active) BBUtils.el("pageTitle").textContent=active.textContent.replace(/[📊📥💶📈📦📋🛟🏬🕵️🔎🏷️💰🧾🗓️🎨🚀🧠🚨📁🧪⚙️]/g,"").trim();
+  if(active) BBUtils.el("pageTitle").textContent=active.textContent.replace(/[📊📥💶📈📦📋🚚🛟🏬🕵️🔎🏷️💰🧾🗓️🎨🚀🧠🚨📁🧪⚙️]/g,"").trim();
 }
 
 async function importFiles(files){
@@ -97,6 +97,59 @@ function bind(){
     }
   });
   document.addEventListener("click",e=>{
+    const saveFba=e.target.closest("#saveFbaBtn");
+    const clearFba=e.target.closest("#clearFbaFormBtn");
+    const deleteFba=e.target.closest(".deleteFbaBtn");
+    const pickFba=e.target.closest(".pickFbaCandidateBtn");
+    const fbaFormIds=["fbaAsin","fbaTitle","fbaQty","fbaUnitCost","fbaInboundCost","fbaSendDate","fbaStatus","fbaNotes"];
+    if(pickFba){
+      BBUtils.el("fbaAsin").value=pickFba.dataset.asin || "";
+      BBUtils.el("fbaTitle").value=pickFba.dataset.title || "";
+      BBUtils.el("fbaQty").value="10";
+      return;
+    }
+    if(clearFba){
+      fbaFormIds.forEach(id=>{ const el=BBUtils.el(id); if(el) el.value=""; });
+      if(BBUtils.el("fbaQty")) BBUtils.el("fbaQty").value="10";
+      if(BBUtils.el("fbaStatus")) BBUtils.el("fbaStatus").value="da_preparare";
+      return;
+    }
+    if(deleteFba){
+      const rules=BBUtils.rules();
+      const id=deleteFba.dataset.fbaId;
+      const fbaItems=(rules.fbaItems||[]).filter(x=>String(x.id)!==String(id));
+      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,fbaItems}));
+      BBRender.renderAll();
+      return;
+    }
+    if(saveFba){
+      const asin=(BBUtils.el("fbaAsin")?.value || "").trim().toUpperCase();
+      if(!asin){
+        alert("Inserisci l'ASIN da testare in FBA.");
+        return;
+      }
+      const rules=BBUtils.rules();
+      const fbaItems=(rules.fbaItems||[]).slice();
+      const item={
+        id:"fba-"+Date.now().toString(36),
+        asin,
+        title:(BBUtils.el("fbaTitle")?.value || "").trim(),
+        qty:BBUtils.num(BBUtils.el("fbaQty")?.value || 10),
+        unitCost:BBUtils.num(BBUtils.el("fbaUnitCost")?.value),
+        inboundCost:BBUtils.num(BBUtils.el("fbaInboundCost")?.value),
+        sendDate:BBUtils.el("fbaSendDate")?.value || "",
+        status:BBUtils.el("fbaStatus")?.value || "da_preparare",
+        notes:(BBUtils.el("fbaNotes")?.value || "").trim(),
+        createdAt:new Date().toISOString()
+      };
+      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,fbaItems:[item,...fbaItems].slice(0,100)}));
+      fbaFormIds.forEach(id=>{ const el=BBUtils.el(id); if(el) el.value=""; });
+      if(BBUtils.el("fbaQty")) BBUtils.el("fbaQty").value="10";
+      if(BBUtils.el("fbaStatus")) BBUtils.el("fbaStatus").value="da_preparare";
+      BBRender.renderAll();
+      return;
+    }
+
     const saveManualSale=e.target.closest("#saveManualSaleBtn");
     const deleteManualSale=e.target.closest(".deleteManualSaleBtn");
     if(saveManualSale){

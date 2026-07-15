@@ -532,6 +532,44 @@ window.BBRender = {
       ].map(x=>'<div class="kpi '+(x[0]==="Netto simulato"&&costSummary.totals.net<0?'recon-bad':'')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Questa simulazione usa i costi inseriti nella sezione Costi prodotto e li incrocia con ricavi, unità, Ads e commissioni stimate.</p>';
     }
 
+    const fbaEl=BBUtils.el("fbaBox");
+    if(fbaEl){
+      const rules=BBUtils.rules();
+      const fbaItems=(rules.fbaItems||[]).slice();
+      const asinRows=BBAnalytics.asinDecisionRows ? BBAnalytics.asinDecisionRows(scopedSamples) : [];
+      const fbaAsins=new Set(fbaItems.map(x=>String(x.asin||"").toUpperCase()));
+      const candidates=asinRows.filter(r=>r.asin && r.asin!=="N/D" && !fbaAsins.has(String(r.asin).toUpperCase()) && (r.sales>0 || r.units>0)).sort((a,b)=>(b.units||0)-(a.units||0) || (b.sales||0)-(a.sales||0)).slice(0,8);
+      const invested=fbaItems.reduce((a,r)=>a+(BBUtils.num(r.qty)*BBUtils.num(r.unitCost))+BBUtils.num(r.inboundCost),0);
+      const qty=fbaItems.reduce((a,r)=>a+BBUtils.num(r.qty),0);
+      const active=fbaItems.filter(r=>!["chiuso","stop"].includes(String(r.status||""))).length;
+      const statusLabel=s=>({da_preparare:"Da preparare",inviato:"Inviato",ricevuto:"Ricevuto da Amazon",in_test:"In test",riordina:"Riordina",stop:"Stop",chiuso:"Chiuso"}[s]||s||"Da preparare");
+      const statusClass=s=>["riordina","in_test","ricevuto"].includes(s)?"green":(s==="stop"?"red":"");
+      fbaEl.innerHTML='<div class="grid3">'+[
+        ["ASIN in test",fbaItems.length||"—"],
+        ["Pezzi pianificati",qty||"—"],
+        ["Investimento stimato",fbaItems.length?BBUtils.euro(invested):"—"],
+        ["Test attivi",active||"—"],
+        ["Quantità consigliata","10 pz / ASIN"],
+        ["Controllo dopo","14-21 giorni"]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      '<div class="action yellow"><b>Regola pratica</b><br>Usa FBA solo per ASIN gia validati: vendite reali, margine sostenibile, formato piccolo/leggero e rischio stock basso. Il primo test ideale e 3-5 ASIN con 10 pezzi ciascuno.</div>'+
+      '<h3>Aggiungi ASIN FBA</h3><div class="fba-form">'+
+        '<div><label>ASIN</label><input id="fbaAsin" placeholder="B0..."></div>'+
+        '<div><label>Titolo / nota prodotto</label><input id="fbaTitle" placeholder="Mongolfiere, greca, animali..."></div>'+
+        '<div><label>Pezzi</label><input id="fbaQty" type="number" min="1" value="10"></div>'+
+        '<div><label>Costo unitario €</label><input id="fbaUnitCost" type="number" min="0" step="0.01" placeholder="0.00"></div>'+
+        '<div><label>Costo invio Amazon €</label><input id="fbaInboundCost" type="number" min="0" step="0.01" placeholder="0.00"></div>'+
+        '<div><label>Data invio</label><input id="fbaSendDate" type="date"></div>'+
+        '<div><label>Stato</label><select id="fbaStatus"><option value="da_preparare">Da preparare</option><option value="inviato">Inviato</option><option value="ricevuto">Ricevuto da Amazon</option><option value="in_test">In test</option><option value="riordina">Riordina</option><option value="stop">Stop</option><option value="chiuso">Chiuso</option></select></div>'+
+        '<div><label>Note</label><input id="fbaNotes" placeholder="Perche lo testo, dubbi, obiettivo..."></div>'+
+        '<button id="saveFbaBtn" type="button">Salva ASIN FBA</button><button id="clearFbaFormBtn" class="secondaryBtn" type="button">Pulisci</button>'+
+      '</div>'+
+      '<h3>ASIN da gestire in FBA</h3>'+
+      (fbaItems.length?'<table class="decision-table"><tr><th>Stato</th><th>ASIN / Prodotto</th><th>Pezzi</th><th>Costo unit.</th><th>Invio Amazon</th><th>Investimento</th><th>Data invio</th><th>Note</th><th></th></tr>'+fbaItems.map(r=>{ const inv=BBUtils.num(r.qty)*BBUtils.num(r.unitCost)+BBUtils.num(r.inboundCost); return '<tr><td><span class="pill '+statusClass(r.status)+'">'+h(statusLabel(r.status))+'</span></td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.qty||0)+'</td><td>'+h(BBUtils.euro(r.unitCost||0))+'</td><td>'+h(BBUtils.euro(r.inboundCost||0))+'</td><td><b>'+h(BBUtils.euro(inv))+'</b></td><td>'+h(r.sendDate||"—")+'</td><td class="small">'+h(r.notes||"—")+'</td><td><button class="secondaryBtn deleteFbaBtn" data-fba-id="'+h(r.id)+'" type="button">Elimina</button></td></tr>'; }).join("")+'</table>':'<div class="action">Nessun ASIN FBA inserito. Parti da 3-5 prodotti gia venduti, 10 pezzi ciascuno.</div>')+
+      '<h3>Candidati dai dati attuali</h3>'+
+      (candidates.length?'<table class="decision-table"><tr><th>ASIN / Prodotto</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th><th>Perché candidato</th><th></th></tr>'+candidates.map(r=>'<tr><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units||0)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td><td>'+h((r.units||0)>=5?"Ha gia vendite e unita: buono per test Prime/FBA.":"Ha venduto: valuta se leggero e con margine sufficiente.")+'</td><td><button class="secondaryBtn pickFbaCandidateBtn" data-asin="'+h(r.asin)+'" data-title="'+h(r.title||"")+'" type="button">Usa</button></td></tr>').join("")+'</table>':'<div class="action">Carica ordini o Profit Report per vedere candidati automatici.</div>');
+    }
+
     const strategy=BBAnalytics.productStrategyRows ? BBAnalytics.productStrategyRows(scopedSamples) : [];
     const weekly=BBAnalytics.weeklyActionPlan ? BBAnalytics.weeklyActionPlan(scopedSamples,c,s.counts) : null;
     const weeklyEl=BBUtils.el("weeklyBox");
