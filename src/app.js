@@ -102,7 +102,7 @@ function bind(){
     const deleteFba=e.target.closest(".deleteFbaBtn");
     const editFba=e.target.closest(".editFbaBtn");
     const pickFba=e.target.closest(".pickFbaCandidateBtn");
-    const fbaFormIds=["fbaEditId","fbaAsin","fbaTitle","fbaQty","fbaUnitCost","fbaInboundCost","fbaAmazonShipCost","fbaSendDate","fbaStatus","fbaNotes"];
+    const fbaFormIds=["fbaEditId","fbaAsin","fbaTitle","fbaQty","fbaSalePrice","fbaProductionCost","fbaInboundCost","fbaAmazonShipCost","fbaSendDate","fbaStatus","fbaNotes"];
     const printFba=e.target.closest("#printFbaBtn");
     if(printFba){
       window.print();
@@ -132,7 +132,8 @@ function bind(){
       BBUtils.el("fbaAsin").value=item.asin || "";
       BBUtils.el("fbaTitle").value=item.title || "";
       BBUtils.el("fbaQty").value=item.qty || 10;
-      BBUtils.el("fbaUnitCost").value=item.unitCost || 0;
+      BBUtils.el("fbaSalePrice").value=item.salePrice ?? item.unitCost ?? 0;
+      BBUtils.el("fbaProductionCost").value=item.productionCost || 0;
       BBUtils.el("fbaInboundCost").value=item.inboundCost || 0;
       BBUtils.el("fbaAmazonShipCost").value=item.amazonShipCost || 0;
       BBUtils.el("fbaSendDate").value=item.sendDate || "";
@@ -164,7 +165,9 @@ function bind(){
         asin,
         title:(BBUtils.el("fbaTitle")?.value || "").trim(),
         qty:BBUtils.num(BBUtils.el("fbaQty")?.value || 10),
-        unitCost:BBUtils.num(BBUtils.el("fbaUnitCost")?.value),
+        salePrice:BBUtils.num(BBUtils.el("fbaSalePrice")?.value),
+        productionCost:BBUtils.num(BBUtils.el("fbaProductionCost")?.value),
+        unitCost:BBUtils.num(BBUtils.el("fbaSalePrice")?.value),
         inboundCost:BBUtils.num(BBUtils.el("fbaInboundCost")?.value),
         amazonShipCost:BBUtils.num(BBUtils.el("fbaAmazonShipCost")?.value),
         sendDate:BBUtils.el("fbaSendDate")?.value || "",

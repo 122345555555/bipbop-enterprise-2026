@@ -72,7 +72,7 @@ textarea{min-height:110px}
 .manual-sales-form button{margin:0 0 1px}
 .manual-sales-summary{margin-top:12px}
 .manual-sales-table{margin-top:10px;background:#fff}
-.fba-form{display:grid;grid-template-columns:1fr 1.5fr .6fr .8fr .9fr .9fr .9fr 1fr 1.4fr auto auto;gap:10px;align-items:end;margin-bottom:18px}
+.fba-form{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:10px;align-items:end;margin-bottom:18px}
 .fba-form label{font-size:12px;font-weight:900;color:#64748b;text-transform:uppercase}
 .fba-form input,.fba-form select{margin:6px 0 0}
 .fba-form button{margin:0 0 1px;white-space:nowrap}
@@ -130,6 +130,9 @@ table.compact-table th:nth-child(2),table.compact-table td:nth-child(2){width:10
 table.compact-table th:nth-child(4),table.compact-table td:nth-child(4){width:82px}
 table.compact-table th:nth-child(5),table.compact-table td:nth-child(5){width:78px}
 table.compact-table th:nth-child(6),table.compact-table td:nth-child(6){width:75px}
+.product-cost-table{table-layout:auto}
+.product-cost-table th,.product-cost-table td{width:auto!important}
+.product-cost-table input{min-width:110px}
 .decision-table{font-size:13px}
 .decision-table th:nth-child(1),.decision-table td:nth-child(1){width:132px}
 .decision-table th:nth-child(2),.decision-table td:nth-child(2){min-width:180px}

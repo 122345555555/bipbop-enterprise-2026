@@ -44,11 +44,11 @@ window.BBUtils = {
   },
   rules(){
     const defaultProductCosts={
-      greche:{label:"Greche murali",production:0,packaging:0,shipping:0,other:0},
-      adesivi:{label:"Adesivi murali",production:0,packaging:0,shipping:0,other:0},
-      quadri:{label:"Quadri",production:0,packaging:0,shipping:0,other:0},
-      bundle:{label:"Bundle / set premium",production:0,packaging:0,shipping:0,other:0},
-      altro:{label:"Altro",production:0,packaging:0,shipping:0,other:0}
+      greche:{label:"Greche murali",adhesive:0,ink:0,packaging:0,shipping:0},
+      adesivi:{label:"Adesivi murali",adhesive:0,ink:0,packaging:0,shipping:0},
+      quadri:{label:"Quadri",adhesive:0,ink:0,packaging:0,shipping:0},
+      bundle:{label:"Bundle / set premium",adhesive:0,ink:0,packaging:0,shipping:0},
+      altro:{label:"Altro",adhesive:0,ink:0,packaging:0,shipping:0}
     };
     const defaultCompetitors=[
       {

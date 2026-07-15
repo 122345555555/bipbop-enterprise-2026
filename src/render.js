@@ -504,14 +504,15 @@ window.BBRender = {
     if(costEl && costSummary){
       const profiles=costSummary.profiles;
       const profileRows=Object.keys(profiles).map(key=>({key,...profiles[key]}));
-      costEl.innerHTML='<h3>Costi unitari per tipologia</h3><p class="hint">Valori per singolo ordine/unita. Commissioni Amazon automatiche: fino al 14/01/2026 15% su tutto; dal 15/01/2026 8% sotto 20 euro e 15% da 20 euro in su.</p>'+
-      '<table class="compact-table"><tr><th>Tipologia</th><th>Produzione €</th><th>Imballo €</th><th>Spedizione €</th><th>Altri costi €</th></tr>'+
-      profileRows.map(p=>'<tr><td><b>'+h(p.label)+'</b></td><td>'+this.productCostInput(p.key,"production",p.production)+'</td><td>'+this.productCostInput(p.key,"packaging",p.packaging)+'</td><td>'+this.productCostInput(p.key,"shipping",p.shipping)+'</td><td>'+this.productCostInput(p.key,"other",p.other)+'</td></tr>').join("")+'</table>'+
+      costEl.innerHTML='<h3>Costi unitari per tipologia</h3><p class="hint">Valori per singolo ordine/unita. Inserisci il costo reale di adesivo, inchiostro, imballo e spedizione. Commissioni Amazon automatiche: fino al 14/01/2026 15% su tutto; dal 15/01/2026 8% sotto 20 euro e 15% da 20 euro in su.</p>'+
+      '<table class="compact-table product-cost-table"><tr><th>Tipologia</th><th>Adesivo €</th><th>Inchiostro €</th><th>Imballo €</th><th>Spedizione €</th></tr>'+
+      profileRows.map(p=>'<tr><td><b>'+h(p.label)+'</b></td><td>'+this.productCostInput(p.key,"adhesive",p.adhesive)+'</td><td>'+this.productCostInput(p.key,"ink",p.ink)+'</td><td>'+this.productCostInput(p.key,"packaging",p.packaging)+'</td><td>'+this.productCostInput(p.key,"shipping",p.shipping)+'</td></tr>').join("")+'</table>'+
       '<button id="saveProductCosts">Salva costi prodotto</button>'+
       '<h3>Margine simulato con costi interni</h3><div class="grid3">'+[
         ["Ricavi analizzati",BBUtils.euro(costSummary.totals.sales)],
         ["Unità",costSummary.totals.units||"—"],
-        ["Produzione",BBUtils.euro(costSummary.totals.production)],
+        ["Adesivo",BBUtils.euro(costSummary.totals.adhesive)],
+        ["Inchiostro",BBUtils.euro(costSummary.totals.ink)],
         ["Imballo",BBUtils.euro(costSummary.totals.packaging)],
         ["Spedizione",BBUtils.euro(costSummary.totals.shipping)],
         ["Commissioni stimate",BBUtils.euro(costSummary.totals.referral)],
@@ -522,7 +523,7 @@ window.BBRender = {
       '<h3>Riepilogo per tipologia</h3>'+
       (costSummary.byProfile.length?'<table><tr><th>Tipologia</th><th>Prodotti</th><th>Ricavi</th><th>Unità</th><th>Costi interni</th><th>Comm. stimate</th><th>Ads allocati</th><th>Netto</th><th>Margine</th></tr>'+costSummary.byProfile.map(r=>'<tr><td><b>'+h(r.profileLabel)+'</b></td><td>'+h(r.count)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(BBUtils.euro(r.internal))+'</td><td>'+h(BBUtils.euro(r.referral))+'</td><td>'+h(BBUtils.euro(r.adsAllocated))+'</td><td class="'+(r.net<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.net))+'</td><td>'+h(BBUtils.pct(r.marginAfterCosts))+'</td></tr>').join("")+'</table>':'<div class="action">Carica Profit Report o ordini per simulare i costi per tipologia.</div>')+
       '<h3>Dettaglio prodotti con margine simulato</h3>'+
-      (costSummary.rows.length?'<table class="decision-table"><tr><th>Tipologia</th><th>ASIN / Prodotto</th><th>SKU</th><th>Ricavi</th><th>Unità</th><th>Costi interni</th><th>Comm.</th><th>Regola</th><th>Ads</th><th>Netto</th><th>Margine</th></tr>'+costSummary.rows.map(r=>'<tr><td><span class="pill">'+h(r.profileLabel)+'</span></td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(BBUtils.euro(r.internal))+'</td><td>'+h(BBUtils.euro(r.referral))+'</td><td>'+h(BBUtils.pct(r.referralRate))+'</td><td>'+h(BBUtils.euro(r.adsAllocated))+'</td><td class="'+(r.net<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.net))+'</td><td>'+h(BBUtils.pct(r.marginAfterCosts))+'</td></tr>').join("")+'</table>':'<div class="action">Quando carichi il Profit Report, qui vedrai il margine per articolo considerando costi di produzione, imballo e spedizione.</div>');
+      (costSummary.rows.length?'<table class="decision-table"><tr><th>Tipologia</th><th>ASIN / Prodotto</th><th>SKU</th><th>Ricavi</th><th>Unità</th><th>Adesivo</th><th>Inchiostro</th><th>Imballo</th><th>Spedizione</th><th>Comm.</th><th>Regola</th><th>Ads</th><th>Netto</th><th>Margine</th></tr>'+costSummary.rows.map(r=>'<tr><td><span class="pill">'+h(r.profileLabel)+'</span></td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td>'+h(BBUtils.euro(r.adhesive))+'</td><td>'+h(BBUtils.euro(r.ink))+'</td><td>'+h(BBUtils.euro(r.packaging))+'</td><td>'+h(BBUtils.euro(r.shipping))+'</td><td>'+h(BBUtils.euro(r.referral))+'</td><td>'+h(BBUtils.pct(r.referralRate))+'</td><td>'+h(BBUtils.euro(r.adsAllocated))+'</td><td class="'+(r.net<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.net))+'</td><td>'+h(BBUtils.pct(r.marginAfterCosts))+'</td></tr>').join("")+'</table>':'<div class="action">Quando carichi il Profit Report, qui vedrai il margine per articolo considerando adesivo, inchiostro, imballo e spedizione.</div>');
     }
     if(costSummary && costSummary.rows.length){
       BBUtils.el("profitBox").innerHTML += '<h3>Costi prodotto dettagliati</h3><div class="grid3">'+[
@@ -539,9 +540,14 @@ window.BBRender = {
       const asinRows=BBAnalytics.asinDecisionRows ? BBAnalytics.asinDecisionRows(scopedSamples) : [];
       const fbaAsins=new Set(fbaItems.map(x=>String(x.asin||"").toUpperCase()));
       const candidates=asinRows.filter(r=>r.asin && r.asin!=="N/D" && !fbaAsins.has(String(r.asin).toUpperCase()) && (r.sales>0 || r.units>0)).sort((a,b)=>(b.units||0)-(a.units||0) || (b.sales||0)-(a.sales||0)).slice(0,8);
-      const invested=fbaItems.reduce((a,r)=>a+(BBUtils.num(r.qty)*BBUtils.num(r.unitCost))+BBUtils.num(r.inboundCost),0);
+      const fbaSalePrice=r=>BBUtils.num(r.salePrice ?? r.unitCost);
+      const fbaProductionCost=r=>BBUtils.num(r.productionCost);
+      const productionTotal=fbaItems.reduce((a,r)=>a+(BBUtils.num(r.qty)*fbaProductionCost(r)),0);
+      const inboundTotal=fbaItems.reduce((a,r)=>a+BBUtils.num(r.inboundCost),0);
       const amazonShippingTotal=fbaItems.reduce((a,r)=>a+(BBUtils.num(r.qty)*BBUtils.num(r.amazonShipCost)),0);
-      const totalFbaCost=invested+amazonShippingTotal;
+      const revenueTotal=fbaItems.reduce((a,r)=>a+(BBUtils.num(r.qty)*fbaSalePrice(r)),0);
+      const totalFbaCost=productionTotal+inboundTotal+amazonShippingTotal;
+      const netFba=revenueTotal-totalFbaCost;
       const qty=fbaItems.reduce((a,r)=>a+BBUtils.num(r.qty),0);
       const active=fbaItems.filter(r=>!["chiuso","stop"].includes(String(r.status||""))).length;
       const statusLabel=s=>({da_preparare:"Da preparare",inviato:"Inviato",ricevuto:"Ricevuto da Amazon",in_test:"In test",riordina:"Riordina",stop:"Stop",chiuso:"Chiuso"}[s]||s||"Da preparare");
@@ -549,9 +555,12 @@ window.BBRender = {
       fbaEl.innerHTML='<div class="grid3">'+[
         ["ASIN in test",fbaItems.length||"—"],
         ["Pezzi pianificati",qty||"—"],
-        ["Investimento iniziale",fbaItems.length?BBUtils.euro(invested):"—"],
+        ["Ricavi vendita stimati",fbaItems.length?BBUtils.euro(revenueTotal):"—"],
+        ["Produzione stimata",fbaItems.length?BBUtils.euro(productionTotal):"—"],
+        ["Invio ad Amazon",fbaItems.length?BBUtils.euro(inboundTotal):"—"],
         ["Costo Amazon ordini",fbaItems.length?BBUtils.euro(amazonShippingTotal):"—"],
         ["Costo FBA stimato",fbaItems.length?BBUtils.euro(totalFbaCost):"—"],
+        ["Netto test stimato",fbaItems.length?BBUtils.euro(netFba):"—"],
         ["Test attivi",active||"—"],
         ["Quantità consigliata","10 pz / ASIN"]
       ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
@@ -561,7 +570,8 @@ window.BBRender = {
         '<div><label>ASIN</label><input id="fbaAsin" placeholder="B0..."></div>'+
         '<div><label>Titolo / nota prodotto</label><input id="fbaTitle" placeholder="Mongolfiere, greca, animali..."></div>'+
         '<div><label>Pezzi</label><input id="fbaQty" type="number" min="1" value="10"></div>'+
-        '<div><label>Costo unitario €</label><input id="fbaUnitCost" type="number" min="0" step="0.01" placeholder="0.00"></div>'+
+        '<div><label>Prezzo vendita €/pz</label><input id="fbaSalePrice" type="number" min="0" step="0.01" placeholder="19.90"></div>'+
+        '<div><label>Costo produzione €/pz</label><input id="fbaProductionCost" type="number" min="0" step="0.01" placeholder="0.00"></div>'+
         '<div><label>Costo invio Amazon €</label><input id="fbaInboundCost" type="number" min="0" step="0.01" placeholder="0.00"></div>'+
         '<div><label>Spedizione Amazon €/pz</label><input id="fbaAmazonShipCost" type="number" min="0" step="0.01" placeholder="0.00"></div>'+
         '<div><label>Data invio</label><input id="fbaSendDate" type="date"></div>'+
@@ -570,9 +580,9 @@ window.BBRender = {
         '<button id="saveFbaBtn" type="button">Salva ASIN FBA</button><button id="clearFbaFormBtn" class="secondaryBtn" type="button">Pulisci</button>'+
       '</div>'+
       '<h3>ASIN da gestire in FBA</h3>'+
-      (fbaItems.length?'<table class="decision-table"><tr><th>Stato</th><th>ASIN / Prodotto</th><th>Pezzi</th><th>Costo unit.</th><th>Invio Amazon</th><th>Sped. Amazon/pezzo</th><th>Costo totale stimato</th><th>Data invio</th><th>Note</th><th>Azione</th></tr>'+fbaItems.map(r=>{ const inv=BBUtils.num(r.qty)*BBUtils.num(r.unitCost)+BBUtils.num(r.inboundCost)+(BBUtils.num(r.qty)*BBUtils.num(r.amazonShipCost)); return '<tr><td><span class="pill '+statusClass(r.status)+'">'+h(statusLabel(r.status))+'</span></td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.qty||0)+'</td><td>'+h(BBUtils.euro(r.unitCost||0))+'</td><td>'+h(BBUtils.euro(r.inboundCost||0))+'</td><td>'+h(BBUtils.euro(r.amazonShipCost||0))+'</td><td><b>'+h(BBUtils.euro(inv))+'</b></td><td>'+h(r.sendDate||"—")+'</td><td class="small">'+h(r.notes||"—")+'</td><td><button class="secondaryBtn editFbaBtn" data-fba-id="'+h(r.id)+'" type="button">Modifica</button><button class="secondaryBtn deleteFbaBtn" data-fba-id="'+h(r.id)+'" type="button">Elimina</button></td></tr>'; }).join("")+'</table>':'<div class="action">Nessun ASIN FBA inserito. Parti da 3-5 prodotti gia venduti, 10 pezzi ciascuno.</div>')+
+      (fbaItems.length?'<table class="decision-table"><tr><th>Stato</th><th>ASIN / Prodotto</th><th>Pezzi</th><th>Prezzo vendita</th><th>Produzione/pezzo</th><th>Invio Amazon</th><th>Sped. Amazon/pezzo</th><th>Ricavo stimato</th><th>Costo totale stimato</th><th>Netto stimato</th><th>Data invio</th><th>Note</th><th>Azione</th></tr>'+fbaItems.map(r=>{ const q=BBUtils.num(r.qty); const sale=fbaSalePrice(r); const production=fbaProductionCost(r); const revenue=q*sale; const inv=(q*production)+BBUtils.num(r.inboundCost)+(q*BBUtils.num(r.amazonShipCost)); const net=revenue-inv; return '<tr><td><span class="pill '+statusClass(r.status)+'">'+h(statusLabel(r.status))+'</span></td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.qty||0)+'</td><td>'+h(BBUtils.euro(sale))+'</td><td>'+h(BBUtils.euro(production))+'</td><td>'+h(BBUtils.euro(r.inboundCost||0))+'</td><td>'+h(BBUtils.euro(r.amazonShipCost||0))+'</td><td>'+h(BBUtils.euro(revenue))+'</td><td><b>'+h(BBUtils.euro(inv))+'</b></td><td class="'+(net<0?'stock-bad':'status-ok')+'">'+h(BBUtils.euro(net))+'</td><td>'+h(r.sendDate||"—")+'</td><td class="small">'+h(r.notes||"—")+'</td><td><button class="secondaryBtn editFbaBtn" data-fba-id="'+h(r.id)+'" type="button">Modifica</button><button class="secondaryBtn deleteFbaBtn" data-fba-id="'+h(r.id)+'" type="button">Elimina</button></td></tr>'; }).join("")+'</table>':'<div class="action">Nessun ASIN FBA inserito. Parti da 3-5 prodotti gia venduti, 10 pezzi ciascuno.</div>')+
       '<div class="fba-print-area"><div class="fba-print-head"><div><h3>Lista reparto stampa</h3><p>ASIN scelti per test FBA. Stampare/preparare le quantità indicate.</p></div><button id="printFbaBtn" type="button">Stampa lista</button></div>'+
-      (fbaItems.length?'<table class="compact-table"><tr><th>ASIN</th><th>Descrizione</th><th>Pezzi da stampare</th><th>Note</th></tr>'+fbaItems.map(r=>'<tr><td><b>'+h(r.asin||"—")+'</b></td><td>'+h(r.title||"—")+'</td><td><b>'+h(r.qty||0)+'</b></td><td>'+h(r.notes||"—")+'</td></tr>').join("")+'</table>':'<div class="action">Aggiungi ASIN FBA per creare la lista stampa.</div>')+'</div>'+
+      (fbaItems.length?'<table class="compact-table"><tr><th>ASIN</th><th>Descrizione</th><th>Pezzi da stampare</th><th>Costo produzione/pezzo</th><th>Note</th></tr>'+fbaItems.map(r=>'<tr><td><b>'+h(r.asin||"—")+'</b></td><td>'+h(r.title||"—")+'</td><td><b>'+h(r.qty||0)+'</b></td><td>'+h(BBUtils.euro(fbaProductionCost(r)))+'</td><td>'+h(r.notes||"—")+'</td></tr>').join("")+'</table>':'<div class="action">Aggiungi ASIN FBA per creare la lista stampa.</div>')+'</div>'+
       '<h3>Candidati dai dati attuali</h3>'+
       (candidates.length?'<table class="decision-table"><tr><th>ASIN / Prodotto</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th><th>Perché candidato</th><th></th></tr>'+candidates.map(r=>'<tr><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units||0)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td><td>'+h((r.units||0)>=5?"Ha gia vendite e unita: buono per test Prime/FBA.":"Ha venduto: valuta se leggero e con margine sufficiente.")+'</td><td><button class="secondaryBtn pickFbaCandidateBtn" data-asin="'+h(r.asin)+'" data-title="'+h(r.title||"")+'" type="button">Usa</button></td></tr>').join("")+'</table>':'<div class="action">Carica ordini o Profit Report per vedere candidati automatici.</div>');
     }

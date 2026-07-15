@@ -297,15 +297,26 @@ window.BBAnalytics = {
     if(t.includes("adesiv") || t.includes("stickers") || t.includes("murali")) return "adesivi";
     return "altro";
   },
+  normalizeCostProfile(profile,fallbackProduction=0,fallbackShipping=0){
+    const p=profile || {};
+    const adhesiveSource=Object.prototype.hasOwnProperty.call(p,"adhesive") ? p.adhesive : (p.production || fallbackProduction);
+    return {
+      label:p.label || "Altro",
+      adhesive:BBUtils.num(adhesiveSource),
+      ink:BBUtils.num(p.ink),
+      packaging:BBUtils.num(p.packaging),
+      shipping:BBUtils.num(p.shipping || fallbackShipping)
+    };
+  },
   costProfiles(){
     const rules=BBUtils.rules();
     const defaults=BBUtils.rules().productCosts || {};
     return {
-      greche:{label:"Greche murali",production:0,packaging:0,shipping:0,other:0,...defaults.greche},
-      adesivi:{label:"Adesivi murali",production:0,packaging:0,shipping:0,other:0,...defaults.adesivi},
-      quadri:{label:"Quadri",production:0,packaging:0,shipping:0,other:0,...defaults.quadri},
-      bundle:{label:"Bundle / set premium",production:0,packaging:0,shipping:0,other:0,...defaults.bundle},
-      altro:{label:"Altro",production:rules.productionCostPerUnit||0,packaging:0,shipping:rules.shippingCostPerUnit||0,other:0,...defaults.altro}
+      greche:this.normalizeCostProfile({label:"Greche murali",...defaults.greche}),
+      adesivi:this.normalizeCostProfile({label:"Adesivi murali",...defaults.adesivi}),
+      quadri:this.normalizeCostProfile({label:"Quadri",...defaults.quadri}),
+      bundle:this.normalizeCostProfile({label:"Bundle / set premium",...defaults.bundle}),
+      altro:this.normalizeCostProfile({label:"Altro",...defaults.altro},rules.productionCostPerUnit||0,rules.shippingCostPerUnit||0)
     };
   },
   amazonReferralRate(row){
@@ -326,18 +337,18 @@ window.BBAnalytics = {
       const key=this.costProfileKey(text);
       const profile=profiles[key] || profiles.altro;
       const units=r.units||0;
-      const production=units*BBUtils.num(profile.production);
+      const adhesive=units*BBUtils.num(profile.adhesive);
+      const ink=units*BBUtils.num(profile.ink);
       const packaging=units*BBUtils.num(profile.packaging);
       const shipping=units*BBUtils.num(profile.shipping);
-      const other=units*BBUtils.num(profile.other);
       const referralRate=this.amazonReferralRate(r);
       const referral=(r.sales||0)*referralRate/100;
       const adsAllocated=salesTotal&&c.ads?(r.sales||0)/salesTotal*c.ads:0;
-      const internal=production+packaging+shipping+other;
+      const internal=adhesive+ink+packaging+shipping;
       const totalCost=internal+referral+adsAllocated;
       const net=(r.sales||0)-totalCost;
       const margin=(r.sales||0)?net/(r.sales||0)*100:NaN;
-      return {...r,category:this.categoryForText(text),profileKey:key,profileLabel:profile.label,production,packaging,shipping,other,referral,referralRate,adsAllocated,internal,totalCost,net,marginAfterCosts:margin};
+      return {...r,category:this.categoryForText(text),profileKey:key,profileLabel:profile.label,adhesive,ink,packaging,shipping,referral,referralRate,adsAllocated,internal,totalCost,net,marginAfterCosts:margin};
     }).sort((a,b)=>(a.marginAfterCosts||0)-(b.marginAfterCosts||0));
   },
   productCostSummary(samples,c){
@@ -345,8 +356,8 @@ window.BBAnalytics = {
     const sum=(field)=>rows.reduce((a,r)=>a+(r[field]||0),0);
     const byProfile=new Map();
     rows.forEach(r=>{
-      const o=byProfile.get(r.profileKey)||{profileKey:r.profileKey,profileLabel:r.profileLabel,sales:0,units:0,production:0,packaging:0,shipping:0,other:0,referral:0,adsAllocated:0,internal:0,totalCost:0,net:0,marginAfterCosts:NaN,count:0};
-      ["sales","units","production","packaging","shipping","other","referral","adsAllocated","internal","totalCost","net"].forEach(k=>o[k]+=r[k]||0);
+      const o=byProfile.get(r.profileKey)||{profileKey:r.profileKey,profileLabel:r.profileLabel,sales:0,units:0,adhesive:0,ink:0,packaging:0,shipping:0,referral:0,adsAllocated:0,internal:0,totalCost:0,net:0,marginAfterCosts:NaN,count:0};
+      ["sales","units","adhesive","ink","packaging","shipping","referral","adsAllocated","internal","totalCost","net"].forEach(k=>o[k]+=r[k]||0);
       o.count+=1;
       o.marginAfterCosts=o.sales?o.net/o.sales*100:NaN;
       byProfile.set(r.profileKey,o);
@@ -359,10 +370,10 @@ window.BBAnalytics = {
       totals:{
         sales:totalSales,
         units:sum("units"),
-        production:sum("production"),
+        adhesive:sum("adhesive"),
+        ink:sum("ink"),
         packaging:sum("packaging"),
         shipping:sum("shipping"),
-        other:sum("other"),
         referral:sum("referral"),
         adsAllocated:sum("adsAllocated"),
         internal:sum("internal"),
