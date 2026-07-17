@@ -136,7 +136,7 @@ function bind(){
       BBUtils.el("fbaProductionCost").value=item.productionCost || 0;
       BBUtils.el("fbaInboundCost").value=item.inboundCost || 0;
       BBUtils.el("fbaAmazonShipCost").value=item.amazonShipCost || 0;
-      BBUtils.el("fbaSendDate").value=item.sendDate || "";
+      BBUtils.el("fbaSendDate").value=BBUtils.dateIT(item.sendDate || "");
       BBUtils.el("fbaStatus").value=item.status || "da_preparare";
       BBUtils.el("fbaNotes").value=item.notes || "";
       BBUtils.el("saveFbaBtn").textContent="Aggiorna ASIN FBA";
@@ -170,7 +170,7 @@ function bind(){
         unitCost:BBUtils.num(BBUtils.el("fbaSalePrice")?.value),
         inboundCost:BBUtils.num(BBUtils.el("fbaInboundCost")?.value),
         amazonShipCost:BBUtils.num(BBUtils.el("fbaAmazonShipCost")?.value),
-        sendDate:BBUtils.el("fbaSendDate")?.value || "",
+        sendDate:BBUtils.parseDate(BBUtils.el("fbaSendDate")?.value || ""),
         status:BBUtils.el("fbaStatus")?.value || "da_preparare",
         notes:(BBUtils.el("fbaNotes")?.value || "").trim(),
         createdAt:fbaItems.find(x=>String(x.id)===String(editId))?.createdAt || new Date().toISOString(),
@@ -189,8 +189,9 @@ function bind(){
     const saveManualSale=e.target.closest("#saveManualSaleBtn");
     const deleteManualSale=e.target.closest(".deleteManualSaleBtn");
     if(saveManualSale){
-      const date=BBUtils.el("manualSaleDate")?.value || new Date().toISOString().slice(0,10);
+      const date=BBUtils.parseDate(BBUtils.el("manualSaleDate")?.value || BBUtils.todayISO());
       const asin=(BBUtils.el("manualSaleAsin")?.value || "").trim().toUpperCase();
+      const description=(BBUtils.el("manualSaleDescription")?.value || "").trim();
       const units=BBUtils.num(BBUtils.el("manualSaleUnits")?.value || 1);
       const amount=BBUtils.num(BBUtils.el("manualSaleAmount")?.value);
       if(!asin){
@@ -203,7 +204,7 @@ function bind(){
       }
       const rules=BBUtils.rules();
       const manualSales=(rules.manualSales||[]).slice();
-      manualSales.unshift({id:"sale-"+Date.now().toString(36),date,asin,units,amount,createdAt:new Date().toISOString()});
+      manualSales.unshift({id:"sale-"+Date.now().toString(36),date,asin,description,units,amount,createdAt:new Date().toISOString()});
       localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,manualSales:manualSales.slice(0,200)}));
       BBRender.renderAll();
       return;

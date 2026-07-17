@@ -12,6 +12,29 @@ window.BBUtils = {
     return m ? Number(m[0]) : 0;
   },
   pct(v){ return Number.isFinite(v) ? v.toFixed(1)+"%" : "—"; },
+  todayISO(){
+    const d=new Date();
+    return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+  },
+  parseDate(value){
+    const s=String(value || "").trim();
+    if(!s) return "";
+    let m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+    m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if(m) return `${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
+    return s;
+  },
+  dateIT(value){
+    const s=String(value || "").trim();
+    if(!s) return "—";
+    let m=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) return `${m[3]}/${m[2]}/${m[1]}`;
+    m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if(m) return `${String(m[1]).padStart(2,"0")}/${String(m[2]).padStart(2,"0")}/${m[3]}`;
+    const d=value instanceof Date ? value : new Date(s);
+    return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString("it-IT");
+  },
   html(value){
     return String(value ?? "").replace(/[&<>"']/g, ch => ({
       "&":"&amp;",
