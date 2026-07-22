@@ -29,6 +29,8 @@ window.BBAnalytics = {
     const storeDate=samples.store_date||[], storeLive=samples.store_live_page||[];
     const adsRows=[...(samples.sponsored_products||[]),...(samples.sponsored_brands||[]),...(samples.sponsored_display||[])];
     const orders=samples.orders||[];
+    const rules=BBUtils.rules();
+    const manualStatus=this.manualSalesStatus(samples,rules.manualSales||[]);
 
     const salesBR=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Ordered Product Sales","Vendite prodotto ordinate","Sales","Vendite"])),0);
     const salesTX=tx.reduce((a,r)=>a+Math.max(BBUtils.num(BBUtils.pick(r,["Totale (EUR)","Total (EUR)","Total","Totale"])),0),0);
@@ -37,11 +39,13 @@ window.BBAnalytics = {
       "product-sales","Product Sales","Vendite prodotto","order-item-value"
     ])),0);
     const salesProfit=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"])),0);
-    const sales=salesBR||salesTX||salesOrders||salesProfit;
+    const reportedSales=salesBR||salesTX||salesOrders||salesProfit;
+    const sales=reportedSales+manualStatus.pendingTotal;
 
     const unitsProfit=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"])),0);
-    const units=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"])),0)||
+    const reportedUnits=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"])),0)||
       orders.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità"])),0)||unitsProfit;
+    const units=reportedUnits+manualStatus.pendingUnits;
     const sessions=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sessions","Sessioni"])),0);
     const storeSales=storeDate.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Vendite","Sales"])),0) ||
       storeLive.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Vendite","Sales"])),0);
@@ -77,7 +81,6 @@ window.BBAnalytics = {
     const ads=adsInvoice||adsSpend;
     const netProfitReport=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"])),0);
     const profit=netProfitReport || (sales+amazonFees-ads);
-    const rules=BBUtils.rules();
     const subscriptionCost=BBUtils.num(rules.monthlyFee)*BBUtils.num(rules.subscriptionMonths);
     const productionCost=BBUtils.num(rules.productionCostPerUnit)*units;
     const shippingCost=BBUtils.num(rules.shippingCostPerUnit)*units;
@@ -89,7 +92,14 @@ window.BBAnalytics = {
     const manualBalance=sales-referralFeesProfit-ads-subscriptionCost-productionCost-shippingCost-extraFixedCosts;
 
     return {
-      sales,salesBR,salesTX,salesOrders,salesProfit,units,unitsProfit,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
+      sales,reportedSales,salesBR,salesTX,salesOrders,salesProfit,units,reportedUnits,unitsProfit,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
+      manualPendingSales:manualStatus.pendingTotal,
+      manualPendingUnits:manualStatus.pendingUnits,
+      manualCoveredSales:manualStatus.coveredTotal,
+      manualCoveredUnits:manualStatus.coveredUnits,
+      manualPendingRows:manualStatus.pending.length,
+      manualCoveredRows:manualStatus.covered.length,
+      manualCutoffDate:manualStatus.cutoff,
       storeSalesShare:sales&&storeSales?storeSales/sales*100:NaN,
       storeConversion:storeVisitors&&storeOrders?storeOrders/storeVisitors*100:NaN,
       storeSalesPerVisitor:storeVisitors?storeSales/storeVisitors:NaN,
@@ -498,7 +508,15 @@ window.BBAnalytics = {
   rowDate(r){
     return this.parseReportDate(BBUtils.pick(r,[
       "Data","Date","Report Date","Data del report","Data di inizio","Start Date",
-      "Data di fine","End Date","date","start-date","end-date"
+      "Data di fine","End Date","date","start-date","end-date",
+      "purchase-date","order-date","payments-date","shipment-date","last-updated-date"
+    ]));
+  },
+  rowCoverageDate(r){
+    return this.parseReportDate(BBUtils.pick(r,[
+      "Data di fine","End Date","date-end","end-date","Data fine",
+      "purchase-date","order-date","payments-date","shipment-date","last-updated-date",
+      "Data","Date","Report Date","Data del report"
     ]));
   },
   rowSales(r){
@@ -537,6 +555,38 @@ window.BBAnalytics = {
       map.set(key,o);
     });
     return Array.from(map.values()).sort((a,b)=>a.date-b.date);
+  },
+  officialSalesCutoffDate(samples){
+    const sources=[
+      ...(samples.store_date||[]),
+      ...(samples.business_report||[]),
+      ...(samples.orders||[])
+    ];
+    return sources.reduce((latest,r)=>{
+      const d=this.rowCoverageDate(r);
+      return d && (!latest || d>latest) ? d : latest;
+    },null);
+  },
+  manualSalesStatus(samples,manualSales){
+    const cutoff=this.officialSalesCutoffDate(samples);
+    const rows=(manualSales||[]).map(r=>{
+      const date=this.parseReportDate(r.date);
+      const covered=!!(cutoff && date && date<=cutoff);
+      return {...r,_dateObj:date,_coveredByReport:covered};
+    });
+    const pending=rows.filter(r=>!r._coveredByReport);
+    const covered=rows.filter(r=>r._coveredByReport);
+    const sum=(arr,key)=>arr.reduce((a,r)=>a+BBUtils.num(r[key]),0);
+    return {
+      cutoff,
+      rows,
+      pending,
+      covered,
+      pendingTotal:sum(pending,"amount"),
+      pendingUnits:sum(pending,"units"),
+      coveredTotal:sum(covered,"amount"),
+      coveredUnits:sum(covered,"units")
+    };
   },
   featuredOfferRows(samples){
     const cols=[

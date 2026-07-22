@@ -163,16 +163,21 @@ window.BBRender = {
     const execCompetitor=BBAnalytics.competitorSummary ? BBAnalytics.competitorSummary(scopedSamples,c) : null;
     const execCostSummary=BBAnalytics.productCostSummary ? BBAnalytics.productCostSummary(scopedSamples,c) : null;
     const execRules=BBUtils.rules();
-    const manualSales=(execRules.manualSales||[]).slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
-    const manualTotal=manualSales.reduce((a,r)=>a+BBUtils.num(r.amount),0);
-    const manualUnits=manualSales.reduce((a,r)=>a+BBUtils.num(r.units),0);
+    const manualStatus=BBAnalytics.manualSalesStatus ? BBAnalytics.manualSalesStatus(scopedSamples,execRules.manualSales||[]) : null;
+    const sortManual=(rows)=>(rows||[]).slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+    const manualPending=sortManual(manualStatus?.pending || execRules.manualSales || []);
+    const manualCovered=sortManual(manualStatus?.covered || []);
+    const manualSales=sortManual(manualStatus?.rows || execRules.manualSales || []);
+    const manualTotal=manualStatus?manualStatus.pendingTotal:manualPending.reduce((a,r)=>a+BBUtils.num(r.amount),0);
+    const manualUnits=manualStatus?manualStatus.pendingUnits:manualPending.reduce((a,r)=>a+BBUtils.num(r.units),0);
+    const manualCoveredUnits=manualStatus?manualStatus.coveredUnits:0;
     const manualToday=BBUtils.dateIT(BBUtils.todayISO());
     const localDate=s=>{
       if(!s) return null;
       const m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
       return m?new Date(Number(m[1]),Number(m[2])-1,Number(m[3])):null;
     };
-    const manualLastDate=manualSales.length?localDate(manualSales[0].date):null;
+    const manualLastDate=manualPending.length?localDate(manualPending[0].date):null;
     const reportLastDate=execRecovery?.lastSale?.date||null;
     const visibleLastSale=manualLastDate && (!reportLastDate || manualLastDate>reportLastDate)
       ? {date:manualLastDate,source:"manuale"}
@@ -220,9 +225,9 @@ window.BBRender = {
     BBUtils.el("kpis").innerHTML=[
       ["Stato operativo",health+"/100",healthClass,"Media di dati, vendite, saldo, Ads, margine"],
       ["Saldo stimato",c.sales?BBUtils.euro(profitValue):"—",profitValue<0?"red":"green","Obiettivo: sopra 0 euro"],
-      ["Vendite",c.sales?BBUtils.euro(c.sales):"—","","Obiettivo: crescita settimanale"],
-      ["Unita' vendute",c.units||"—","","Obiettivo: crescita stabile"],
-      ["Vendite infrasett.",manualSales.length?BBUtils.euro(manualTotal):"—",manualTotal>0?"green":"","Inserite a mano: "+manualUnits+" unita"],
+      ["Vendite",c.sales?BBUtils.euro(c.sales):"—","","Report + manuali non ancora coperte"],
+      ["Unita' vendute",c.units||"—","","Report: "+(c.reportedUnits||0)+" | manuali: "+manualUnits],
+      ["Vendite infrasett.",manualPending.length?BBUtils.euro(manualTotal):"—",manualTotal>0?"green":"","Da sommare: "+manualUnits+" unita | coperte: "+manualCoveredUnits],
       ["Stato vendite",salesStatus,(daysSinceVisibleSale!==null&&daysSinceVisibleSale>7)?"red":(daysSinceVisibleSale!==null&&daysSinceVisibleSale<=2?"green":"yellow"),visibleLastSale?"Ultima: "+visibleLastSale.date.toLocaleDateString("it-IT")+" ("+visibleLastSale.source+")":"Inserisci vendita o carica report"],
       ["TACOS",BBUtils.pct(c.tacos),Number.isFinite(c.tacos)&&c.tacos>execRules.tacos?"red":"green","Target massimo: "+execRules.tacos+"%"],
       ["ACOS",BBUtils.pct(c.acos),Number.isFinite(c.acos)&&c.acos>execRules.acos?"red":"green","Target massimo: "+execRules.acos+"%"],
@@ -239,14 +244,15 @@ window.BBRender = {
       '<div class="action"><b>Prossima leva commerciale</b><br>'+h(execCompetitor?.own?"Spingi Shopify con bundle, gift nascita e varianti personalizzate.":"Inserisci bipbopstickers.it e almeno 3 competitor per capire dove differenziarti.")+'</div>'+
       '<div class="action"><b>Focus prodotto</b><br>'+h((BBAnalytics.productStrategyRows ? (BBAnalytics.productStrategyRows(scopedSamples)[0]?.category || "Carica dati Store e Profit Report per scegliere la categoria.") : "Carica dati Store e Profit Report.") )+'</div>'+
       '</div>'+
-      '<div class="manual-sales-panel"><h3>Vendite infrasettimanali</h3><p class="hint">Inserisci qui le vendite viste durante la settimana. Restano separate dai report Amazon e servono solo per monitorare l andamento prima del prossimo caricamento.</p>'+
+      '<div class="manual-sales-panel"><h3>Vendite infrasettimanali</h3><p class="hint">Inserisci qui le vendite viste durante la settimana. Vengono sommate a Executive solo finche il report ufficiale non copre quella data, cosi non duplichiamo gli ordini.</p>'+
       '<div class="manual-sales-form"><div><label>Data</label><input id="manualSaleDate" inputmode="numeric" value="'+h(manualToday)+'" placeholder="gg/mm/aaaa"></div><div><label>ASIN</label><input id="manualSaleAsin" placeholder="B0..."></div><div><label>Descrizione</label><input id="manualSaleDescription" placeholder="Es. trenino, mongolfiere..."></div><div><label>Unita</label><input id="manualSaleUnits" type="number" min="1" step="1" value="1"></div><div><label>Vendite €</label><input id="manualSaleAmount" type="number" min="0" step="0.01" placeholder="19.90"></div><button id="saveManualSaleBtn" type="button">Aggiungi</button></div>'+
       '<div class="grid3 manual-sales-summary">'+[
-        ["Totale inserito",manualSales.length?BBUtils.euro(manualTotal):"—"],
-        ["Unita inserite",manualUnits||"—"],
-        ["Righe manuali",manualSales.length||"—"]
+        ["Da sommare ora",manualPending.length?BBUtils.euro(manualTotal):"—"],
+        ["Unita da sommare",manualUnits||"—"],
+        ["Gia coperte da report",manualCovered.length?manualCovered.length+" righe":"—"]
       ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
-      (manualSales.length?'<table class="compact-table manual-sales-table"><tr><th>Data</th><th>ASIN</th><th>Descrizione</th><th>Unita</th><th>Vendite</th><th>Azione</th></tr>'+manualSales.slice(0,12).map(r=>'<tr><td>'+h(BBUtils.dateIT(r.date))+'</td><td><b>'+h(r.asin||"—")+'</b></td><td>'+h(r.description||"—")+'</td><td>'+h(r.units||0)+'</td><td>'+h(BBUtils.euro(r.amount||0))+'</td><td><button class="secondaryBtn deleteManualSaleBtn" data-sale-id="'+h(r.id)+'" type="button">Elimina</button></td></tr>').join("")+'</table>':'<div class="action">Nessuna vendita manuale inserita.</div>')+
+      (manualStatus?.cutoff?'<div class="action"><b>Copertura report</b><br>Ultimo giorno coperto dai report: '+h(BBUtils.dateIT(manualStatus.cutoff))+'. Le vendite manuali fino a questa data non vengono piu sommate.</div>':'')+
+      (manualSales.length?'<table class="compact-table manual-sales-table"><tr><th>Data</th><th>Stato</th><th>ASIN</th><th>Descrizione</th><th>Unita</th><th>Vendite</th><th>Azione</th></tr>'+manualSales.slice(0,12).map(r=>'<tr><td>'+h(BBUtils.dateIT(r.date))+'</td><td><span class="pill '+(r._coveredByReport?'':'green')+'">'+h(r._coveredByReport?'Coperta da report':'Da sommare')+'</span></td><td><b>'+h(r.asin||"—")+'</b></td><td>'+h(r.description||"—")+'</td><td>'+h(r.units||0)+'</td><td>'+h(BBUtils.euro(r.amount||0))+'</td><td><button class="secondaryBtn deleteManualSaleBtn" data-sale-id="'+h(r.id)+'" type="button">Elimina</button></td></tr>').join("")+'</table>':'<div class="action">Nessuna vendita manuale inserita.</div>')+
       '</div>'+
       '<h3>Come raggiungere i target</h3><div class="target-guide">'+targetPlan.map(r=>'<div class="target-card"><b>'+h(r[0])+'</b><span>'+h(r[1])+'</span><small>'+h(r[2])+'</small></div>').join("")+'</div>'+
       '<h3>Qualita dati</h3><div class="executive-data-grid">'+BBAnalytics.reportDefs.map(r=>{
