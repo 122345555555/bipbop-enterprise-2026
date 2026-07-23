@@ -96,6 +96,26 @@ function bind(){
       BBRender.renderAll();
     }
   });
+  const fbaSamples=()=>BBRender.profitScopedSamples ? BBRender.profitScopedSamples(state) : state.samples;
+  const fillFbaSuggestion=(force=false)=>{
+    const asin=(BBUtils.el("fbaAsin")?.value || "").trim().toUpperCase();
+    if(!asin || !BBAnalytics.fbaSuggestionForAsin) return null;
+    const sug=BBAnalytics.fbaSuggestionForAsin(fbaSamples(),asin);
+    if(!sug) return null;
+    if(BBUtils.el("fbaTitle") && (force || !BBUtils.el("fbaTitle").value.trim())) BBUtils.el("fbaTitle").value=sug.title || "";
+    if(BBUtils.el("fbaSalePrice") && (force || !BBUtils.num(BBUtils.el("fbaSalePrice").value))) BBUtils.el("fbaSalePrice").value=sug.salePrice ? sug.salePrice.toFixed(2) : "";
+    if(BBUtils.el("fbaProductionCost") && (force || !BBUtils.num(BBUtils.el("fbaProductionCost").value))) BBUtils.el("fbaProductionCost").value=sug.productionCost ? sug.productionCost.toFixed(2) : "";
+    if(BBUtils.el("fbaNotes") && !BBUtils.el("fbaNotes").value.trim()){
+      const bits=[];
+      if(sug.profileLabel) bits.push(sug.profileLabel);
+      if(sug.units) bits.push(sug.units+" unita vendute");
+      BBUtils.el("fbaNotes").value=bits.length?"Suggerito da report: "+bits.join(", "):"Suggerito da report";
+    }
+    return sug;
+  };
+  document.addEventListener("blur",e=>{
+    if(e.target && e.target.id==="fbaAsin") fillFbaSuggestion(false);
+  },true);
   document.addEventListener("click",e=>{
     const saveFba=e.target.closest("#saveFbaBtn");
     const clearFba=e.target.closest("#clearFbaFormBtn");
@@ -113,6 +133,9 @@ function bind(){
       BBUtils.el("fbaAsin").value=pickFba.dataset.asin || "";
       BBUtils.el("fbaTitle").value=pickFba.dataset.title || "";
       BBUtils.el("fbaQty").value="10";
+      if(BBUtils.el("fbaSalePrice")) BBUtils.el("fbaSalePrice").value=BBUtils.num(pickFba.dataset.salePrice)?BBUtils.num(pickFba.dataset.salePrice).toFixed(2):"";
+      if(BBUtils.el("fbaProductionCost")) BBUtils.el("fbaProductionCost").value=BBUtils.num(pickFba.dataset.productionCost)?BBUtils.num(pickFba.dataset.productionCost).toFixed(2):"";
+      fillFbaSuggestion(false);
       BBUtils.el("saveFbaBtn").textContent="Salva ASIN FBA";
       return;
     }
@@ -157,17 +180,18 @@ function bind(){
         alert("Inserisci l'ASIN da testare in FBA.");
         return;
       }
+      const suggestion=fillFbaSuggestion(false);
       const rules=BBUtils.rules();
       const fbaItems=(rules.fbaItems||[]).slice();
       const editId=BBUtils.el("fbaEditId")?.value || "";
       const item={
         id:editId || "fba-"+Date.now().toString(36),
         asin,
-        title:(BBUtils.el("fbaTitle")?.value || "").trim(),
+        title:(BBUtils.el("fbaTitle")?.value || "").trim() || suggestion?.title || "",
         qty:BBUtils.num(BBUtils.el("fbaQty")?.value || 10),
-        salePrice:BBUtils.num(BBUtils.el("fbaSalePrice")?.value),
-        productionCost:BBUtils.num(BBUtils.el("fbaProductionCost")?.value),
-        unitCost:BBUtils.num(BBUtils.el("fbaSalePrice")?.value),
+        salePrice:BBUtils.num(BBUtils.el("fbaSalePrice")?.value) || BBUtils.num(suggestion?.salePrice),
+        productionCost:BBUtils.num(BBUtils.el("fbaProductionCost")?.value) || BBUtils.num(suggestion?.productionCost),
+        unitCost:BBUtils.num(BBUtils.el("fbaSalePrice")?.value) || BBUtils.num(suggestion?.salePrice),
         inboundCost:BBUtils.num(BBUtils.el("fbaInboundCost")?.value),
         amazonShipCost:BBUtils.num(BBUtils.el("fbaAmazonShipCost")?.value),
         sendDate:BBUtils.parseDate(BBUtils.el("fbaSendDate")?.value || ""),

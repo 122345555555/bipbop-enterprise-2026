@@ -402,6 +402,36 @@ window.BBAnalytics = {
       byProfile:Array.from(byProfile.values()).sort((a,b)=>a.net-b.net)
     };
   },
+  fbaSuggestionForAsin(samples,asin){
+    const target=String(asin||"").trim().toUpperCase();
+    if(!target) return null;
+    const asinRows=this.asinDecisionRows ? this.asinDecisionRows(samples) : [];
+    const productRows=this.productCostRows ? this.productCostRows(samples,this.calc(samples)) : [];
+    const fromAsin=asinRows.find(r=>String(r.asin||"").toUpperCase()===target);
+    const fromCost=productRows.find(r=>String(r.asin||"").toUpperCase()===target);
+    if(!fromAsin && !fromCost) return null;
+    const title=(fromAsin?.title || fromCost?.title || "").trim();
+    const units=BBUtils.num(fromCost?.units || fromAsin?.units);
+    const sales=BBUtils.num(fromCost?.sales || fromAsin?.sales);
+    const salePrice=BBUtils.num(fromCost?.salePrice) || (units?sales/units:0);
+    const text=[title,fromCost?.sku,fromCost?.category].join(" ");
+    const profileKey=fromCost?.profileKey || this.costProfileKey(text);
+    const profiles=this.costProfiles();
+    const profile=profiles[profileKey] || profiles.altro;
+    const productionCost=BBUtils.num(profile.adhesive)+BBUtils.num(profile.ink)+BBUtils.num(profile.packaging);
+    return {
+      asin:target,
+      title,
+      salePrice:salePrice || BBUtils.num(profile.salePrice),
+      productionCost,
+      profileKey,
+      profileLabel:profile.label,
+      units,
+      sales,
+      profit:BBUtils.num(fromCost?.net ?? fromAsin?.profit),
+      margin:fromCost?.marginAfterCosts ?? fromAsin?.margin
+    };
+  },
   productStrategyRows(samples){
     const map=new Map();
     const ensure=cat=>{
