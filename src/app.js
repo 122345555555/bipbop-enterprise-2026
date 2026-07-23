@@ -116,6 +116,9 @@ function bind(){
   document.addEventListener("blur",e=>{
     if(e.target && e.target.id==="fbaAsin") fillFbaSuggestion(false);
   },true);
+  document.addEventListener("input",e=>{
+    if(e.target && e.target.id==="fbaAsin" && String(e.target.value||"").trim().length>=10) fillFbaSuggestion(false);
+  });
   document.addEventListener("click",e=>{
     const saveFba=e.target.closest("#saveFbaBtn");
     const clearFba=e.target.closest("#clearFbaFormBtn");

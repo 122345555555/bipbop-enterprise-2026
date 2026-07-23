@@ -409,13 +409,30 @@ window.BBAnalytics = {
     const productRows=this.productCostRows ? this.productCostRows(samples,this.calc(samples)) : [];
     const fromAsin=asinRows.find(r=>String(r.asin||"").toUpperCase()===target);
     const fromCost=productRows.find(r=>String(r.asin||"").toUpperCase()===target);
-    if(!fromAsin && !fromCost) return null;
-    const title=(fromAsin?.title || fromCost?.title || "").trim();
-    const units=BBUtils.num(fromCost?.units || fromAsin?.units);
-    const sales=BBUtils.num(fromCost?.sales || fromAsin?.sales);
-    const salePrice=BBUtils.num(fromCost?.salePrice) || (units?sales/units:0);
+    const raw={title:"",sku:"",sales:0,units:0,price:0,stock:0,source:new Set()};
+    const remember=(r,source)=>{
+      const rowAsin=String(BBUtils.pick(r,["asin1","asin","ASIN","product-id","Product ID","Parent ASIN","Child ASIN"])||"").trim().toUpperCase();
+      if(rowAsin!==target) return;
+      raw.source.add(source);
+      raw.title=raw.title || BBUtils.pick(r,["item-name","product-name","Product Name","Title","Titolo","Nome prodotto"]);
+      raw.sku=raw.sku || BBUtils.pick(r,["seller-sku","sku","SKU","MSKU"]);
+      raw.price=raw.price || BBUtils.num(BBUtils.pick(r,["price","Prezzo","Your Price","item-price","Item Price","Prezzo articolo","Prezzo dell'articolo"]));
+      raw.sales+=BBUtils.num(BBUtils.pick(r,["Ordered Product Sales","Vendite prodotto ordinate","Vendite nette","Vendite","Sales","Net sales","item-price","Item Price","Prezzo articolo","Product Sales","Vendite prodotto"]));
+      raw.units+=BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Unità nette vendute","Unità vendute","Units","Units sold","Net units sold","quantity-purchased","Quantity","Quantità","quantity"]));
+      raw.stock=raw.stock || BBUtils.num(BBUtils.pick(r,["quantity","Quantità","available","fulfillable"]));
+    };
+    (samples.inventory||[]).forEach(r=>remember(r,"Inventario"));
+    (samples.orders||[]).forEach(r=>remember(r,"Ordini"));
+    (samples.business_report||[]).forEach(r=>remember(r,"Business Report"));
+    (samples.profit_report||[]).forEach(r=>remember(r,"Profit Report"));
+    if(!fromAsin && !fromCost && !raw.source.size) return null;
+    const title=(fromAsin?.title || fromCost?.title || raw.title || "").trim();
+    const units=BBUtils.num(fromCost?.units || fromAsin?.units || raw.units);
+    const sales=BBUtils.num(fromCost?.sales || fromAsin?.sales || raw.sales);
+    const salePrice=BBUtils.num(fromCost?.salePrice) || (units?sales/units:0) || raw.price;
     const text=[title,fromCost?.sku,fromCost?.category].join(" ");
-    const profileKey=fromCost?.profileKey || this.costProfileKey(text);
+    const inferredProfileKey=this.costProfileKey(text);
+    const profileKey=inferredProfileKey!=="altro" ? inferredProfileKey : (fromCost?.profileKey || "altro");
     const profiles=this.costProfiles();
     const profile=profiles[profileKey] || profiles.altro;
     const productionCost=BBUtils.num(profile.adhesive)+BBUtils.num(profile.ink)+BBUtils.num(profile.packaging);
@@ -428,6 +445,9 @@ window.BBAnalytics = {
       profileLabel:profile.label,
       units,
       sales,
+      sku:fromCost?.sku || fromAsin?.sku || raw.sku || "",
+      stock:fromAsin?.stock ?? raw.stock,
+      source:Array.from(raw.source).join(", ") || fromAsin?.source || "",
       profit:BBUtils.num(fromCost?.net ?? fromAsin?.profit),
       margin:fromCost?.marginAfterCosts ?? fromAsin?.margin
     };
