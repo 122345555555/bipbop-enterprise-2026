@@ -72,6 +72,23 @@ textarea{min-height:110px}
 .manual-sales-form button{margin:0 0 1px}
 .manual-sales-summary{margin-top:12px}
 .manual-sales-table{margin-top:10px;background:#fff}
+.overview-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
+.overview-head h3{margin-bottom:6px}
+.overview-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:18px;align-items:stretch}
+.overview-summary{border:1px solid #e3ebf4;border-radius:18px;background:#fbfdff;padding:18px;line-height:1.45}
+.overview-summary h3{margin-bottom:12px}
+.overview-summary h4{margin:14px 0 8px}
+.overview-summary p{margin:0 0 10px}
+.overview-summary ul{margin:0;padding-left:20px}
+.overview-summary li{margin:7px 0}
+.mini-chart{border:1px solid #e3ebf4;border-radius:18px;background:#fff;padding:16px;min-height:276px}
+.mini-chart-title{font-size:18px;font-weight:900;margin-bottom:8px}
+.mini-chart svg{width:100%;height:230px;display:block}
+.mini-chart .grid-lines line{stroke:#e6edf5;stroke-width:1}
+.mini-chart .grid-lines text{fill:#64748b;font-size:11px;font-weight:700}
+.mini-chart polyline{fill:none;stroke:#80a7ff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.mini-chart circle{fill:#087eaa;stroke:#fff;stroke-width:2}
+.mini-chart .x-axis text{fill:#64748b;font-size:10px;text-anchor:middle;font-weight:700}
 .fba-form{display:grid;grid-template-columns:repeat(6,minmax(130px,1fr));gap:10px;align-items:end;margin-bottom:18px}
 .fba-form label{font-size:12px;font-weight:900;color:#64748b;text-transform:uppercase}
 .fba-form input,.fba-form select{margin:6px 0 0}
@@ -163,7 +180,8 @@ pre{white-space:pre-wrap;background:#111827;color:#e5e7eb;padding:16px;border-ra
 @media(max-width:1000px){body{display:block}
 aside{position:static;width:100%;min-height:auto}
 main{margin-left:0}
-.kpis,.grid2,.grid3,.import-grid,.tool-row,.target-guide,.ba-insights,.manual-sales-form,.score-breakdown,.fba-form{grid-template-columns:1fr}
+.kpis,.grid2,.grid3,.import-grid,.tool-row,.target-guide,.ba-insights,.manual-sales-form,.score-breakdown,.fba-form,.overview-grid{grid-template-columns:1fr}
+.overview-head{display:block}
 .ba-report-head,.ba-table-meta{display:block}
 .ba-controls{grid-template-columns:1fr}
 .ba-controls button.secondaryBtn{justify-self:stretch;width:auto}

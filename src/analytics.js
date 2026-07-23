@@ -571,13 +571,13 @@ window.BBAnalytics = {
   },
   rowSales(r){
     return BBUtils.num(BBUtils.pick(r,[
-      "Vendite","Sales","Ordered Product Sales","Vendite prodotto ordinate",
+      "Vendite nette","Net sales","Vendite","Sales","Ordered Product Sales","Vendite prodotto ordinate",
       "item-price","Item Price","Prezzo articolo","Product Sales","Vendite prodotto"
     ]));
   },
   rowUnits(r){
     return BBUtils.num(BBUtils.pick(r,[
-      "Unita","Unità","Units","Units Ordered","Unita ordinate","Unità ordinate",
+      "Unità nette vendute","Net units sold","Units sold","Unita","Unità","Units","Units Ordered","Unita ordinate","Unità ordinate",
       "quantity-purchased","Quantity","Quantità"
     ]));
   },
@@ -605,6 +605,101 @@ window.BBAnalytics = {
       map.set(key,o);
     });
     return Array.from(map.values()).sort((a,b)=>a.date-b.date);
+  },
+  executiveSalesOverview(samples,c){
+    const rules=BBUtils.rules();
+    const manual=this.manualSalesStatus(samples,rules.manualSales||[]);
+    const sourceType=(samples.orders||[]).length?"orders":
+      ((samples.business_report||[]).length?"business_report":
+      ((samples.profit_report||[]).length?"profit_report":
+      ((samples.store_date||[]).length?"store_date":"")));
+    const sourceRows=sourceType?(samples[sourceType]||[]):[];
+    const sourceLabel={
+      orders:"Report ordini",
+      business_report:"Business Report",
+      profit_report:"Profit Report",
+      store_date:"Store Amazon"
+    }[sourceType] || "Report Amazon";
+    const map=new Map();
+    const ensure=date=>{
+      const key=date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0");
+      const o=map.get(key)||{key,year:date.getFullYear(),month:date.getMonth(),label:"",sales:0,units:0,traffic:0,featuredValues:[],manualSales:0,manualUnits:0};
+      o.label=new Intl.DateTimeFormat("it-IT",{month:"short",year:"numeric"}).format(date).replace(".","");
+      map.set(key,o);
+      return o;
+    };
+    sourceRows.forEach(r=>{
+      const date=this.rowDate(r);
+      if(!date) return;
+      const o=ensure(date);
+      o.sales+=this.rowSales(r);
+      o.units+=this.rowUnits(r);
+      o.traffic+=this.rowTraffic(r);
+      const featured=BBUtils.pick(r,[
+        "Featured Offer %","Featured Offer Percentage","Featured Offer (Buy Box) Percentage",
+        "Percentuale Featured Offer","Featured Offer","Buy Box Percentage","Buy Box %",
+        "Percentuale Buy Box","Featured Offer % (Buy Box)"
+      ]);
+      if(featured!==""){
+        let v=BBUtils.num(featured);
+        if(v>0 && v<=1) v*=100;
+        if(v>0) o.featuredValues.push(v);
+      }
+    });
+    (manual.pending||[]).forEach(r=>{
+      const date=this.parseReportDate(r.date);
+      if(!date) return;
+      const o=ensure(date);
+      const amount=BBUtils.num(r.amount), units=BBUtils.num(r.units);
+      o.sales+=amount;
+      o.units+=units;
+      o.manualSales+=amount;
+      o.manualUnits+=units;
+    });
+    let rows=Array.from(map.values()).filter(r=>r.sales||r.units||r.traffic).sort((a,b)=>a.year-b.year || a.month-b.month);
+    if(!rows.length) return null;
+    const latestYear=rows.reduce((y,r)=>Math.max(y,r.year),rows[0].year);
+    rows=rows.filter(r=>r.year===latestYear);
+    const totalSales=rows.reduce((a,r)=>a+r.sales,0);
+    const totalUnits=rows.reduce((a,r)=>a+r.units,0);
+    const avgPrice=totalUnits?totalSales/totalUnits:NaN;
+    const bestSales=rows.slice().sort((a,b)=>b.sales-a.sales)[0]||null;
+    const bestUnits=rows.slice().sort((a,b)=>b.units-a.units)[0]||null;
+    const positiveRows=rows.filter(r=>r.sales||r.units);
+    const weakest=positiveRows.slice().sort((a,b)=>a.sales-b.sales)[0]||null;
+    const latest=rows[rows.length-1]||null;
+    rows.forEach(r=>{
+      r.featuredAvg=r.featuredValues.length?r.featuredValues.reduce((a,v)=>a+v,0)/r.featuredValues.length:NaN;
+    });
+    const featuredRows=rows.filter(r=>Number.isFinite(r.featuredAvg));
+    const featuredAvg=featuredRows.length?featuredRows.reduce((a,r)=>a+r.featuredAvg,0)/featuredRows.length:NaN;
+    const manualSales=rows.reduce((a,r)=>a+r.manualSales,0);
+    const manualUnits=rows.reduce((a,r)=>a+r.manualUnits,0);
+    const insight=[];
+    if(bestSales) insight.push("Mese migliore: "+bestSales.label+" con "+BBUtils.euro(bestSales.sales)+" e "+(bestSales.units||0)+" unita.");
+    if(latest && bestSales && latest.key!==bestSales.key && latest.sales<bestSales.sales*0.7) insight.push("L'ultimo mese e' sotto il picco: controlla traffico, disponibilita', prezzo e Ads prima di spingere nuovi prodotti.");
+    if(Number.isFinite(featuredAvg)) insight.push("Featured Offer media: "+BBUtils.pct(featuredAvg)+". Sopra 95% e' buona; sotto 85% puo' frenare le conversioni.");
+    if(manualSales>0) insight.push("Include vendite infrasettimanali non ancora coperte dai report: "+BBUtils.euro(manualSales)+" e "+manualUnits+" unita.");
+    if(!insight.length) insight.push("Carica Business Report o Report ordini con date per ottenere una lettura mensile piu precisa.");
+    return {
+      year:latestYear,
+      sourceType,
+      sourceLabel,
+      rows,
+      totalSales,
+      totalUnits,
+      avgPrice,
+      bestSales,
+      bestUnits,
+      weakest,
+      latest,
+      featuredAvg,
+      manualSales,
+      manualUnits,
+      periodStart:rows[0],
+      periodEnd:rows[rows.length-1],
+      insight
+    };
   },
   officialSalesCutoffDate(samples){
     const sources=[

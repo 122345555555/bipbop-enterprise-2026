@@ -130,6 +130,57 @@ window.BBRender = {
     const h=BBUtils.html;
     return '<div class="asin-cell"><b>'+h(main||"—")+'</b>'+(sub?'<span>'+h(sub)+'</span>':'')+'</div>';
   },
+  miniLineChart(rows,field,label,format){
+    const h=BBUtils.html;
+    const vals=(rows||[]).map(r=>BBUtils.num(r[field]));
+    const max=Math.max(...vals,1);
+    const min=Math.min(...vals,0);
+    const range=Math.max(max-min,1);
+    const w=560,hg=220,pad=34;
+    const x=i=>pad+(rows.length<=1?0:i*((w-pad*2)/(rows.length-1)));
+    const y=v=>hg-pad-((v-min)/range)*(hg-pad*2);
+    const pts=vals.map((v,i)=>x(i)+","+y(v)).join(" ");
+    const grid=[0,.25,.5,.75,1].map(t=>{
+      const yy=pad+t*(hg-pad*2);
+      const value=max-(t*range);
+      return '<line x1="'+pad+'" y1="'+yy.toFixed(1)+'" x2="'+(w-pad)+'" y2="'+yy.toFixed(1)+'"></line><text x="6" y="'+(yy+4).toFixed(1)+'">'+h(format?format(value):Math.round(value))+'</text>';
+    }).join("");
+    const circles=vals.map((v,i)=>'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(v).toFixed(1)+'" r="4"><title>'+h(rows[i].label+": "+(format?format(v):v))+'</title></circle>').join("");
+    const labels=(rows||[]).map((r,i)=>'<text class="x-label" x="'+x(i).toFixed(1)+'" y="'+(hg-8)+'">'+h(String(r.label||"").replace(/\s20/," "))+'</text>').join("");
+    return '<div class="mini-chart"><div class="mini-chart-title">'+h(label)+'</div><svg viewBox="0 0 '+w+' '+hg+'" role="img" aria-label="'+h(label)+'"><g class="grid-lines">'+grid+'</g><polyline points="'+pts+'"></polyline>'+circles+'<g class="x-axis">'+labels+'</g></svg></div>';
+  },
+  executiveSalesOverviewHtml(overview){
+    const h=BBUtils.html;
+    if(!overview) return '<h3>Panoramica vendite e ordini</h3><div class="action">Carica Report ordini o Business Report con date per vedere riepilogo annuale, andamento mensile e punti chiave.</div>';
+    const salesChart=this.miniLineChart(overview.rows,"sales","Andamento ricavi mensili",v=>BBUtils.euro(v));
+    const unitsChart=this.miniLineChart(overview.rows,"units","Volume ordini mensile",v=>String(Math.round(v)));
+    const period=overview.periodStart&&overview.periodEnd ? overview.periodStart.label+" - "+overview.periodEnd.label : String(overview.year);
+    const best=overview.bestSales;
+    const weakest=overview.weakest;
+    const latest=overview.latest;
+    return '<div class="overview-head"><div><h3>Panoramica vendite e ordini '+h(overview.year)+'</h3><p class="hint">Lettura automatica in stile assistente, basata su '+h(overview.sourceLabel)+' e vendite manuali non ancora coperte.</p></div><span class="pill green">Periodo: '+h(period)+'</span></div>'+
+      '<div class="overview-grid">'+
+        '<div class="overview-summary">'+
+          '<h3>Riepilogo delle prestazioni</h3>'+
+          '<p><b>Ricavi totali:</b> '+h(BBUtils.euro(overview.totalSales))+'</p>'+
+          '<p><b>Volume totale ordini:</b> '+h(overview.totalUnits||0)+' unita vendute</p>'+
+          '<p><b>Prezzo medio:</b> '+h(Number.isFinite(overview.avgPrice)?BBUtils.euro(overview.avgPrice):"—")+'</p>'+
+          (best?'<p><b>Mese migliore:</b> '+h(best.label)+' con '+h(BBUtils.euro(best.sales))+' e '+h(best.units||0)+' unita.</p>':'')+
+          (weakest&&best&&weakest.key!==best.key?'<p><b>Mese piu debole:</b> '+h(weakest.label)+' con '+h(BBUtils.euro(weakest.sales))+' e '+h(weakest.units||0)+' unita.</p>':'')+
+          (latest?'<p><b>Ultimo mese letto:</b> '+h(latest.label)+' con '+h(BBUtils.euro(latest.sales))+' e '+h(latest.units||0)+' unita.</p>':'')+
+          '<h4>Punti chiave</h4><ul>'+overview.insight.map(x=>'<li>'+h(x)+'</li>').join("")+'</ul>'+
+        '</div>'+
+        '<div>'+salesChart+'</div>'+
+        '<div>'+unitsChart+'</div>'+
+        '<div class="overview-summary">'+
+          '<h3>Cosa controllare adesso</h3>'+
+          '<p><b>Se i ricavi calano:</b> verifica offerte acquistabili, tempi consegna, prezzo, Featured Offer e campagne con spesa senza vendite.</p>'+
+          '<p><b>Se le unita calano ma il prezzo medio sale:</b> probabilmente vendono prodotti piu cari ma meno spesso; valuta bundle o promo leggera.</p>'+
+          '<p><b>Se marzo/maggio sono picchi:</b> prepara varianti e stock prima del periodo, non quando il picco e gia passato.</p>'+
+          '<p><b>Se luglio/agosto rallentano:</b> lavora su gift nascita, back to room e contenuti per preparare settembre.</p>'+
+        '</div>'+
+      '</div>';
+  },
   filteredAsinDecisionRows(rows){
     const c=this.asinControls();
     let out=rows.filter(r=>{
@@ -207,6 +258,7 @@ window.BBRender = {
     const healthText=health>=70?"Da spingere":(health>=45?"Da controllare":"Da correggere");
     const firstDecision=execDecisions[0];
     const actionRows=execDecisions.slice(0,5);
+    const execOverview=BBAnalytics.executiveSalesOverview ? BBAnalytics.executiveSalesOverview(scopedSamples,c) : null;
     const missingCore=BBAnalytics.reportDefs.filter(r=>["business_report","transactions","ad_invoices","orders","inventory","search_terms","profit_report","store_date","store_live_page","store_source"].includes(r[0]) && !(s.counts[r[0]]||0));
     const targetPlan=[
       ["TACOS <= "+execRules.tacos+"%","Aumenta vendite organiche e riduci spesa Ads non produttiva.","Taglia keyword senza vendite, spingi solo campagne con ROAS buono, migliora schede prodotto e porta traffico verso Shopify."],
@@ -235,6 +287,9 @@ window.BBRender = {
       ["Completezza dati",Math.round(dataScore)+"%",dataScore>=80?"green":(dataScore>=50?"yellow":"red"),"Obiettivo: almeno 80%"],
       ["Competitor monitorati",execCompetitor?.rows?.length||0,"","Obiettivo: 3-5 prodotti competitor"]
     ].map(x=>'<div class="kpi '+(x[2]==="red"?'recon-bad':(x[2]==="green"?'recon-good':(x[2]==="yellow"?'stock-warn':'')))+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[3]||"")+'</span></div>').join("");
+
+    const overviewEl=BBUtils.el("executiveSalesOverview");
+    if(overviewEl) overviewEl.innerHTML=this.executiveSalesOverviewHtml(execOverview);
 
     BBUtils.el("topActions").innerHTML='<div class="executive-status '+healthClass+'"><b>'+h(healthText)+'</b><span>'+h(health>=70?"La base e' utilizzabile: investi sulle opportunita' migliori, ma continua a controllare margini e competitor.":(health>=45?"Ci sono segnali buoni, ma prima di spingere devi risolvere le priorita' sotto.":"Serve mettere ordine: correggi i blocchi prima di aumentare budget o creare troppe varianti."))+'</span></div>'+
       '<div class="score-breakdown">'+healthParts.map(r=>'<div><small>'+h(r[0])+'</small><b>'+h(Math.round(r[1]))+'/100</b><span>Peso '+h(r[2])+'%</span></div>').join("")+'</div>'+
