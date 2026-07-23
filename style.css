@@ -74,6 +74,7 @@ textarea{min-height:110px}
 .manual-sales-table{margin-top:10px;background:#fff}
 .overview-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
 .overview-head h3{margin-bottom:6px}
+.data-query-tools{grid-template-columns:1fr 1fr auto;margin-bottom:18px}
 .overview-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:18px;align-items:stretch}
 .overview-summary{border:1px solid #e3ebf4;border-radius:18px;background:#fbfdff;padding:18px;line-height:1.45}
 .overview-summary h3{margin-bottom:12px}

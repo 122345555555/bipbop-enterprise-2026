@@ -181,6 +181,31 @@ window.BBRender = {
         '</div>'+
       '</div>';
   },
+  dataExplorerControls(){
+    return {
+      year:BBUtils.el("dataExplorerYear")?.value || "all",
+      month:BBUtils.el("dataExplorerMonth")?.value || "all"
+    };
+  },
+  dataExplorerHtml(overview){
+    const h=BBUtils.html;
+    if(!overview) return '<div class="action">Carica almeno Report ordini, Business Report, Profit Report o Store Amazon per interrogare i dati.</div>';
+    const years=overview.years||[];
+    const selectedYear=String(overview.year||"all");
+    const selectedMonth=overview.selectedMonth===null||overview.selectedMonth===undefined ? "all" : String(overview.selectedMonth);
+    const months=overview.availableMonths||[];
+    const controls='<div class="tool-row data-query-tools">'+
+      '<select id="dataExplorerYear">'+
+        years.map(y=>'<option value="'+h(y)+'" '+(String(y)===selectedYear?'selected':'')+'>'+h(y)+'</option>').join("")+
+      '</select>'+
+      '<select id="dataExplorerMonth">'+
+        '<option value="all" '+(selectedMonth==="all"?'selected':'')+'>Tutti i mesi</option>'+
+        months.map(m=>'<option value="'+h(m.value)+'" '+(String(m.value)===selectedMonth?'selected':'')+'>'+h(m.label)+'</option>').join("")+
+      '</select>'+
+      '<button id="resetDataExplorerBtn" class="secondaryBtn" type="button">Azzera filtri</button>'+
+    '</div>';
+    return controls+this.executiveSalesOverviewHtml(overview);
+  },
   filteredAsinDecisionRows(rows){
     const c=this.asinControls();
     let out=rows.filter(r=>{
@@ -258,7 +283,7 @@ window.BBRender = {
     const healthText=health>=70?"Da spingere":(health>=45?"Da controllare":"Da correggere");
     const firstDecision=execDecisions[0];
     const actionRows=execDecisions.slice(0,5);
-    const execOverview=BBAnalytics.executiveSalesOverview ? BBAnalytics.executiveSalesOverview(scopedSamples,c) : null;
+    const dataExplorerOverview=BBAnalytics.executiveSalesOverview ? BBAnalytics.executiveSalesOverview(scopedSamples,c,this.dataExplorerControls()) : null;
     const missingCore=BBAnalytics.reportDefs.filter(r=>["business_report","transactions","ad_invoices","orders","inventory","search_terms","profit_report","store_date","store_live_page","store_source"].includes(r[0]) && !(s.counts[r[0]]||0));
     const targetPlan=[
       ["TACOS <= "+execRules.tacos+"%","Aumenta vendite organiche e riduci spesa Ads non produttiva.","Taglia keyword senza vendite, spingi solo campagne con ROAS buono, migliora schede prodotto e porta traffico verso Shopify."],
@@ -288,8 +313,8 @@ window.BBRender = {
       ["Competitor monitorati",execCompetitor?.rows?.length||0,"","Obiettivo: 3-5 prodotti competitor"]
     ].map(x=>'<div class="kpi '+(x[2]==="red"?'recon-bad':(x[2]==="green"?'recon-good':(x[2]==="yellow"?'stock-warn':'')))+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[3]||"")+'</span></div>').join("");
 
-    const overviewEl=BBUtils.el("executiveSalesOverview");
-    if(overviewEl) overviewEl.innerHTML=this.executiveSalesOverviewHtml(execOverview);
+    const dataExplorerEl=BBUtils.el("dataExplorerBox");
+    if(dataExplorerEl) dataExplorerEl.innerHTML=this.dataExplorerHtml(dataExplorerOverview);
 
     BBUtils.el("topActions").innerHTML='<div class="executive-status '+healthClass+'"><b>'+h(healthText)+'</b><span>'+h(health>=70?"La base e' utilizzabile: investi sulle opportunita' migliori, ma continua a controllare margini e competitor.":(health>=45?"Ci sono segnali buoni, ma prima di spingere devi risolvere le priorita' sotto.":"Serve mettere ordine: correggi i blocchi prima di aumentare budget o creare troppe varianti."))+'</span></div>'+
       '<div class="score-breakdown">'+healthParts.map(r=>'<div><small>'+h(r[0])+'</small><b>'+h(Math.round(r[1]))+'/100</b><span>Peso '+h(r[2])+'%</span></div>').join("")+'</div>'+

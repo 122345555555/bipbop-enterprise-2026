@@ -15,6 +15,7 @@
     </div>
     <button class="nav active" data-view="executive">📊 Executive</button>
     <button class="nav" data-view="import">📥 Import Amazon</button>
+    <button class="nav" data-view="dataexplorer">🧭 Analisi dati</button>
     <button class="nav" data-view="sales">💶 Sales</button>
     <button class="nav" data-view="advertising">📈 Advertising</button>
     <button class="nav" data-view="asin">📦 ASIN</button>
@@ -57,11 +58,18 @@
           <p id="subline">Importa i report Amazon per generare KPI, alert e priorità operative.</p>
         </div>
       </div>
-      <div class="card"><div id="executiveSalesOverview"></div></div>
       <div id="kpis" class="kpis"></div>
       <div class="grid2">
         <div class="card"><h3>Priorità operative</h3><div id="topActions"></div></div>
         <div class="card"><h3>Completezza dati</h3><div id="dataHealth"></div></div>
+      </div>
+    </section>
+
+    <section id="dataexplorer" class="view">
+      <div class="card">
+        <h3>Analisi dati</h3>
+        <p class="hint">Interroga i report Amazon per anno e mese. Qui puoi leggere andamento vendite, ordini, prezzo medio e segnali operativi senza appesantire Executive.</p>
+        <div id="dataExplorerBox"></div>
       </div>
     </section>
 
@@ -296,12 +304,12 @@
     </section>
   </main>
 
-  <script src="config.js?v=5.6"></script>
-  <script src="src/utils.js?v=5.6"></script>
-  <script src="src/parser.js?v=5.6"></script>
-  <script src="src/storage.js?v=5.6"></script>
-  <script src="src/analytics.js?v=5.6"></script>
-  <script src="src/render.js?v=5.6"></script>
-  <script src="src/app.js?v=5.6"></script>
+  <script src="config.js?v=5.7"></script>
+  <script src="src/utils.js?v=5.7"></script>
+  <script src="src/parser.js?v=5.7"></script>
+  <script src="src/storage.js?v=5.7"></script>
+  <script src="src/analytics.js?v=5.7"></script>
+  <script src="src/render.js?v=5.7"></script>
+  <script src="src/app.js?v=5.7"></script>
 </body>
 </html>

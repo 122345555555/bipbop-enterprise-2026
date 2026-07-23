@@ -8,7 +8,7 @@ function show(view){
   document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active",s.id===view));
   const active=document.querySelector('.nav[data-view="'+view+'"]');
-  if(active) BBUtils.el("pageTitle").textContent=active.textContent.replace(/[📊📥💶📈📦📋🚚🛟🏬🕵️🔎🏷️💰🧾🗓️🎨🚀🧠🚨📁🧪⚙️]/g,"").trim();
+  if(active) BBUtils.el("pageTitle").textContent=active.textContent.replace(/[📊📥🧭💶📈📦📋🚚🛟🏬🕵️🔎🏷️💰🧾🗓️🎨🚀🧠🚨📁🧪⚙️]/g,"").trim();
 }
 
 async function importFiles(files){
@@ -78,6 +78,17 @@ async function refresh(){
 
 function bind(){
   document.querySelectorAll(".nav").forEach(b=>b.addEventListener("click",()=>show(b.dataset.view)));
+  document.addEventListener("change",e=>{
+    if(e.target && (e.target.id==="dataExplorerYear" || e.target.id==="dataExplorerMonth")) BBRender.renderAll();
+  });
+  document.addEventListener("click",e=>{
+    if(e.target && e.target.id==="resetDataExplorerBtn"){
+      const y=BBUtils.el("dataExplorerYear"), m=BBUtils.el("dataExplorerMonth");
+      if(y) y.value=y.options[0]?.value || "all";
+      if(m) m.value="all";
+      BBRender.renderAll();
+    }
+  });
   BBUtils.el("refreshBtn").addEventListener("click",refresh);
   BBUtils.el("selectFilesBtn").addEventListener("click",()=>BBUtils.el("multiFile").click());
   BBUtils.el("multiFile").addEventListener("change",e=>importFiles(Array.from(e.target.files)));

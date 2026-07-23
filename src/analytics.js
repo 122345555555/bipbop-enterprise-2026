@@ -606,7 +606,7 @@ window.BBAnalytics = {
     });
     return Array.from(map.values()).sort((a,b)=>a.date-b.date);
   },
-  executiveSalesOverview(samples,c){
+  executiveSalesOverview(samples,c,filters={}){
     const rules=BBUtils.rules();
     const manual=this.manualSalesStatus(samples,rules.manualSales||[]);
     const sourceType=(samples.orders||[]).length?"orders":
@@ -658,8 +658,28 @@ window.BBAnalytics = {
     });
     let rows=Array.from(map.values()).filter(r=>r.sales||r.units||r.traffic).sort((a,b)=>a.year-b.year || a.month-b.month);
     if(!rows.length) return null;
-    const latestYear=rows.reduce((y,r)=>Math.max(y,r.year),rows[0].year);
-    rows=rows.filter(r=>r.year===latestYear);
+    const allRows=rows.slice();
+    const years=Array.from(new Set(allRows.map(r=>r.year))).sort((a,b)=>b-a);
+    const selectedYear=filters.year&&filters.year!=="all" ? Number(filters.year) : years[0];
+    let selectedMonth=filters.month&&filters.month!=="all" ? Number(filters.month) : null;
+    rows=rows.filter(r=>r.year===selectedYear);
+    const availableMonths=allRows.filter(r=>r.year===selectedYear).map(r=>({value:r.month,label:r.label}));
+    if(selectedMonth!==null && !availableMonths.some(m=>m.value===selectedMonth)) selectedMonth=null;
+    if(selectedMonth!==null) rows=rows.filter(r=>r.month===selectedMonth);
+    if(!rows.length) return {
+      year:selectedYear,
+      selectedMonth,
+      sourceType,
+      sourceLabel,
+      rows:[],
+      allRows,
+      years,
+      availableMonths,
+      totalSales:0,
+      totalUnits:0,
+      avgPrice:NaN,
+      insight:["Nessun dato trovato per il periodo selezionato."]
+    };
     const totalSales=rows.reduce((a,r)=>a+r.sales,0);
     const totalUnits=rows.reduce((a,r)=>a+r.units,0);
     const avgPrice=totalUnits?totalSales/totalUnits:NaN;
@@ -682,9 +702,13 @@ window.BBAnalytics = {
     if(manualSales>0) insight.push("Include vendite infrasettimanali non ancora coperte dai report: "+BBUtils.euro(manualSales)+" e "+manualUnits+" unita.");
     if(!insight.length) insight.push("Carica Business Report o Report ordini con date per ottenere una lettura mensile piu precisa.");
     return {
-      year:latestYear,
+      year:selectedYear,
+      selectedMonth,
       sourceType,
       sourceLabel,
+      allRows,
+      years,
+      availableMonths,
       rows,
       totalSales,
       totalUnits,
