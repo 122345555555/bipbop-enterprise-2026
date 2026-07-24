@@ -195,7 +195,25 @@ window.BBAnalytics = {
         BBUtils.pick(r,["Title","Titolo","Product Name","Nome prodotto"])
       );
     });
+    (samples.profit_report||[]).forEach(r=>{
+      remember(
+        BBUtils.pick(r,["ASIN","asin"]),
+        BBUtils.pick(r,["Titolo","Title","Product Name","Nome prodotto","Nome articolo","Item Name","MSKU","sku","SKU"])
+      );
+    });
+    (samples.store_live_page||[]).forEach(r=>{
+      remember(
+        BBUtils.pick(r,["ASIN","asin","product-id","Product ID"]),
+        BBUtils.pick(r,["Titolo","Title","Product Name","Nome prodotto","Pagina Store","Page"])
+      );
+    });
     return map;
+  },
+  productTitleForAsin(samples,asin){
+    const key=String(asin||"").trim().toUpperCase();
+    if(!key) return "";
+    const titles=this.productTitleMap(samples);
+    return titles.get(key) || titles.get(String(asin||"").trim()) || "";
   },
   keywordRows(samples){
     const rows=(samples.search_terms||[]).map(r=>({row:r,source:"Search Terms"}));
@@ -738,10 +756,13 @@ window.BBAnalytics = {
   },
   manualSalesStatus(samples,manualSales){
     const cutoff=this.officialSalesCutoffDate(samples);
+    const titles=this.productTitleMap(samples);
     const rows=(manualSales||[]).map(r=>{
       const date=this.parseReportDate(r.date);
       const covered=!!(cutoff && date && date<=cutoff);
-      return {...r,_dateObj:date,_coveredByReport:covered};
+      const asin=String(r.asin||"").trim().toUpperCase();
+      const description=String(r.description||"").trim() || titles.get(asin) || "";
+      return {...r,asin,description,_dateObj:date,_coveredByReport:covered};
     });
     const pending=rows.filter(r=>!r._coveredByReport);
     const covered=rows.filter(r=>r._coveredByReport);

@@ -129,6 +129,13 @@ function bind(){
   },true);
   document.addEventListener("input",e=>{
     if(e.target && e.target.id==="fbaAsin" && String(e.target.value||"").trim().length>=10) fillFbaSuggestion(false);
+    if(e.target && e.target.id==="manualSaleAsin" && String(e.target.value||"").trim().length>=10){
+      const desc=BBUtils.el("manualSaleDescription");
+      if(desc && !desc.value.trim() && BBAnalytics.productTitleForAsin){
+        const title=BBAnalytics.productTitleForAsin(fbaSamples(),String(e.target.value||"").trim().toUpperCase());
+        if(title) desc.value=title;
+      }
+    }
   });
   document.addEventListener("click",e=>{
     const saveFba=e.target.closest("#saveFbaBtn");
@@ -229,7 +236,7 @@ function bind(){
     if(saveManualSale){
       const date=BBUtils.parseDate(BBUtils.el("manualSaleDate")?.value || BBUtils.todayISO());
       const asin=(BBUtils.el("manualSaleAsin")?.value || "").trim().toUpperCase();
-      const description=(BBUtils.el("manualSaleDescription")?.value || "").trim();
+      const description=(BBUtils.el("manualSaleDescription")?.value || "").trim() || (BBAnalytics.productTitleForAsin ? BBAnalytics.productTitleForAsin(fbaSamples(),asin) : "");
       const units=BBUtils.num(BBUtils.el("manualSaleUnits")?.value || 1);
       const amount=BBUtils.num(BBUtils.el("manualSaleAmount")?.value);
       if(!asin){
