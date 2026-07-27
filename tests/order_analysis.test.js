@@ -102,4 +102,17 @@ assert.equal(parsed.rows[0]["quantity-purchased"], "1");
 assert.equal(parsed.rows[0]["item-price"], "19.90");
 assert.equal(parsed.rows[0]["product-name"], 'BipBop Stickers "Il principe sognatore" Adesivi murali');
 
-console.log("OK: 8 ordini, 9 righe, 11 pezzi, 218,50 euro; Principe sognatore e virgolette interne verificati.");
+// L'Executive deve preferire il Report ordini aggiornato a un Business Report
+// più vecchio e deve continuare a deduplicare le righe ripetute.
+const staleBusinessReport = [{ "Units Ordered": "9", "Ordered Product Sales": "179,10" }];
+const executive = context.window.BBAnalytics.calc({
+  business_report: staleBusinessReport,
+  orders: [...orders, { ...orders[0] }]
+});
+assert.equal(executive.unitsBusiness, 9);
+assert.equal(executive.unitsOrders, 11);
+assert.equal(executive.reportedUnits, 11);
+assert.equal(executive.units, 11);
+assert.equal(executive.unitsSource, "Report ordini");
+
+console.log("OK: 8 ordini, 9 righe, 11 pezzi, 218,50 euro; Executive aggiornato dal Report ordini deduplicato.");

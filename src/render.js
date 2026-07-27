@@ -364,7 +364,7 @@ window.BBRender = {
       ["Stato operativo",health+"/100",healthClass,"Media di dati, vendite, saldo, Ads, margine"],
       ["Saldo stimato",c.sales?BBUtils.euro(profitValue):"—",profitValue<0?"red":"green","Obiettivo: sopra 0 euro"],
       ["Vendite",c.sales?BBUtils.euro(c.sales):"—","","Report + manuali non ancora coperte"],
-      ["Unita' vendute",c.units||"—","","Report: "+(c.reportedUnits||0)+" | manuali: "+manualUnits],
+      ["Unita' vendute",c.units||"—","",(c.unitsSource||"Report")+": "+(c.reportedUnits||0)+" | manuali: "+manualUnits],
       ["Vendite infrasett.",manualPending.length?BBUtils.euro(manualTotal):"—",manualTotal>0?"green":"","Da sommare: "+manualUnits+" unita | coperte: "+manualCoveredUnits],
       ["Stato vendite",salesStatus,(daysSinceVisibleSale!==null&&daysSinceVisibleSale>7)?"red":(daysSinceVisibleSale!==null&&daysSinceVisibleSale<=2?"green":"yellow"),visibleLastSale?"Ultima: "+visibleLastSale.date.toLocaleDateString("it-IT")+" ("+visibleLastSale.source+")":"Inserisci vendita o carica report"],
       ["TACOS",BBUtils.pct(c.tacos),Number.isFinite(c.tacos)&&c.tacos>execRules.tacos?"red":"green","Target massimo: "+execRules.tacos+"%"],

@@ -43,8 +43,17 @@ window.BBAnalytics = {
     const sales=reportedSales+manualStatus.pendingTotal;
 
     const unitsProfit=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"])),0);
-    const reportedUnits=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"])),0)||
-      orders.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità"])),0)||unitsProfit;
+    const unitsBusiness=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"])),0);
+    /*
+     * Il Report ordini è la fonte più granulare: contiene order-item-id e
+     * quantity-purchased. Lo deduplichiamo con la stessa logica usata in
+     * Analisi Dati, così un Business Report meno recente non blocca
+     * l'aggiornamento delle unità mostrate nell'Executive.
+     */
+    const orderTotals=orders.length?this.orderAnalysis({orders},{year:"all",month:"all"}).totals:null;
+    const unitsOrders=orderTotals?orderTotals.units:0;
+    const reportedUnits=orders.length?unitsOrders:(unitsBusiness||unitsProfit);
+    const unitsSource=orders.length?"Report ordini":(unitsBusiness?"Business Report":(unitsProfit?"Profit Report":"Nessun report"));
     const units=reportedUnits+manualStatus.pendingUnits;
     const sessions=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sessions","Sessioni"])),0);
     const storeSales=storeDate.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Vendite","Sales"])),0) ||
@@ -92,7 +101,7 @@ window.BBAnalytics = {
     const manualBalance=sales-referralFeesProfit-ads-subscriptionCost-productionCost-shippingCost-extraFixedCosts;
 
     return {
-      sales,reportedSales,salesBR,salesTX,salesOrders,salesProfit,units,reportedUnits,unitsProfit,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
+      sales,reportedSales,salesBR,salesTX,salesOrders,salesProfit,units,reportedUnits,unitsBusiness,unitsOrders,unitsProfit,unitsSource,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
       manualPendingSales:manualStatus.pendingTotal,
       manualPendingUnits:manualStatus.pendingUnits,
       manualCoveredSales:manualStatus.coveredTotal,
