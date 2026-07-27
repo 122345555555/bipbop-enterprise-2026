@@ -61,7 +61,7 @@ async function importFiles(files){
       }else{
         if(!importedByType.has(reportType)) importedByType.set(reportType,[]);
         importedByType.get(reportType).push(result.file.id);
-        lines.push("✅ "+safeFileName+": "+placement+", "+parsed.rows.length+" righe, "+parsed.headers.length+" colonne, separatore "+BBUtils.html(parsed.delimiter==="\\t"?"TAB":parsed.delimiter)+".");
+        lines.push("✅ "+safeFileName+": "+placement+", "+parsed.rows.length+" righe, "+parsed.headers.length+" colonne, separatore "+BBUtils.html(parsed.delimiter==="\\t"?"TAB":parsed.delimiter)+". Importato il "+BBUtils.html(BBUtils.dateTimeIT(result.file.imported_at))+".");
       }
     }catch(e){
       if(reportType && reportType!=="unknown") failedTypes.add(reportType);

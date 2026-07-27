@@ -35,6 +35,28 @@ window.BBUtils = {
     const d=value instanceof Date ? value : new Date(s);
     return Number.isNaN(d.getTime()) ? s : d.toLocaleDateString("it-IT");
   },
+  dateTimeIT(value){
+    if(!value) return "—";
+    const d=value instanceof Date ? value : new Date(value);
+    return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString("it-IT",{dateStyle:"short",timeStyle:"short"});
+  },
+  weeklyImportStatus(files,now=new Date()){
+    const current=now instanceof Date ? new Date(now) : new Date(now);
+    const cutoff=new Date(current);
+    cutoff.setHours(0,0,0,0);
+    cutoff.setDate(cutoff.getDate()-((cutoff.getDay()-2+7)%7));
+    const active=(files||[])
+      .filter(file=>!file.is_duplicate && file.imported_at)
+      .map(file=>new Date(file.imported_at))
+      .filter(date=>!Number.isNaN(date.getTime()))
+      .sort((a,b)=>b-a);
+    const latest=active[0]||null;
+    return {
+      fresh:!!latest && latest>=cutoff,
+      latest,
+      cutoff
+    };
+  },
   html(value){
     return String(value ?? "").replace(/[&<>"']/g, ch => ({
       "&":"&amp;",

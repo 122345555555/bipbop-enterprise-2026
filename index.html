@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop Enterprise 2026 v1.2 — Sostituzione report</title>
-  <link rel="stylesheet" href="style.css?v=5.13">
+  <title>BipBop Enterprise 2026 v1.3 — Controllo settimanale</title>
+  <link rel="stylesheet" href="style.css?v=5.14">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <aside>
     <div class="brand">
       <div class="logo">B</div>
-      <div><b>BipBop</b><small>Enterprise 2026 v1.2</small></div>
+      <div><b>BipBop</b><small>Enterprise 2026 v1.3</small></div>
     </div>
     <button class="nav active" data-view="executive">📊 Executive</button>
     <button class="nav" data-view="import">📥 Import Amazon</button>
@@ -45,6 +45,7 @@
         <p>Growth Engine con controllo ordini, riepilogo mensile e verifica della coerenza degli import.</p>
       </div>
       <div>
+        <span id="weeklyImportBadge" class="badge bad">🔴 Aggiornamento del martedì mancante</span>
         <span id="cloudBadge" class="badge bad">Cloud non collegato</span>
         <button id="refreshBtn">Aggiorna dati</button>
       </div>
@@ -311,12 +312,12 @@
     </section>
   </main>
 
-  <script src="config.js?v=5.13"></script>
-  <script src="src/utils.js?v=5.13"></script>
-  <script src="src/parser.js?v=5.13"></script>
-  <script src="src/storage.js?v=5.13"></script>
-  <script src="src/analytics.js?v=5.13"></script>
-  <script src="src/render.js?v=5.13"></script>
-  <script src="src/app.js?v=5.13"></script>
+  <script src="config.js?v=5.14"></script>
+  <script src="src/utils.js?v=5.14"></script>
+  <script src="src/parser.js?v=5.14"></script>
+  <script src="src/storage.js?v=5.14"></script>
+  <script src="src/analytics.js?v=5.14"></script>
+  <script src="src/render.js?v=5.14"></script>
+  <script src="src/app.js?v=5.14"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-# BipBop Enterprise 2026 v1.2 — Analisi Dati e sostituzione report
+# BipBop Enterprise 2026 v1.3 — Analisi Dati e controllo settimanale
 
 ## Installazione
 
@@ -52,3 +52,16 @@ Nella pagina `Import Amazon` è selezionata automaticamente l'opzione
 - Se vuoi conservare e sommare lo storico, togli la spunta prima del caricamento.
 
 Non occorre eseguire nuovo SQL: la funzione usa le tabelle `bb100_*` già presenti.
+
+## Data import e semaforo del martedì
+
+- Ogni riquadro nella pagina `Import Amazon` mostra data e ora dell'ultimo
+  import.
+- Anche il messaggio di importazione conferma immediatamente data e ora.
+- Il semaforo generale è visibile nell'intestazione e in `Executive`.
+- Ogni martedì, all'inizio della nuova settimana di controllo, il semaforo
+  diventa rosso.
+- Dopo almeno un nuovo import effettuato da quel martedì in avanti, il
+  semaforo generale torna verde.
+- Nei riquadri dei singoli report restano rossi quelli che non sono stati
+  aggiornati nella settimana corrente.

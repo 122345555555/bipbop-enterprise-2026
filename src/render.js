@@ -2,7 +2,7 @@ window.BBRender = {
   state:null,
   setState(s){ this.state=s; },
   fileCount(type){ return this.state.files.filter(f=>f.report_type===type && !f.is_duplicate).length; },
-  latest(type){ return this.state.files.find(f=>f.report_type===type); },
+  latest(type){ return this.state.files.find(f=>f.report_type===type && !f.is_duplicate); },
   activeProfitFiles(state=this.state){
     return (state.files||[]).filter(f=>f.report_type==="profit_report" && !f.is_duplicate);
   },
@@ -284,6 +284,16 @@ window.BBRender = {
     const rs=BBAnalytics.recommendations(c,s.counts);
     const totalRows=Object.values(s.counts).reduce((a,b)=>a+(b||0),0);
     const imported=BBAnalytics.reportDefs.filter(r=>(s.counts[r[0]]||0)>0).length;
+    const weeklyStatus=BBUtils.weeklyImportStatus(s.files);
+    const weeklyBadge=BBUtils.el("weeklyImportBadge");
+    if(weeklyBadge){
+      weeklyBadge.textContent=weeklyStatus.fresh
+        ? "🟢 Report aggiornati"
+        : "🔴 Aggiornamento del martedì mancante";
+      weeklyBadge.className="badge "+(weeklyStatus.fresh?"ok":"bad");
+      weeklyBadge.title="Settimana iniziata martedì "+weeklyStatus.cutoff.toLocaleDateString("it-IT")+
+        ". Ultimo import: "+BBUtils.dateTimeIT(weeklyStatus.latest);
+    }
 
     const execRecovery=BBAnalytics.salesRecovery ? BBAnalytics.salesRecovery(scopedSamples,c,s.counts) : null;
     const execDecisions=BBAnalytics.decisionRows ? BBAnalytics.decisionRows(scopedSamples,s.counts) : [];
@@ -372,6 +382,11 @@ window.BBRender = {
       (actionRows.length?'<table class="decision-table"><tr><th>Priorita</th><th>Area</th><th>Perche</th><th>Azione</th></tr>'+actionRows.map((r,i)=>'<tr><td><span class="pill '+(r.type==="red"?'red':(r.type==="green"?'green':''))+'">'+h(i+1)+'</span></td><td><b>'+h(r.title)+'</b><br><span class="small">'+h(r.area)+'</span></td><td>'+h(r.why)+'</td><td>'+h(r.action)+'</td></tr>').join("")+'</table>':'<div class="action green"><b>Nessuna urgenza critica</b><br>Continua con monitoraggio, caricamento report e test controllati.</div>');
 
     BBUtils.el("dataHealth").innerHTML='<div class="grid2 executive-mini">'+
+      '<div class="action '+(weeklyStatus.fresh?'green':'red')+'"><b>Semaforo aggiornamento settimanale</b><br>'+
+        (weeklyStatus.fresh
+          ? '🟢 Ultimo import: <b>'+h(BBUtils.dateTimeIT(weeklyStatus.latest))+'</b>. Report aggiornati dopo martedì '+h(weeklyStatus.cutoff.toLocaleDateString("it-IT"))+'.'
+          : '🔴 Nessun report aggiornato dopo martedì '+h(weeklyStatus.cutoff.toLocaleDateString("it-IT"))+'. Carica i nuovi report per riportare il semaforo sul verde.')+
+      '</div>'+
       '<div class="action"><b>Prossima leva commerciale</b><br>'+h(execCompetitor?.own?"Spingi Shopify con bundle, gift nascita e varianti personalizzate.":"Inserisci bipbopstickers.it e almeno 3 competitor per capire dove differenziarti.")+'</div>'+
       '<div class="action"><b>Focus prodotto</b><br>'+h((BBAnalytics.productStrategyRows ? (BBAnalytics.productStrategyRows(scopedSamples)[0]?.category || "Carica dati Store e Profit Report per scegliere la categoria.") : "Carica dati Store e Profit Report.") )+'</div>'+
       '</div>'+
@@ -394,7 +409,11 @@ window.BBRender = {
 
     BBUtils.el("statusGrid").innerHTML=BBAnalytics.reportDefs.map(r=>{
       const ok=(s.counts[r[0]]||0)>0, latest=this.latest(r[0]), fc=this.fileCount(r[0]);
-      return '<div class="import-box '+(ok?'ok':'missing')+'"><h4>'+h(r[1])+'</h4><p><span class="pill">'+h(r[2])+'</span></p><b>Stato:</b> '+(ok?'🟢 Attivo':'⚪ Nessun file')+'<br><b>File attivi:</b> '+fc+'<br><b>Righe attive:</b> '+(s.counts[r[0]]||0)+'<br><b>Ultimo file:</b> '+h(latest?.file_name||'—')+'</div>';
+      const importedAt=latest?.imported_at?new Date(latest.imported_at):null;
+      const fresh=!!importedAt && !Number.isNaN(importedAt.getTime()) && importedAt>=weeklyStatus.cutoff;
+      const boxClass=!ok?"missing":(fresh?"ok":"stale");
+      const traffic=!ok?"⚪ Nessun file":(fresh?"🟢 Aggiornato":"🔴 Da aggiornare");
+      return '<div class="import-box '+boxClass+'"><h4>'+h(r[1])+'</h4><p><span class="pill">'+h(r[2])+'</span></p><b>Stato:</b> '+traffic+'<br><b>Data ultimo import:</b> '+h(BBUtils.dateTimeIT(importedAt))+'<br><b>File attivi:</b> '+fc+'<br><b>Righe attive:</b> '+(s.counts[r[0]]||0)+'<br><b>Ultimo file:</b> '+h(latest?.file_name||'—')+'</div>';
     }).join("");
 
     BBUtils.el("archiveTable").innerHTML=s.files.length?'<table><tr><th>Report</th><th>File</th><th>Righe</th><th>Colonne</th><th>Duplicato</th><th>Hash</th><th>Importato</th><th>Azione</th></tr>'+s.files.map(f=>'<tr><td><span class="pill">'+h(BBAnalytics.label(f.report_type))+'</span></td><td>'+h(f.file_name)+'</td><td>'+h(f.row_count)+'</td><td>'+h(f.column_count)+'</td><td>'+(f.is_duplicate?'<span class="pill red">sì, non sommato</span>':'<span class="pill green">no</span>')+'</td><td class="small">'+h(String(f.fingerprint||"").slice(0,12))+'...</td><td>'+h(new Date(f.imported_at).toLocaleString("it-IT"))+'</td><td><button class="secondaryBtn deleteFileBtn" data-file-id="'+h(f.id)+'" data-file-name="'+h(f.file_name)+'">Elimina</button></td></tr>').join("")+'</table>':'<div class="action">Nessun report importato.</div>';

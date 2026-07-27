@@ -48,6 +48,7 @@ textarea{min-height:110px}
 .import-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .import-box{border:1px solid #e3ebf4;border-radius:18px;padding:16px;background:#fbfdff}
 .import-box.ok{border-color:#86efac;background:#f7fff9}
+.import-box.stale{border-color:#fda4af;background:#fff7f7}
 .import-box.missing{border-color:#fecdd3;background:#fffafa}
 .log,.action{border:1px solid #e3ebf4;border-radius:16px;padding:16px;background:#fbfdff;margin-top:12px}
 .action.red{border-color:#fecdd3;background:#fff7f7}

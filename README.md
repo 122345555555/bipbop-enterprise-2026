@@ -1,10 +1,12 @@
-# BipBop Enterprise 2026 v1.2 Growth Engine
+# BipBop Enterprise 2026 v1.3 Growth Engine
 
 Versione stabile del centro di comando Amazon per BipBop.
 
 ## Include
 - Amazon Smart Parser
 - Import deduplicato con sostituzione sicura dei vecchi report
+- Data e ora dell'ultimo import visibili per ogni report
+- Semaforo settimanale: si azzera ogni martedì e torna verde dopo il nuovo import
 - Executive Dashboard
 - Sales Intelligence
 - Advertising Intelligence
