@@ -160,8 +160,8 @@ const searchRow=(term,spend,clicks)=>({
   "Impressioni":"100"
 });
 const searchFiles=[
-  searchFile("st-old","Search_terms_20_07_2026.csv","2026-07-20T10:00:00Z"),
-  searchFile("st-week","Search_terms_27_07_2026.csv","2026-07-27T10:00:00Z")
+  searchFile("st-old","Sponsored_Brands_campaign_search_terms_lug_7_2026.csv","2026-07-27T08:00:00Z"),
+  searchFile("st-week","Sponsored_Brands_campaign_search_terms_lug_27_2026.csv","2026-07-27T10:00:00Z")
 ];
 const searchTerms=context.window.BBReconcile.resolve("search_terms",searchFiles,[
   record("st-old","search_terms","2026-07-20T10:00:00Z",1,searchRow("adesivi murali bambini","100,00","10")),
@@ -174,6 +174,8 @@ assert.equal(Number(historicalKeywords[0].spend.toFixed(2)),160.41);
 assert.equal(historicalKeywords[0].clicks,15);
 assert.equal(historicalKeywords[0].periods,2);
 assert.equal(context.window.BBAnalytics.keywordCoverage({search_terms:searchTerms.rows}).periods,2);
+assert.equal(context.window.BBReconcile.filePeriodKey(searchFiles[0]),"2026-07-07");
+assert.equal(context.window.BBReconcile.filePeriodKey(searchFiles[1]),"2026-07-27");
 
 const samePeriodFiles=[
   searchFile("st-week-old","Search_terms_27_07_2026_old.csv","2026-07-27T09:00:00Z"),
@@ -185,6 +187,21 @@ const samePeriod=context.window.BBReconcile.resolve("search_terms",samePeriodFil
 ]);
 assert.equal(samePeriod.rows.length,1);
 assert.equal(context.window.BBUtils.num(samePeriod.rows[0]["Spesa"]),60.41);
+
+// Due campagne esportate separatamente nello stesso periodo non si
+// sovrascrivono, anche se Amazon omette il nome campagna dalle colonne.
+const twoCampaignFiles=[
+  searchFile("st-campaign-a","Sponsored_Brands_campaign_search_terms_lug_27_2026.csv","2026-07-27T10:00:00Z"),
+  searchFile("st-campaign-b","Sponsored_Brands_campaign_search_terms_lug_27_2026(1).csv","2026-07-27T10:01:00Z")
+];
+const twoCampaigns=context.window.BBReconcile.resolve("search_terms",twoCampaignFiles,[
+  record("st-campaign-a","search_terms","2026-07-27T10:00:00Z",1,searchRow("adesivi murali bambini","28,21","75")),
+  record("st-campaign-b","search_terms","2026-07-27T10:01:00Z",1,searchRow("adesivi murali bambini","61,33","125"))
+]);
+assert.equal(twoCampaigns.rows.length,2);
+const combinedCampaignKeyword=context.window.BBAnalytics.keywordRows({search_terms:twoCampaigns.rows})[0];
+assert.equal(Number(combinedCampaignKeyword.spend.toFixed(2)),89.54);
+assert.equal(combinedCampaignKeyword.clicks,200);
 
 // Numeri italiani, migliaia Amazon e formato anglosassone.
 assert.equal(context.window.BBUtils.num("4.041,92 €"),4041.92);

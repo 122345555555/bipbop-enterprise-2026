@@ -14,6 +14,10 @@ L'app conserva ogni file nell'Archivio, ma i KPI usano una vista riconciliata.
 - Search Terms / Keyword:
   - periodi differenti vengono sommati nello storico;
   - un nuovo file dello stesso periodo sostituisce soltanto quel periodo;
+  - i mesi abbreviati nei nomi Amazon (`gen`, `lug`, `ott`, ecc.) vengono
+    riconosciuti come date del report;
+  - più campagne esportate separatamente nello stesso giorno rimangono
+    distinte anche quando Amazon non inserisce il nome campagna nelle colonne;
   - un file identico resta escluso dai totali;
   - la pagina Keyword mostra quanti periodi sono stati sommati e l'intervallo coperto.
 - Un file identico può rimanere visibile nello storico, ma non entra una seconda volta nei KPI.

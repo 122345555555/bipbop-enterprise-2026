@@ -44,6 +44,33 @@ window.BBReconcile = {
       const d=new Date(Date.UTC(year,Number(match[2])-1,Number(match[1])));
       if(!Number.isNaN(d.getTime())) dates.push(d);
     }
+    const monthNumbers={
+      gen:1,january:1,jan:1,
+      feb:2,february:2,
+      mar:3,march:3,
+      apr:4,april:4,
+      mag:5,maggio:5,may:5,
+      giu:6,giugno:6,jun:6,june:6,
+      lug:7,luglio:7,jul:7,july:7,
+      ago:8,agosto:8,aug:8,august:8,
+      set:9,settembre:9,sep:9,september:9,
+      ott:10,ottobre:10,oct:10,october:10,
+      nov:11,novembre:11,november:11,
+      dic:12,dicembre:12,dec:12,december:12
+    };
+    const monthName="(gen(?:naio)?|feb(?:braio|ruary)?|mar(?:zo|ch)?|apr(?:ile)?|mag(?:gio)?|may|giu(?:gno)?|jun(?:e)?|lug(?:lio)?|jul(?:y)?|ago(?:sto)?|aug(?:ust)?|set(?:tembre)?|sep(?:tember)?|ott(?:obre)?|oct(?:ober)?|nov(?:embre|ember)?|dic(?:embre)?|dec(?:ember)?)";
+    const namedMonthFirst=new RegExp(monthName+"[-_. ]+(\\d{1,2})[-_. ]+(20\\d{2})","gi");
+    while((match=namedMonthFirst.exec(name))){
+      const month=monthNumbers[String(match[1]).toLowerCase()]||monthNumbers[String(match[1]).toLowerCase().slice(0,3)];
+      const d=new Date(Date.UTC(Number(match[3]),month-1,Number(match[2])));
+      if(month && !Number.isNaN(d.getTime())) dates.push(d);
+    }
+    const namedDayFirst=new RegExp("(\\d{1,2})[-_. ]+"+monthName+"[-_. ]+(20\\d{2})","gi");
+    while((match=namedDayFirst.exec(name))){
+      const month=monthNumbers[String(match[2]).toLowerCase()]||monthNumbers[String(match[2]).toLowerCase().slice(0,3)];
+      const d=new Date(Date.UTC(Number(match[3]),month-1,Number(match[1])));
+      if(month && !Number.isNaN(d.getTime())) dates.push(d);
+    }
     if(dates.length) return new Date(Math.max(...dates.map(d=>d.getTime())));
     const imported=new Date(file?.imported_at||0);
     return Number.isNaN(imported.getTime())?new Date(0):imported;
@@ -63,6 +90,24 @@ window.BBReconcile = {
   filePeriodKey(file){
     const reportDate=this.isoDate(this.fileDate(file));
     return reportDate || this.isoDate(new Date(file?.imported_at||0)) || "periodo-sconosciuto";
+  },
+
+  /*
+   * I report Search Terms esportati dalla singola campagna non includono
+   * sempre Campaign ID o nome campagna nelle colonne. Amazon assegna lo
+   * stesso nome ai due download e il browser aggiunge (1), (2), ecc.
+   * Manteniamo quindi quella posizione come serie separata.
+   */
+  fileSeriesKey(file){
+    const source=file?.source||{};
+    const explicit=this.normalized(
+      source.campaign_id||source.campaignId||source.campaign_name||source.campaignName||""
+    );
+    if(explicit) return explicit;
+    const name=String(file?.file_name||"").toLowerCase().replace(/\.[^.]+$/,"");
+    const copySuffix=(name.match(/\((\d+)\)\s*$/)||[])[1];
+    const channel=this.normalized(source.channel||source.family||"search_terms")||"search_terms";
+    return channel+"|serie-"+(copySuffix||"principale");
   },
 
   compareFiles(a,b){
@@ -167,6 +212,7 @@ window.BBReconcile = {
     if(type==="search_terms"){
       return "search|"+[
         source.period_key||"periodo-sconosciuto",
+        source.series_key||"serie-principale",
         v(["Campaign ID","ID campagna"]),
         v(["Campaign Name","Nome campagna"]),
         v(["Ad Group ID","ID gruppo di annunci"]),
@@ -250,7 +296,8 @@ window.BBReconcile = {
       const source={
         ...(file?.source||{}),
         ...(record.source||{}),
-        period_key:this.filePeriodKey(file)
+        period_key:this.filePeriodKey(file),
+        series_key:this.fileSeriesKey(file)
       };
       const key=this.identity(type,row,source);
       byIdentity.set(key,{
@@ -258,6 +305,7 @@ window.BBReconcile = {
         __file_id:record.file_id,
         __file_name:record.file_name,
         __period_key:source.period_key,
+        __series_key:source.series_key,
         __source:source,
         __imported_at:record.imported_at,
         __identity:key
