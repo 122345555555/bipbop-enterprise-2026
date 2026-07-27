@@ -1,6 +1,6 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,Inter,sans-serif;background:#f3f7fb;color:#14284a;display:flex}
-aside{width:292px;min-height:100vh;background:#fff;border-right:1px solid #e6edf5;padding:22px;position:fixed;left:0;top:0}
+aside{width:292px;height:100vh;max-height:100vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;background:#fff;border-right:1px solid #e6edf5;padding:22px;position:fixed;left:0;top:0}
 main{margin-left:292px;padding:32px;flex:1}
 header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
 h1{margin:0;font-size:34px}
@@ -202,7 +202,7 @@ pre{white-space:pre-wrap;background:#111827;color:#e5e7eb;padding:16px;border-ra
 .pill.red{background:#ffe4ec;color:#be123c}
 .small{font-size:12px;color:#64748b}
 @media(max-width:1000px){body{display:block}
-aside{position:static;width:100%;min-height:auto}
+aside{position:static;width:100%;height:auto;max-height:none;min-height:auto;overflow:visible}
 main{margin-left:0}
 .kpis,.grid2,.grid3,.import-grid,.tool-row,.target-guide,.ba-insights,.manual-sales-form,.score-breakdown,.fba-form,.overview-grid,.order-kpis,.coherence-grid{grid-template-columns:1fr}
 .overview-head{display:block}
