@@ -648,9 +648,22 @@ window.BBAnalytics = {
       "product-name","Product Name","item-name","Item Name","title","Titolo","Dettagli prodotto"
     ])||"").trim();
 
-    const seen=new Set();
+    const bestByIdentity=new Map();
     const duplicateRows=[];
-    const normalized=[];
+    const rowQuality=item=>{
+      const suspiciousTitle=/websiteorderchannel|false false false|amazon\.it\s+website|via\s+roe|via\s+scudieri/i.test(item.title);
+      let score=0;
+      if(item.id) score+=20;
+      if(item.itemId) score+=8;
+      if(item.date) score+=4;
+      if(item.qty>0) score+=20;
+      if(item.sales>0) score+=20;
+      if(item.asin) score+=3;
+      if(item.sku) score+=3;
+      if(item.title) score+=Math.max(1,8-Math.floor(item.title.length/180));
+      if(suspiciousTitle) score-=30;
+      return score;
+    };
     rawRows.forEach((row,index)=>{
       const id=orderId(row);
       const itemId=orderItemId(row);
@@ -661,13 +674,20 @@ window.BBAnalytics = {
         ? "item:"+itemId
         : "row:"+[id,this.dateKey(date),asin(row),sku(row),qty,sales,title(row)].join("|").toLowerCase();
       const item={row,index,id,itemId,date,qty,sales,asin:asin(row),sku:sku(row),title:title(row),identity};
-      if(seen.has(identity)){
-        duplicateRows.push(item);
-        return;
+      item.quality=rowQuality(item);
+      const existing=bestByIdentity.get(identity);
+      if(existing){
+        if(item.quality>existing.quality){
+          duplicateRows.push(existing);
+          bestByIdentity.set(identity,item);
+        }else{
+          duplicateRows.push(item);
+        }
+      }else{
+        bestByIdentity.set(identity,item);
       }
-      seen.add(identity);
-      normalized.push(item);
     });
+    const normalized=Array.from(bestByIdentity.values());
 
     const valid=normalized.filter(r=>r.id);
     const monthMap=new Map();

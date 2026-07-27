@@ -14,26 +14,41 @@ function show(view){
 async function importFiles(files){
   const lines=[];
   const forcedType=BBUtils.el("reportTypeOverride")?.value || "";
+  const replaceExisting=BBUtils.el("replaceExistingReports")?.checked !== false;
+  const importedByType=new Map();
+  const fingerprintsByType=new Map();
+  const failedTypes=new Set();
   for(const file of files){
     const safeFileName=BBUtils.html(file.name);
+    let reportType="";
     try{
       const buffer=await file.arrayBuffer();
       const text=BBParser.decodeArrayBuffer(buffer);
       const parsed=BBParser.parse(text);
       const detectedType=BBParser.detectReport(parsed.headers,file.name);
-      const reportType=forcedType || detectedType;
+      reportType=forcedType || detectedType;
       if(reportType==="unknown"){
         lines.push("⚠️ "+safeFileName+": tipo report non riconosciuto. Colonne rilevate: "+parsed.headers.length+".");
         continue;
       }
+      if(!parsed.rows.length) throw new Error("Il report non contiene righe dati: i vecchi file non sono stati cancellati.");
       const fingerprint=await BBUtils.sha256(text);
+      if(!fingerprintsByType.has(reportType)) fingerprintsByType.set(reportType,new Set());
+      if(fingerprintsByType.get(reportType).has(fingerprint)){
+        lines.push("ℹ️ "+safeFileName+": duplicato nello stesso caricamento, ignorato.");
+        continue;
+      }
+      fingerprintsByType.get(reportType).add(fingerprint);
       const source={
         ...BBParser.sourceFrom(reportType,file.name,parsed.headers),
         detected_type:detectedType,
         forced_type:forcedType || null,
         header_index:parsed.headerIndex
       };
-      const result=await BBStorage.insertFile(reportType,file.name,parsed.headers,parsed.rows,fingerprint,source,parsed.delimiter);
+      const result=await BBStorage.insertFile(
+        reportType,file.name,parsed.headers,parsed.rows,fingerprint,source,parsed.delimiter,
+        {replaceExisting}
+      );
       const placement=forcedType
         ? "forzato in "+BBUtils.html(BBAnalytics.label(reportType))+" (automatico: "+BBUtils.html(BBAnalytics.label(detectedType))+")"
         : "rilevato come "+BBUtils.html(BBAnalytics.label(reportType));
@@ -44,11 +59,30 @@ async function importFiles(files){
           : "";
         lines.push("ℹ️ "+safeFileName+": riconosciuto correttamente come "+BBUtils.html(BBAnalytics.label(reportType))+", ma è un duplicato."+existingInfo+" Non lo sommo di nuovo per evitare dati doppi.");
       }else{
+        if(!importedByType.has(reportType)) importedByType.set(reportType,[]);
+        importedByType.get(reportType).push(result.file.id);
         lines.push("✅ "+safeFileName+": "+placement+", "+parsed.rows.length+" righe, "+parsed.headers.length+" colonne, separatore "+BBUtils.html(parsed.delimiter==="\\t"?"TAB":parsed.delimiter)+".");
       }
     }catch(e){
+      if(reportType && reportType!=="unknown") failedTypes.add(reportType);
       state.errors.push(String(e.message||e));
       lines.push("❌ "+safeFileName+": "+BBUtils.html(e.message||e));
+    }
+  }
+  if(replaceExisting){
+    for(const [reportType,newFileIds] of importedByType.entries()){
+      const label=BBUtils.html(BBAnalytics.label(reportType));
+      if(failedTypes.has(reportType)){
+        lines.push("⚠️ "+label+": almeno un nuovo file non è stato importato. Per sicurezza i vecchi report sono stati mantenuti.");
+        continue;
+      }
+      try{
+        const removed=await BBStorage.deleteTypeExcept(reportType,newFileIds);
+        lines.push("♻️ "+label+": mantenuti "+newFileIds.length+" nuovi file ed eliminati "+removed.length+" vecchi file.");
+      }catch(e){
+        state.errors.push(String(e.message||e));
+        lines.push("❌ "+label+": nuovi report salvati, ma non è stato possibile eliminare tutti i vecchi file: "+BBUtils.html(e.message||e));
+      }
     }
   }
   BBUtils.el("importLog").innerHTML=lines.map(x=>"<div>"+x+"</div>").join("");

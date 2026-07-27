@@ -40,6 +40,11 @@ textarea{min-height:110px}
 .dropzone b{display:block;font-size:26px}
 .dropzone span{display:block;color:#64748b;margin-top:8px}
 .dropzone.drag{background:#e0f2fe;border-color:#0284c7}
+.replace-toggle{display:flex;align-items:flex-start;gap:12px;border:1px solid #bae6fd;border-radius:16px;background:#f0f9ff;padding:14px 16px;margin:8px 0 16px;cursor:pointer}
+.replace-toggle input{width:auto;margin:3px 0 0;flex:0 0 auto}
+.replace-toggle span{display:block}
+.replace-toggle b{display:block;color:#075985}
+.replace-toggle small{display:block;color:#64748b;line-height:1.4;margin-top:4px}
 .import-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .import-box{border:1px solid #e3ebf4;border-radius:18px;padding:16px;background:#fbfdff}
 .import-box.ok{border-color:#86efac;background:#f7fff9}

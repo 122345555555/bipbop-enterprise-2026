@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop Enterprise 2026 v1.1 — Analisi ordini</title>
-  <link rel="stylesheet" href="style.css?v=5.11">
+  <title>BipBop Enterprise 2026 v1.2 — Sostituzione report</title>
+  <link rel="stylesheet" href="style.css?v=5.13">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <aside>
     <div class="brand">
       <div class="logo">B</div>
-      <div><b>BipBop</b><small>Enterprise 2026 v1.1</small></div>
+      <div><b>BipBop</b><small>Enterprise 2026 v1.2</small></div>
     </div>
     <button class="nav active" data-view="executive">📊 Executive</button>
     <button class="nav" data-view="import">📥 Import Amazon</button>
@@ -97,6 +97,13 @@
           <option value="profit_report">Profit Report</option>
         </select>
         <p class="hint">Se un report finisce nella sezione sbagliata, eliminalo dall'Archivio, scegli qui la sezione corretta e ricaricalo.</p>
+        <label class="replace-toggle">
+          <input id="replaceExistingReports" type="checkbox" checked>
+          <span>
+            <b>Sostituisci i vecchi report dello stesso tipo</b>
+            <small>I vecchi dati vengono eliminati solo dopo un nuovo import riuscito. Per più campagne Sponsored Brands, Products o Display, seleziona insieme tutti i relativi file.</small>
+          </span>
+        </label>
         <div id="dropZone" class="dropzone">
           <b>Trascina qui tutti i report Amazon</b>
           <span>CSV, TSV, TXT — UTF-8, UTF-16, ANSI</span>
@@ -304,12 +311,12 @@
     </section>
   </main>
 
-  <script src="config.js?v=5.10"></script>
-  <script src="src/utils.js?v=5.10"></script>
-  <script src="src/parser.js?v=5.10"></script>
-  <script src="src/storage.js?v=5.10"></script>
-  <script src="src/analytics.js?v=5.10"></script>
-  <script src="src/render.js?v=5.10"></script>
-  <script src="src/app.js?v=5.10"></script>
+  <script src="config.js?v=5.13"></script>
+  <script src="src/utils.js?v=5.13"></script>
+  <script src="src/parser.js?v=5.13"></script>
+  <script src="src/storage.js?v=5.13"></script>
+  <script src="src/analytics.js?v=5.13"></script>
+  <script src="src/render.js?v=5.13"></script>
+  <script src="src/app.js?v=5.13"></script>
 </body>
 </html>

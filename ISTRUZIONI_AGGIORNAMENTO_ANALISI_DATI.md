@@ -1,4 +1,4 @@
-# BipBop Enterprise 2026 v1.1 — Analisi Dati ordini
+# BipBop Enterprise 2026 v1.2 — Analisi Dati e sostituzione report
 
 ## Installazione
 
@@ -37,3 +37,18 @@ Solo per una nuova installazione da zero, esegui:
    - esito del controllo di coerenza.
 
 I file identici restano bloccati dall'hash. Se due file diversi contengono righe ordine sovrapposte, l'analisi neutralizza i duplicati usando `order-item-id` (o una firma di riserva).
+
+## Sostituzione automatica dei vecchi report
+
+Nella pagina `Import Amazon` è selezionata automaticamente l'opzione
+`Sostituisci i vecchi report dello stesso tipo`.
+
+- Il nuovo report viene prima importato e verificato.
+- Solo dopo un import riuscito vengono eliminati i vecchi file dello stesso tipo.
+- Se un file genera un errore, i vecchi report restano disponibili.
+- Per più campagne Sponsored Brands, Sponsored Products o Sponsored Display,
+  seleziona tutti i file della stessa famiglia nello stesso caricamento:
+  resteranno tutti i nuovi file e verrà eliminato soltanto il gruppo precedente.
+- Se vuoi conservare e sommare lo storico, togli la spunta prima del caricamento.
+
+Non occorre eseguire nuovo SQL: la funzione usa le tabelle `bb100_*` già presenti.

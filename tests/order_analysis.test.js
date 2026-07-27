@@ -74,6 +74,23 @@ assert.equal(deduped.totals.orders, 8);
 assert.equal(deduped.totals.lines, 9);
 assert.equal(deduped.coherence.duplicateLines, 1);
 
+const corruptedPrince = {
+  ...orders[0],
+  "quantity-purchased": "0",
+  "item-price": "0.00",
+  "product-name": "Principe sognatore 1 EUR 19.90 Standard WebsiteOrderChannel false false false via scudieri"
+};
+const bestDuplicate = context.window.BBAnalytics.orderAnalysis(
+  { orders: [corruptedPrince, ...orders] },
+  { year: "2026", month: "6" }
+);
+const repairedOrder = bestDuplicate.detailOrders.find(o => o.id === "403-7278592-7155518");
+assert.equal(bestDuplicate.totals.units, 11);
+assert.equal(Number(bestDuplicate.totals.revenue.toFixed(2)), 218.50);
+assert.equal(repairedOrder.units, 2);
+assert.equal(Number(repairedOrder.revenue.toFixed(2)), 39.80);
+assert.equal(repairedOrder.lines[0].title, "Principe sognatore");
+
 const quotedTsv = [
   ["order-id","order-item-id","product-name","quantity-purchased","item-price","purchase-date"].join("\t"),
   '403-7278592-7155518\ti-quote-1\t"BipBop Stickers "Il principe sognatore" Adesivi murali"\t1\t19.90\t2026-07-21',
