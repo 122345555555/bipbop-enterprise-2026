@@ -363,9 +363,10 @@ window.BBRender = {
     BBUtils.el("kpis").innerHTML=[
       ["Stato operativo",health+"/100",healthClass,"Media di dati, vendite, saldo, Ads, margine"],
       ["Saldo stimato",c.sales?BBUtils.euro(profitValue):"—",profitValue<0?"red":"green","Obiettivo: sopra 0 euro"],
-      ["Vendite",c.sales?BBUtils.euro(c.sales):"—","","Report + manuali non ancora coperte"],
+      ["Vendite",c.sales?BBUtils.euro(c.sales):"—","","Cumulativo Business Report + manuali non coperte"],
       ["Unita' vendute",c.units||"—","",(c.unitsSource||"Report")+": "+(c.reportedUnits||0)+" | manuali: "+manualUnits],
-      ["Vendite infrasett.",manualPending.length?BBUtils.euro(manualTotal):"—",manualTotal>0?"green":"","Da sommare: "+manualUnits+" unita | coperte: "+manualCoveredUnits],
+      ["Vendite settimana",c.weeklyHasData?BBUtils.euro(c.weeklySales):"—",c.weeklySales>0?"green":"",c.weeklyLabel||"Report ordini + manuali"],
+      ["Unita' settimana",c.weeklyHasData?(c.weeklyUnits||0):"—",c.weeklyUnits>0?"green":"","Report ordini deduplicato + manuali"],
       ["Stato vendite",salesStatus,(daysSinceVisibleSale!==null&&daysSinceVisibleSale>7)?"red":(daysSinceVisibleSale!==null&&daysSinceVisibleSale<=2?"green":"yellow"),visibleLastSale?"Ultima: "+visibleLastSale.date.toLocaleDateString("it-IT")+" ("+visibleLastSale.source+")":"Inserisci vendita o carica report"],
       ["TACOS",BBUtils.pct(c.tacos),Number.isFinite(c.tacos)&&c.tacos>execRules.tacos?"red":"green","Target massimo: "+execRules.tacos+"%"],
       ["ACOS",BBUtils.pct(c.acos),Number.isFinite(c.acos)&&c.acos>execRules.acos?"red":"green","Target massimo: "+execRules.acos+"%"],

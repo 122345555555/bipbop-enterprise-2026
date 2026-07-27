@@ -102,17 +102,21 @@ assert.equal(parsed.rows[0]["quantity-purchased"], "1");
 assert.equal(parsed.rows[0]["item-price"], "19.90");
 assert.equal(parsed.rows[0]["product-name"], 'BipBop Stickers "Il principe sognatore" Adesivi murali');
 
-// L'Executive deve preferire il Report ordini aggiornato a un Business Report
-// più vecchio e deve continuare a deduplicare le righe ripetute.
-const staleBusinessReport = [{ "Units Ordered": "9", "Ordered Product Sales": "179,10" }];
+// L'Executive usa il Business Report come totale cumulativo, mentre il
+// Report ordini deduplicato alimenta la lettura settimanale.
+const cumulativeBusinessReport = [{ "Units Ordered": "207", "Ordered Product Sales": "4.041,92 €" }];
 const executive = context.window.BBAnalytics.calc({
-  business_report: staleBusinessReport,
+  business_report: cumulativeBusinessReport,
   orders: [...orders, { ...orders[0] }]
 });
-assert.equal(executive.unitsBusiness, 9);
+assert.equal(executive.unitsBusiness, 207);
 assert.equal(executive.unitsOrders, 11);
-assert.equal(executive.reportedUnits, 11);
-assert.equal(executive.units, 11);
-assert.equal(executive.unitsSource, "Report ordini");
+assert.equal(executive.reportedUnits, 207);
+assert.equal(executive.units, 207);
+assert.equal(executive.unitsSource, "Business Report");
+assert.equal(Number(executive.sales.toFixed(2)), 4041.92);
+assert.equal(executive.weeklyUnits, 8);
+assert.equal(Number(executive.weeklySales.toFixed(2)), 159.20);
+assert.match(executive.weeklyLabel,/20\/07.+26\/07\/2026/);
 
-console.log("OK: 8 ordini, 9 righe, 11 pezzi, 218,50 euro; Executive aggiornato dal Report ordini deduplicato.");
+console.log("OK: Executive cumulativo 207 unità / 4.041,92 euro; settimana 8 unità / 159,20 euro.");

@@ -45,16 +45,16 @@ window.BBAnalytics = {
     const unitsProfit=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"])),0);
     const unitsBusiness=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"])),0);
     /*
-     * Il Report ordini è la fonte più granulare: contiene order-item-id e
-     * quantity-purchased. Lo deduplichiamo con la stessa logica usata in
-     * Analisi Dati, così un Business Report meno recente non blocca
-     * l'aggiornamento delle unità mostrate nell'Executive.
+     * Il Business Report è il dato cumulativo ufficiale del periodo scelto
+     * dall'utente. Il Report ordini resta la fonte granulare per il dettaglio
+     * e per le metriche settimanali.
      */
     const orderTotals=orders.length?this.orderAnalysis({orders},{year:"all",month:"all"}).totals:null;
     const unitsOrders=orderTotals?orderTotals.units:0;
-    const reportedUnits=orders.length?unitsOrders:(unitsBusiness||unitsProfit);
-    const unitsSource=orders.length?"Report ordini":(unitsBusiness?"Business Report":(unitsProfit?"Profit Report":"Nessun report"));
+    const reportedUnits=unitsBusiness||unitsOrders||unitsProfit;
+    const unitsSource=unitsBusiness?"Business Report":(orders.length?"Report ordini":(unitsProfit?"Profit Report":"Nessun report"));
     const units=reportedUnits+manualStatus.pendingUnits;
+    const weekly=this.weeklySales(samples,manualStatus.pending);
     const sessions=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sessions","Sessioni"])),0);
     const storeSales=storeDate.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Vendite","Sales"])),0) ||
       storeLive.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Vendite","Sales"])),0);
@@ -109,6 +109,12 @@ window.BBAnalytics = {
       manualPendingRows:manualStatus.pending.length,
       manualCoveredRows:manualStatus.covered.length,
       manualCutoffDate:manualStatus.cutoff,
+      weeklySales:weekly.sales,
+      weeklyUnits:weekly.units,
+      weeklyLabel:weekly.label,
+      weeklyHasData:weekly.hasData,
+      weeklyStart:weekly.start,
+      weeklyEnd:weekly.end,
       storeSalesShare:sales&&storeSales?storeSales/sales*100:NaN,
       storeConversion:storeVisitors&&storeOrders?storeOrders/storeVisitors*100:NaN,
       storeSalesPerVisitor:storeVisitors?storeSales/storeVisitors:NaN,
@@ -633,6 +639,44 @@ window.BBAnalytics = {
     });
     return Array.from(map.values()).sort((a,b)=>a.date-b.date);
   },
+  weeklySales(samples,manualPending=[]){
+    // Riutilizza lo stesso insieme deduplicato e validato della pagina Ordini.
+    // In questo modo Executive, Analisi dati e riepilogo settimanale non
+    // possono divergere sul conteggio di righe e quantità.
+    const orderData=this.orderAnalysis(
+      {orders:samples.orders||[]},
+      {year:"all",month:"all"}
+    );
+    const official=(orderData.normalizedItems||[]).filter(r=>r.date);
+    const manual=(manualPending||[]).map(r=>({
+      date:r._dateObj||this.parseReportDate(r.date),
+      qty:BBUtils.num(r.units),
+      sales:BBUtils.num(r.amount)
+    })).filter(r=>r.date);
+    const dates=[...official,...manual].map(r=>r.date).filter(Boolean);
+    if(!dates.length) return {hasData:false,sales:0,units:0,start:null,end:null,label:"Nessun dato settimanale"};
+
+    const latest=new Date(Math.max(...dates.map(d=>d.getTime())));
+    latest.setHours(0,0,0,0);
+    const start=new Date(latest);
+    start.setDate(start.getDate()-((start.getDay()+6)%7));
+    const end=new Date(start);
+    end.setDate(end.getDate()+6);
+    end.setHours(23,59,59,999);
+    const inWeek=r=>r.date>=start&&r.date<=end;
+    const rows=[...official.filter(inWeek),...manual.filter(inWeek)];
+    const sales=rows.reduce((a,r)=>a+r.sales,0);
+    const units=rows.reduce((a,r)=>a+r.qty,0);
+    const short=d=>d.toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit"});
+    return {
+      hasData:true,
+      sales,
+      units,
+      start,
+      end,
+      label:"Settimana "+short(start)+"–"+end.toLocaleDateString("it-IT")
+    };
+  },
   orderAnalysis(samples,filters={}){
     const rawRows=(samples.orders||[]).slice();
     const value=(row,names)=>BBUtils.pick(row,names);
@@ -826,6 +870,7 @@ window.BBAnalytics = {
       filteredMonths,
       detailMonth,
       detailOrders,
+      normalizedItems:valid,
       comparison,
       coherence
     };
