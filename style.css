@@ -222,3 +222,413 @@ body *{visibility:hidden}
 .fba-print-area{position:absolute;left:0;top:0;width:100%;border:0;box-shadow:none}
 .fba-print-head button{display:none}
 }
+
+/* =========================================================
+   Responsive application layout — presentation only
+   ========================================================= */
+
+html{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
+
+body{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow-x:hidden;
+  align-items:stretch;
+}
+
+aside{
+  width:260px;
+  padding:18px 14px;
+}
+
+main{
+  width:calc(100% - 260px);
+  max-width:100%;
+  min-width:0;
+  margin-left:260px;
+  padding:24px clamp(18px,2.2vw,34px) 40px;
+}
+
+main>header,
+main>.view{
+  width:100%;
+  max-width:1560px;
+  min-width:0;
+  margin-inline:auto;
+}
+
+.view,
+.view>*,
+.kpis>*,
+.grid2>*,
+.grid3>*,
+.import-grid>*,
+.ba-insights>*,
+.score-breakdown>*{
+  min-width:0;
+  max-width:100%;
+}
+
+header{
+  min-width:0;
+  flex-wrap:wrap;
+  align-items:flex-start;
+  gap:14px 20px;
+  margin-bottom:20px;
+}
+
+header>div:last-child{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+h1{
+  font-size:clamp(25px,2.2vw,34px);
+  line-height:1.12;
+}
+
+h2{
+  font-size:clamp(17px,1.35vw,21px);
+}
+
+.hero,
+.card,
+.kpi{
+  min-width:0;
+  padding:clamp(15px,1.6vw,22px);
+}
+
+.hero{
+  gap:18px;
+}
+
+.hero p,
+.muted,
+.small,
+.hint{
+  overflow-wrap:anywhere;
+}
+
+.kpis{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));
+  gap:12px;
+  margin:14px 0;
+}
+
+.kpi{
+  min-height:0;
+}
+
+.kpi .value{
+  overflow-wrap:anywhere;
+}
+
+.grid2{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+
+.grid3{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));
+  gap:14px;
+}
+
+.import-grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));
+  gap:14px;
+}
+
+.score-breakdown{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));
+  gap:10px;
+}
+
+.ba-insights{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));
+  gap:14px;
+}
+
+.manual-sales-form,
+.fba-form{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,165px),1fr));
+  gap:10px;
+}
+
+.tool-row,
+.ba-controls,
+.data-query-tools{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:flex-end;
+  gap:10px;
+}
+
+.tool-row>*,
+.ba-controls>*,
+.data-query-tools>*{
+  min-width:0;
+  margin:0;
+}
+
+.tool-row input,
+.tool-row select,
+.data-query-tools input,
+.data-query-tools select{
+  flex:1 1 180px;
+  width:auto;
+}
+
+.ba-controls label{
+  flex:1 1 190px;
+  min-width:0;
+}
+
+.ba-controls label:nth-child(3){
+  flex-basis:250px;
+}
+
+.tool-row button,
+.ba-controls button,
+.data-query-tools button{
+  flex:0 0 auto;
+}
+
+.ba-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:0 0 14px;
+}
+
+.ba-tab{
+  flex:1 1 150px;
+  min-width:0;
+  text-align:center;
+}
+
+.ba-report-head,
+.section-head,
+.card-head{
+  flex-wrap:wrap;
+  gap:10px 16px;
+}
+
+input,
+select,
+textarea{
+  max-width:100%;
+}
+
+.table-scroll,
+.ba-table-wrap,
+.layout-table-scroll{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overflow-y:hidden;
+  overscroll-behavior-inline:contain;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-gutter:stable;
+  border-radius:12px;
+}
+
+.table-scroll:focus,
+.layout-table-scroll:focus{
+  outline:2px solid rgba(79,70,229,.35);
+  outline-offset:2px;
+}
+
+.table-scroll table,
+.layout-table-scroll table{
+  width:max-content;
+  min-width:100%;
+  margin:0;
+}
+
+.ba-table{
+  width:max-content;
+  min-width:1800px;
+}
+
+th,
+td{
+  padding:8px 10px;
+}
+
+.order-products{
+  min-width:220px;
+  max-width:420px;
+  white-space:normal;
+}
+
+.chart-wrap,
+.chart-container,
+canvas,
+svg{
+  max-width:100%;
+}
+
+.badge,
+.pill,
+.status{
+  max-width:100%;
+  white-space:normal;
+}
+
+@media (max-width:1100px){
+  body{
+    display:block;
+  }
+
+  aside{
+    position:relative;
+    inset:auto;
+    z-index:auto;
+    width:100%;
+    height:auto;
+    max-height:none;
+    padding:12px 16px;
+    overflow:visible;
+    border-right:0;
+    border-bottom:1px solid rgba(255,255,255,.1);
+  }
+
+  aside .brand{
+    margin-bottom:10px;
+  }
+
+  aside nav{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(155px,1fr));
+    gap:6px;
+  }
+
+  aside nav a{
+    margin:0;
+  }
+
+  main{
+    width:100%;
+    max-width:100%;
+    margin-left:0;
+    padding:22px clamp(16px,3vw,28px) 34px;
+  }
+}
+
+@media (max-width:760px){
+  aside{
+    padding:12px;
+  }
+
+  aside nav{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  aside nav a{
+    padding:10px;
+  }
+
+  main{
+    padding:18px 12px 28px;
+  }
+
+  header{
+    margin-bottom:16px;
+  }
+
+  header>div,
+  header>div:last-child{
+    width:100%;
+    justify-content:flex-start;
+  }
+
+  .grid2{
+    grid-template-columns:1fr;
+  }
+
+  .hero{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .tool-row>*,
+  .ba-controls>*,
+  .data-query-tools>*,
+  .tool-row input,
+  .tool-row select,
+  .data-query-tools input,
+  .data-query-tools select,
+  .ba-controls label{
+    flex:1 1 100%;
+    width:100%;
+  }
+
+  .tool-row button,
+  .ba-controls button,
+  .data-query-tools button{
+    width:100%;
+  }
+
+  .ba-tab{
+    flex-basis:calc(50% - 4px);
+  }
+}
+
+@media (max-width:480px){
+  aside nav{
+    grid-template-columns:1fr;
+  }
+
+  main{
+    padding-inline:10px;
+  }
+
+  .hero,
+  .card,
+  .kpi{
+    padding:14px;
+    border-radius:14px;
+  }
+
+  .kpis,
+  .grid2,
+  .grid3,
+  .import-grid,
+  .ba-insights{
+    gap:10px;
+  }
+
+  .ba-tab{
+    flex-basis:100%;
+  }
+}
+
+@media print{
+  html,
+  body{
+    overflow:visible!important;
+  }
+
+  main{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:0!important;
+  }
+
+  .table-scroll,
+  .ba-table-wrap,
+  .layout-table-scroll{
+    overflow:visible!important;
+  }
+}
