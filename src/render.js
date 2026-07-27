@@ -1,10 +1,28 @@
 window.BBRender = {
   state:null,
   setState(s){ this.state=s; },
-  fileCount(type){ return this.state.files.filter(f=>f.report_type===type && !f.is_duplicate).length; },
-  latest(type){ return this.state.files.find(f=>f.report_type===type && !f.is_duplicate); },
+  resolution(type){ return this.state.resolution?.[type]||null; },
+  activeFileIds(type){ return new Set((this.resolution(type)?.activeFileIds||[]).map(String)); },
+  fileCount(type){
+    const resolution=this.resolution(type);
+    if(resolution) return resolution.activeFileIds.length;
+    return this.state.files.filter(f=>f.report_type===type && !f.is_duplicate).length;
+  },
+  latest(type){
+    const active=this.activeFileIds(type);
+    return this.state.files.find(f=>f.report_type===type && active.has(String(f.id))) ||
+      this.state.files.find(f=>f.report_type===type && !f.is_duplicate);
+  },
+  fileUsage(file){
+    if(file.is_duplicate) return {label:"Duplicato escluso",className:"red"};
+    const resolution=this.resolution(file.report_type);
+    if(!resolution) return {label:"Attivo",className:"green"};
+    if((resolution.activeFileIds||[]).map(String).includes(String(file.id))) return {label:"Attivo nei KPI",className:"green"};
+    return {label:"Storico sostituito",className:""};
+  },
   activeProfitFiles(state=this.state){
-    return (state.files||[]).filter(f=>f.report_type==="profit_report" && !f.is_duplicate);
+    const ids=new Set((state.resolution?.profit_report?.activeFileIds||[]).map(String));
+    return (state.files||[]).filter(f=>f.report_type==="profit_report" && ids.has(String(f.id)));
   },
   profitScopedSamples(state=this.state){
     const files=this.activeProfitFiles(state);
@@ -417,7 +435,10 @@ window.BBRender = {
       return '<div class="import-box '+boxClass+'"><h4>'+h(r[1])+'</h4><p><span class="pill">'+h(r[2])+'</span></p><b>Stato:</b> '+traffic+'<br><b>Data ultimo import:</b> '+h(BBUtils.dateTimeIT(importedAt))+'<br><b>File attivi:</b> '+fc+'<br><b>Righe attive:</b> '+(s.counts[r[0]]||0)+'<br><b>Ultimo file:</b> '+h(latest?.file_name||'—')+'</div>';
     }).join("");
 
-    BBUtils.el("archiveTable").innerHTML=s.files.length?'<table><tr><th>Report</th><th>File</th><th>Righe</th><th>Colonne</th><th>Duplicato</th><th>Hash</th><th>Importato</th><th>Azione</th></tr>'+s.files.map(f=>'<tr><td><span class="pill">'+h(BBAnalytics.label(f.report_type))+'</span></td><td>'+h(f.file_name)+'</td><td>'+h(f.row_count)+'</td><td>'+h(f.column_count)+'</td><td>'+(f.is_duplicate?'<span class="pill red">sì, non sommato</span>':'<span class="pill green">no</span>')+'</td><td class="small">'+h(String(f.fingerprint||"").slice(0,12))+'...</td><td>'+h(new Date(f.imported_at).toLocaleString("it-IT"))+'</td><td><button class="secondaryBtn deleteFileBtn" data-file-id="'+h(f.id)+'" data-file-name="'+h(f.file_name)+'">Elimina</button></td></tr>').join("")+'</table>':'<div class="action">Nessun report importato.</div>';
+    BBUtils.el("archiveTable").innerHTML=s.files.length?'<table><tr><th>Report</th><th>File</th><th>Righe</th><th>Colonne</th><th>Uso nei dati</th><th>Hash</th><th>Importato</th><th>Azione</th></tr>'+s.files.map(f=>{
+      const usage=this.fileUsage(f);
+      return '<tr><td><span class="pill">'+h(BBAnalytics.label(f.report_type))+'</span></td><td>'+h(f.file_name)+'</td><td>'+h(f.row_count)+'</td><td>'+h(f.column_count)+'</td><td><span class="pill '+h(usage.className)+'">'+h(usage.label)+'</span></td><td class="small">'+h(String(f.fingerprint||"").slice(0,12))+'...</td><td>'+h(new Date(f.imported_at).toLocaleString("it-IT"))+'</td><td><button class="secondaryBtn deleteFileBtn" data-file-id="'+h(f.id)+'" data-file-name="'+h(f.file_name)+'">Elimina</button></td></tr>';
+    }).join("")+'</table>':'<div class="action">Nessun report importato.</div>';
 
     BBUtils.el("salesBox").innerHTML='<div class="grid3">'+[
       ["Vendite",c.sales?BBUtils.euro(c.sales):"—"],["Unità",c.units||"—"],["Sessioni",c.sessions||"—"],["Conversione",BBUtils.pct(c.conversion)],["Commissioni Amazon",BBUtils.euro(c.amazonFees)],["Profitto stimato",c.sales?BBUtils.euro(c.profit):"—"],
@@ -427,7 +448,7 @@ window.BBRender = {
     BBUtils.el("adsBox").innerHTML='<div class="grid3">'+[
       ["Spesa Ads",c.ads?BBUtils.euro(c.ads):"—"],["Vendite Ads",c.adsSales?BBUtils.euro(c.adsSales):"—"],["ACOS",BBUtils.pct(c.acos)],["ROAS",Number.isFinite(c.roas)?c.roas.toFixed(2):"—"],["CPC",Number.isFinite(c.cpc)?BBUtils.euro(c.cpc):"—"],["CTR",BBUtils.pct(c.ctr)]
     ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>';
-    const adFiles=s.files.filter(x=>["sponsored_products","sponsored_brands","sponsored_display"].includes(x.report_type)&&!x.is_duplicate);
+    const adFiles=s.files.filter(x=>["sponsored_products","sponsored_brands","sponsored_display"].includes(x.report_type)&&this.activeFileIds(x.report_type).has(String(x.id)));
     BBUtils.el("adsFilesBox").innerHTML=adFiles.length?'<h3>File Ads attivi</h3><table><tr><th>Tipo</th><th>File</th><th>Righe</th></tr>'+adFiles.map(f=>'<tr><td>'+h(BBAnalytics.label(f.report_type))+'</td><td>'+h(f.file_name)+'</td><td>'+h(f.row_count)+'</td></tr>').join("")+'</table>':'';
 
     const adr=BBAnalytics.asinDecisionRows ? BBAnalytics.asinDecisionRows(scopedSamples) : [];
@@ -567,6 +588,7 @@ window.BBRender = {
     }
 
     const kr=BBAnalytics.keywordRows(s.samples);
+    const keywordCoverage=BBAnalytics.keywordCoverage(s.samples);
     const kf=this.filteredKeywordRows(kr);
     const decisionCount=key=>kr.filter(r=>r.decision===key).length;
     BBUtils.el("keywordBox").innerHTML=kr.length?'<div class="grid3">'+[
@@ -575,8 +597,9 @@ window.BBRender = {
       ["Da ottimizzare",decisionCount("optimize")],
       ["Da tagliare",decisionCount("cut")],
       ["Da testare",decisionCount("test")],
-      ["Spesa analizzata",BBUtils.euro(kr.reduce((a,r)=>a+(r.spend||0),0))]
-    ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Risultati mostrati: '+kf.length+' su '+kr.length+'. Le decisioni sono una prima lettura automatica: conferma sempre con margine prodotto e disponibilità inventario.</p><table class="decision-table"><tr><th>Decisione</th><th>Keyword / Search Term</th><th>Azione</th><th>Spesa</th><th>Vendite</th><th>Click</th><th>CTR</th><th>CPC</th><th>ACOS</th><th>ROAS</th><th>Fonte</th></tr>'+kf.map(r=>'<tr><td><span class="pill decision-'+h(r.decision)+'">'+h(this.keywordDecisionLabel(r.decision))+'</span></td><td>'+h(r.term)+'</td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.spend))+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.clicks)+'</td><td>'+h(BBUtils.pct(r.ctr))+'</td><td>'+h(Number.isFinite(r.cpc)?BBUtils.euro(r.cpc):"—")+'</td><td>'+h(BBUtils.pct(r.acos))+'</td><td>'+h(Number.isFinite(r.roas)?r.roas.toFixed(2):"—")+'</td><td class="small">'+h(r.source)+'</td></tr>').join("")+'</table>':'<div class="action">Importa Search Terms o report Sponsored Products per capire keyword decisive, sprechi e opportunità di investimento.</div>';
+      ["Spesa storica",BBUtils.euro(kr.reduce((a,r)=>a+(r.spend||0),0))],
+      ["Periodi sommati",keywordCoverage.periods]
+    ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Storico Search Terms: '+h(keywordCoverage.periods)+' periodi, dal '+h(keywordCoverage.first||"—")+' al '+h(keywordCoverage.last||"—")+'. Risultati mostrati: '+kf.length+' su '+kr.length+'. Un nuovo periodo viene aggiunto; il reimport dello stesso periodo sostituisce solo quel periodo.</p><table class="decision-table"><tr><th>Decisione</th><th>Keyword / Search Term</th><th>Azione</th><th>Spesa</th><th>Vendite</th><th>Click</th><th>CTR</th><th>CPC</th><th>ACOS</th><th>ROAS</th><th>Fonte</th></tr>'+kf.map(r=>'<tr><td><span class="pill decision-'+h(r.decision)+'">'+h(this.keywordDecisionLabel(r.decision))+'</span></td><td>'+h(r.term)+'</td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.spend))+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.clicks)+'</td><td>'+h(BBUtils.pct(r.ctr))+'</td><td>'+h(Number.isFinite(r.cpc)?BBUtils.euro(r.cpc):"—")+'</td><td>'+h(BBUtils.pct(r.acos))+'</td><td>'+h(Number.isFinite(r.roas)?r.roas.toFixed(2):"—")+'</td><td class="small">'+h(r.source)+'</td></tr>').join("")+'</table>':'<div class="action">Importa Search Terms o report Sponsored Products per capire keyword decisive, sprechi e opportunità di investimento.</div>';
 
     
     const ba=BBAnalytics.brandAnalyticsRows ? BBAnalytics.brandAnalyticsRows(s.samples) : [];
@@ -812,7 +835,24 @@ window.BBRender = {
       section("Dati e sistema","Report mancanti o messaggi di stato che aiutano a rendere le decisioni piu affidabili.",data):'<div class="action">Importa report per generare decisioni operative.</div>';
     }
     BBUtils.el("alertsBox").innerHTML=rs.map(r=>'<div class="action '+r[0]+'">🚨 <b>'+r[1]+'</b><br>'+r[2]+'</div>').join("");
-    BBUtils.el("diagnosticBox").innerHTML='<div class="action"><b>SOLO TABELLE BB100 GROWTH ENGINE</b><br>Report files: '+s.files.length+'<br>Raw rows attive: '+totalRows+'<br>Report configurati: '+BBAnalytics.reportDefs.length+'<br>Storage: '+window.BIPBOP_CONFIG.storageKey+'</div>';
+    const resolutions=Object.entries(s.resolution||{}).filter(([,r])=>r&&r.rows?.length);
+    const excludedRows=resolutions.reduce((sum,[,r])=>sum+(r.deduplicatedRows||0),0);
+    const historicalFiles=s.files.filter(file=>!file.is_duplicate && this.fileUsage(file).label==="Storico sostituito").length;
+    BBUtils.el("diagnosticBox").innerHTML=
+      '<div class="action green"><b>RICONCILIAZIONE DATI ATTIVA</b><br>'+
+      'Report nello storico: '+s.files.length+
+      '<br>Righe usate nei KPI: '+totalRows+
+      '<br>Righe sovrapposte neutralizzate: '+excludedRows+
+      '<br>File storici non sommati: '+historicalFiles+
+      '<br>Report configurati: '+BBAnalytics.reportDefs.length+
+      '<br>Storage: '+h(window.BIPBOP_CONFIG.storageKey)+'</div>'+
+      (resolutions.length?'<table class="compact-table"><tr><th>Report</th><th>Regola attiva</th><th>File nei KPI</th><th>Righe finali</th><th>Sovrapposte escluse</th></tr>'+
+        resolutions.map(([type,r])=>'<tr><td>'+h(BBAnalytics.label(type))+'</td><td>'+h({
+          latest_snapshot:"Ultimo snapshot cumulativo",
+          entity_latest:"Ultima versione per entità/campagna",
+          row_latest:"Righe uniche, ultima versione"
+        }[r.policy]||r.policy)+'</td><td>'+h(r.activeFileIds.length)+'</td><td>'+h(r.rows.length)+'</td><td>'+h(r.deduplicatedRows||0)+'</td></tr>').join("")+
+        '</table>':'');
     BBUtils.el("errorBox").textContent=s.errors.length?s.errors.join("\\n"):"Nessun errore.";
   }
 };

@@ -107,13 +107,13 @@
               <option value="profit_report">Profit Report</option>
             </select>
             <p class="hint import-help">Usa la selezione manuale solo se il riconoscimento automatico assegna il report alla sezione sbagliata.</p>
-            <label class="replace-toggle">
-              <input id="replaceExistingReports" type="checkbox" checked>
+            <div class="replace-toggle smart-reconcile-note">
+              <span aria-hidden="true">✓</span>
               <span>
-                <b>Sostituisci i vecchi report dello stesso tipo</b>
-                <small>I vecchi dati vengono eliminati soltanto dopo un nuovo import riuscito. Per più campagne Ads, seleziona insieme tutti i file collegati.</small>
+                <b>Aggiornamento intelligente sempre attivo</b>
+                <small>I file restano nello storico. Il sistema usa l'ultimo Business Report, neutralizza le righe sovrapposte e mantiene separate tutte le campagne Ads.</small>
               </span>
-            </label>
+            </div>
           </div>
           <div class="import-drop-panel">
             <div id="dropZone" class="dropzone">
@@ -334,12 +334,13 @@
   </main>
 
   <script src="config.js?v=5.14"></script>
-  <script src="src/utils.js?v=5.14"></script>
-  <script src="src/parser.js?v=5.14"></script>
-  <script src="src/storage.js?v=5.14"></script>
-  <script src="src/analytics.js?v=5.19"></script>
-  <script src="src/render.js?v=5.19"></script>
-  <script src="src/app.js?v=5.14"></script>
+  <script src="src/utils.js?v=5.21"></script>
+  <script src="src/parser.js?v=5.21"></script>
+  <script src="src/reconcile.js?v=5.21"></script>
+  <script src="src/storage.js?v=5.21"></script>
+  <script src="src/analytics.js?v=5.21"></script>
+  <script src="src/render.js?v=5.21"></script>
+  <script src="src/app.js?v=5.21"></script>
   <script src="layout.js?v=5.16"></script>
 </body>
 </html>

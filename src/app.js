@@ -1,7 +1,7 @@
 (function(){
 "use strict";
 
-const state={files:[],counts:{},samples:{},errors:[]};
+const state={files:[],counts:{},samples:{},resolution:{},errors:[]};
 BBRender.setState(state);
 
 function show(view){
@@ -14,10 +14,7 @@ function show(view){
 async function importFiles(files){
   const lines=[];
   const forcedType=BBUtils.el("reportTypeOverride")?.value || "";
-  const replaceExisting=BBUtils.el("replaceExistingReports")?.checked !== false;
-  const importedByType=new Map();
   const fingerprintsByType=new Map();
-  const failedTypes=new Set();
   for(const file of files){
     const safeFileName=BBUtils.html(file.name);
     let reportType="";
@@ -47,7 +44,7 @@ async function importFiles(files){
       };
       const result=await BBStorage.insertFile(
         reportType,file.name,parsed.headers,parsed.rows,fingerprint,source,parsed.delimiter,
-        {replaceExisting}
+        {smartReconciliation:true}
       );
       const placement=forcedType
         ? "forzato in "+BBUtils.html(BBAnalytics.label(reportType))+" (automatico: "+BBUtils.html(BBAnalytics.label(detectedType))+")"
@@ -59,32 +56,14 @@ async function importFiles(files){
           : "";
         lines.push("ℹ️ "+safeFileName+": riconosciuto correttamente come "+BBUtils.html(BBAnalytics.label(reportType))+", ma è un duplicato."+existingInfo+" Non lo sommo di nuovo per evitare dati doppi.");
       }else{
-        if(!importedByType.has(reportType)) importedByType.set(reportType,[]);
-        importedByType.get(reportType).push(result.file.id);
-        lines.push("✅ "+safeFileName+": "+placement+", "+parsed.rows.length+" righe, "+parsed.headers.length+" colonne, separatore "+BBUtils.html(parsed.delimiter==="\\t"?"TAB":parsed.delimiter)+". Importato il "+BBUtils.html(BBUtils.dateTimeIT(result.file.imported_at))+".");
+        lines.push("✅ "+safeFileName+": "+placement+", "+parsed.rows.length+" righe, "+parsed.headers.length+" colonne, separatore "+BBUtils.html(parsed.delimiter==="\\t"?"TAB":parsed.delimiter)+". Salvato nello storico e riconciliato automaticamente il "+BBUtils.html(BBUtils.dateTimeIT(result.file.imported_at))+".");
       }
     }catch(e){
-      if(reportType && reportType!=="unknown") failedTypes.add(reportType);
       state.errors.push(String(e.message||e));
       lines.push("❌ "+safeFileName+": "+BBUtils.html(e.message||e));
     }
   }
-  if(replaceExisting){
-    for(const [reportType,newFileIds] of importedByType.entries()){
-      const label=BBUtils.html(BBAnalytics.label(reportType));
-      if(failedTypes.has(reportType)){
-        lines.push("⚠️ "+label+": almeno un nuovo file non è stato importato. Per sicurezza i vecchi report sono stati mantenuti.");
-        continue;
-      }
-      try{
-        const removed=await BBStorage.deleteTypeExcept(reportType,newFileIds);
-        lines.push("♻️ "+label+": mantenuti "+newFileIds.length+" nuovi file ed eliminati "+removed.length+" vecchi file.");
-      }catch(e){
-        state.errors.push(String(e.message||e));
-        lines.push("❌ "+label+": nuovi report salvati, ma non è stato possibile eliminare tutti i vecchi file: "+BBUtils.html(e.message||e));
-      }
-    }
-  }
+  lines.push("🛡️ Controllo affidabilità completato: snapshot cumulativi aggiornati, righe sovrapposte neutralizzate e campagne distinte conservate.");
   BBUtils.el("importLog").innerHTML=lines.map(x=>"<div>"+x+"</div>").join("");
   await refresh();
 }
@@ -97,11 +76,13 @@ async function refresh(){
     if(!cfg.url||!cfg.key){ BBRender.renderAll(); return; }
 
     state.files=await BBStorage.listFiles();
-    state.counts={}; state.samples={};
+    state.counts={}; state.samples={}; state.resolution={};
     for(const def of BBAnalytics.reportDefs){
       const type=def[0];
-      state.counts[type]=await BBStorage.countType(type);
-      if(state.counts[type]>0) state.samples[type]=await BBStorage.sample(type);
+      const resolution=await BBStorage.resolved(type,state.files);
+      state.resolution[type]=resolution;
+      state.samples[type]=resolution.rows;
+      state.counts[type]=resolution.rows.length;
     }
     BBRender.renderAll();
   }catch(e){

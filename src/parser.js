@@ -177,6 +177,7 @@ window.BBParser = {
     let level="file";
     if(fn.includes("campaign")) level="campaign";
     if(fn.includes("ad group")) level="ad_group";
+    if((fn.includes(" ads ") || fn.endsWith(" ads") || fn.startsWith("ads ")) && level==="file") level="ad";
     if(fn.includes("keyword")) level="keyword";
     if(fn.includes("search term")) level="search_term";
     if(fn.includes("target")) level="target";

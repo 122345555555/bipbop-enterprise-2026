@@ -16,7 +16,10 @@ window.BBStorage = {
     const dup=await db.from("bb100_report_files").select("id,file_name,imported_at,row_count,column_count").eq("fingerprint",fingerprint).eq("report_type",reportType).limit(1);
     if(dup.error) throw new Error(dup.error.message);
     const duplicateFound=(dup.data||[]).length>0;
-    const isDuplicate=duplicateFound && !options.replaceExisting;
+    // Un file con lo stesso hash è sempre uno storico duplicato. Non deve
+    // tornare attivo neppure durante un aggiornamento, altrimenti i valori
+    // vengono temporaneamente raddoppiati o sostituiscono campagne diverse.
+    const isDuplicate=duplicateFound;
 
     const filePayload={
       report_type:reportType,
@@ -79,6 +82,30 @@ window.BBStorage = {
     const r=await db.from("bb100_raw_rows").select("id",{count:"exact",head:true}).eq("report_type",type);
     if(r.error) throw new Error(r.error.message);
     return r.count||0;
+  },
+  async rawRows(type){
+    const db=this.client();
+    if(!db) throw new Error("Supabase non configurato.");
+    const pageSize=1000;
+    const rows=[];
+    for(let from=0;;from+=pageSize){
+      const to=from+pageSize-1;
+      const r=await db.from("bb100_raw_rows")
+        .select("file_id,report_type,file_name,row_index,row_data,fingerprint,source,imported_at")
+        .eq("report_type",type)
+        .order("imported_at",{ascending:true})
+        .order("row_index",{ascending:true})
+        .range(from,to);
+      if(r.error) throw new Error(r.error.message);
+      const page=r.data||[];
+      rows.push(...page);
+      if(page.length<pageSize) break;
+    }
+    return rows;
+  },
+  async resolved(type,files){
+    const records=await this.rawRows(type);
+    return BBReconcile.resolve(type,files||[],records);
   },
   async sample(type){
     const db=this.client();

@@ -32,8 +32,18 @@ window.BBAnalytics = {
     const rules=BBUtils.rules();
     const manualStatus=this.manualSalesStatus(samples,rules.manualSales||[]);
 
-    const salesBR=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Ordered Product Sales","Vendite prodotto ordinate","Sales","Vendite"])),0);
-    const salesTX=tx.reduce((a,r)=>a+Math.max(BBUtils.num(BBUtils.pick(r,["Totale (EUR)","Total (EUR)","Total","Totale"])),0),0);
+    const salesBR=br.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,[
+      "Ordered Product Sales","Vendite di prodotti ordinati","Vendite prodotto ordinate",
+      "Vendite dei prodotti ordinati","Sales","Vendite"
+    ])),0);
+    const salesTX=tx.reduce((a,r)=>{
+      const products=BBUtils.num(BBUtils.pick(r,[
+        "Totale costo prodotti","Product charges","Vendite prodotto","Product Sales"
+      ]));
+      const discounts=BBUtils.num(BBUtils.pick(r,["Totale sconti","Promotional rebates","Discounts"]));
+      if(products || discounts) return a+Math.max(products+discounts,0);
+      return a+Math.max(BBUtils.num(BBUtils.pick(r,["(totale) (EUR)","Totale (EUR)","Total (EUR)","Total","Totale"])),0);
+    },0);
     const salesOrders=orders.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,[
       "item-price","Item Price","Prezzo articolo","Prezzo dell'articolo",
       "product-sales","Product Sales","Vendite prodotto","order-item-value"
@@ -146,7 +156,9 @@ window.BBAnalytics = {
       const asin=BBUtils.pick(r,["ASIN","Parent ASIN","Child ASIN"])||"N/D";
       const title=BBUtils.pick(r,["Title","Titolo","Product Name","Nome prodotto"])||"";
       const o=map.get(asin)||{asin,title,sales:0,units:0,sessions:0,cr:0};
-      o.sales+=BBUtils.num(BBUtils.pick(r,["Ordered Product Sales","Sales","Vendite prodotto ordinate","Vendite"]));
+      o.sales+=BBUtils.num(BBUtils.pick(r,[
+        "Ordered Product Sales","Vendite di prodotti ordinati","Sales","Vendite prodotto ordinate","Vendite"
+      ]));
       o.units+=BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"]));
       o.sessions+=BBUtils.num(BBUtils.pick(r,["Sessions","Sessioni"]));
       o.cr=Math.max(o.cr,BBUtils.num(BBUtils.pick(r,["Unit Session Percentage","Conversion Rate","Tasso conversione"])));
@@ -157,7 +169,9 @@ window.BBAnalytics = {
       const m=String(d).match(/B0[A-Z0-9]{8}/);
       const asin=m?m[0]:"N/D";
       const o=map.get(asin)||{asin,title:d,sales:0,units:0,sessions:0,cr:0};
-      o.sales+=Math.max(BBUtils.num(BBUtils.pick(r,["Totale (EUR)","Total (EUR)","Totale"])),0);
+      o.sales+=Math.max(BBUtils.num(BBUtils.pick(r,[
+        "Totale costo prodotti","Product charges","(totale) (EUR)","Totale (EUR)","Total (EUR)","Totale"
+      ])),0);
       map.set(asin,o);
     });
     orders.forEach(r=>{
@@ -252,9 +266,11 @@ window.BBAnalytics = {
         clicks:0,
         impressions:0,
         orders:0,
-        units:0
+        units:0,
+        periods:new Set()
       };
       o.source.add(item.source);
+      if(r.__period_key) o.periods.add(r.__period_key);
       o.spend+=BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"]));
       o.sales+=BBUtils.num(BBUtils.pick(r,["Sales","Vendite","7 Day Total Sales","14 Day Total Sales","7 Day Total Sales (€)"]));
       o.clicks+=BBUtils.num(BBUtils.pick(r,["Clicks","Clic","Click"]));
@@ -291,6 +307,7 @@ window.BBAnalytics = {
         impressions:o.impressions,
         orders:o.orders,
         units:o.units,
+        periods:o.periods.size,
         acos,
         roas,
         ctr,
@@ -304,6 +321,16 @@ window.BBAnalytics = {
     }).sort((a,b)=>a.priority-b.priority || b.sales-a.sales || b.spend-a.spend).slice(0,500);
   }
 ,
+  keywordCoverage(samples){
+    const rows=samples.search_terms||[];
+    const periods=Array.from(new Set(rows.map(r=>r.__period_key).filter(Boolean))).sort();
+    return {
+      periods:periods.length,
+      first:periods[0]||"",
+      last:periods[periods.length-1]||"",
+      rows:rows.length
+    };
+  },
   storeMetricRows(rows,labelKey,kind){
     return (rows||[]).map(r=>{
       const name=BBUtils.pick(r,[labelKey,"Fonte","Pagine attive","Altre pagine","Data"])||"";
@@ -450,7 +477,7 @@ window.BBAnalytics = {
       raw.title=raw.title || BBUtils.pick(r,["item-name","product-name","Product Name","Title","Titolo","Nome prodotto"]);
       raw.sku=raw.sku || BBUtils.pick(r,["seller-sku","sku","SKU","MSKU"]);
       raw.price=raw.price || BBUtils.num(BBUtils.pick(r,["price","Prezzo","Your Price","item-price","Item Price","Prezzo articolo","Prezzo dell'articolo"]));
-      raw.sales+=BBUtils.num(BBUtils.pick(r,["Ordered Product Sales","Vendite prodotto ordinate","Vendite nette","Vendite","Sales","Net sales","item-price","Item Price","Prezzo articolo","Product Sales","Vendite prodotto"]));
+      raw.sales+=BBUtils.num(BBUtils.pick(r,["Ordered Product Sales","Vendite di prodotti ordinati","Vendite prodotto ordinate","Vendite nette","Vendite","Sales","Net sales","item-price","Item Price","Prezzo articolo","Product Sales","Vendite prodotto"]));
       raw.units+=BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Unità nette vendute","Unità vendute","Units","Units sold","Net units sold","quantity-purchased","Quantity","Quantità","quantity"]));
       raw.stock=raw.stock || BBUtils.num(BBUtils.pick(r,["quantity","Quantità","available","fulfillable"]));
     };
@@ -604,7 +631,7 @@ window.BBAnalytics = {
   },
   rowSales(r){
     return BBUtils.num(BBUtils.pick(r,[
-      "Vendite nette","Net sales","Vendite","Sales","Ordered Product Sales","Vendite prodotto ordinate",
+      "Vendite nette","Net sales","Vendite","Sales","Ordered Product Sales","Vendite di prodotti ordinati","Vendite prodotto ordinate",
       "item-price","Item Price","Prezzo articolo","Product Sales","Vendite prodotto"
     ]));
   },

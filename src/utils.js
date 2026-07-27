@@ -5,11 +5,24 @@ window.BBUtils = {
   euro(v){ return new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(Number(v || 0)); },
   num(v){
     if(v===null || v===undefined || v==="") return 0;
-    let s=String(v).replace(/\u00a0/g," ").replace(/€/g,"").replace(/\s/g,"").trim();
-    if(s.includes(",") && s.includes(".")) s=s.replace(/\./g,"").replace(",",".");
-    else if(s.includes(",")) s=s.replace(",",".");
+    let s=String(v).replace(/\u00a0/g," ").replace(/[€$£%]/g,"").replace(/\s/g,"").trim();
+    const negative=/^\(.*\)$/.test(s);
+    s=s.replace(/[()]/g,"");
+    const comma=s.lastIndexOf(","),dot=s.lastIndexOf(".");
+    if(comma>=0 && dot>=0){
+      // L'ultimo separatore è quello decimale: supporta sia 4.041,92
+      // sia 4,041.92 senza scambiare migliaia e centesimi.
+      if(comma>dot) s=s.replace(/\./g,"").replace(",",".");
+      else s=s.replace(/,/g,"");
+    }else if(comma>=0){
+      const parts=s.split(",");
+      const looksThousands=parts.length===2 && /^\d{1,3}$/.test(parts[0]) &&
+        /^\d{3}$/.test(parts[1]) && Number(parts[0])!==0;
+      s=looksThousands?s.replace(",",""):s.replace(",",".");
+    }
     const m=s.match(/-?\d+(\.\d+)?/);
-    return m ? Number(m[0]) : 0;
+    const n=m ? Number(m[0]) : 0;
+    return negative ? -Math.abs(n) : n;
   },
   pct(v){ return Number.isFinite(v) ? v.toFixed(1)+"%" : "—"; },
   todayISO(){
