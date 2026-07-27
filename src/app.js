@@ -82,6 +82,14 @@ function bind(){
     if(e.target && (e.target.id==="dataExplorerYear" || e.target.id==="dataExplorerMonth")) BBRender.renderAll();
   });
   document.addEventListener("click",e=>{
+    const orderMonth=e.target.closest(".openOrderMonthBtn,.order-month-row");
+    if(orderMonth){
+      const y=BBUtils.el("dataExplorerYear"), m=BBUtils.el("dataExplorerMonth");
+      if(y) y.value=String(orderMonth.dataset.orderYear||y.value);
+      if(m) m.value=String(orderMonth.dataset.orderMonth||m.value);
+      BBRender.renderAll();
+      return;
+    }
     if(e.target && e.target.id==="resetDataExplorerBtn"){
       const y=BBUtils.el("dataExplorerYear"), m=BBUtils.el("dataExplorerMonth");
       if(y) y.value=y.options[0]?.value || "all";

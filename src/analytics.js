@@ -624,6 +624,183 @@ window.BBAnalytics = {
     });
     return Array.from(map.values()).sort((a,b)=>a.date-b.date);
   },
+  orderAnalysis(samples,filters={}){
+    const rawRows=(samples.orders||[]).slice();
+    const value=(row,names)=>BBUtils.pick(row,names);
+    const orderId=row=>String(value(row,[
+      "order-id","amazon-order-id","Amazon Order Id","Amazon Order ID","Numero ordine","Numero di ordine"
+    ])||"").trim();
+    const orderItemId=row=>String(value(row,[
+      "order-item-id","Amazon Order Item Id","Amazon Order Item ID","Numero articolo ordine","ID articolo ordine"
+    ])||"").trim();
+    const quantity=row=>BBUtils.num(value(row,[
+      "quantity-purchased","Quantity Purchased","Quantità acquistata","Quantita acquistata","Quantity","Quantità"
+    ]));
+    const revenue=row=>BBUtils.num(value(row,[
+      "item-price","Item Price","Prezzo articolo","Prezzo dell'articolo","Totale articolo","Product Sales"
+    ]));
+    const rowDate=row=>this.parseReportDate(value(row,[
+      "purchase-date","Purchase Date","Data acquisto","Data dell'acquisto","order-date","Data ordine","payments-date"
+    ]));
+    const asin=row=>String(value(row,["asin","ASIN","product-id","Product ID"])||"").trim();
+    const sku=row=>String(value(row,["sku","seller-sku","Seller SKU","merchant-sku","SKU"])||"").trim();
+    const title=row=>String(value(row,[
+      "product-name","Product Name","item-name","Item Name","title","Titolo","Dettagli prodotto"
+    ])||"").trim();
+
+    const seen=new Set();
+    const duplicateRows=[];
+    const normalized=[];
+    rawRows.forEach((row,index)=>{
+      const id=orderId(row);
+      const itemId=orderItemId(row);
+      const date=rowDate(row);
+      const qty=quantity(row);
+      const sales=revenue(row);
+      const identity=itemId
+        ? "item:"+itemId
+        : "row:"+[id,this.dateKey(date),asin(row),sku(row),qty,sales,title(row)].join("|").toLowerCase();
+      const item={row,index,id,itemId,date,qty,sales,asin:asin(row),sku:sku(row),title:title(row),identity};
+      if(seen.has(identity)){
+        duplicateRows.push(item);
+        return;
+      }
+      seen.add(identity);
+      normalized.push(item);
+    });
+
+    const valid=normalized.filter(r=>r.id);
+    const monthMap=new Map();
+    const orderMap=new Map();
+    valid.forEach(item=>{
+      const monthKey=item.date ? item.date.getFullYear()+"-"+String(item.date.getMonth()+1).padStart(2,"0") : "senza-data";
+      const month=monthMap.get(monthKey)||{
+        key:monthKey,
+        year:item.date?item.date.getFullYear():null,
+        month:item.date?item.date.getMonth():null,
+        label:item.date?new Intl.DateTimeFormat("it-IT",{month:"long",year:"numeric"}).format(item.date):"Senza data",
+        orderIds:new Set(),
+        lines:0,
+        units:0,
+        revenue:0
+      };
+      month.orderIds.add(item.id);
+      month.lines++;
+      month.units+=item.qty;
+      month.revenue+=item.sales;
+      monthMap.set(monthKey,month);
+
+      const groupKey=monthKey+"|"+item.id;
+      const order=orderMap.get(groupKey)||{
+        key:groupKey,
+        id:item.id,
+        date:item.date,
+        monthKey,
+        lines:[],
+        units:0,
+        revenue:0
+      };
+      if(item.date && (!order.date || item.date<order.date)) order.date=item.date;
+      order.lines.push(item);
+      order.units+=item.qty;
+      order.revenue+=item.sales;
+      orderMap.set(groupKey,order);
+    });
+
+    const monthly=Array.from(monthMap.values()).map(m=>({
+      ...m,
+      orders:m.orderIds.size,
+      averageOrder:m.orderIds.size?m.revenue/m.orderIds.size:NaN
+    })).sort((a,b)=>String(a.key).localeCompare(String(b.key)));
+    const years=Array.from(new Set(monthly.filter(m=>m.year!==null).map(m=>m.year))).sort((a,b)=>b-a);
+    const requestedYear=filters.year&&filters.year!=="all"?Number(filters.year):null;
+    const selectedYear=requestedYear&&years.includes(requestedYear)?requestedYear:(years[0]||null);
+    const monthsForYear=monthly.filter(m=>selectedYear===null||m.year===selectedYear);
+    const requestedMonth=filters.month&&filters.month!=="all"?Number(filters.month):null;
+    const selectedMonth=requestedMonth!==null&&monthsForYear.some(m=>m.month===requestedMonth)
+      ? requestedMonth
+      : null;
+    const filteredMonths=selectedMonth===null?monthsForYear:monthsForYear.filter(m=>m.month===selectedMonth);
+    const detailMonth=selectedMonth!==null
+      ? monthsForYear.find(m=>m.month===selectedMonth)
+      : monthsForYear[monthsForYear.length-1];
+    const detailOrders=detailMonth
+      ? Array.from(orderMap.values()).filter(o=>o.monthKey===detailMonth.key).sort((a,b)=>(b.date||0)-(a.date||0)||a.id.localeCompare(b.id))
+      : [];
+
+    const selectedIndex=detailMonth?monthly.findIndex(m=>m.key===detailMonth.key):-1;
+    const current=selectedIndex>=0?monthly[selectedIndex]:null;
+    const previous=selectedIndex>0?monthly[selectedIndex-1]:null;
+    const delta=(now,before)=>before?((now-before)/Math.abs(before))*100:NaN;
+    const comparison=current?{
+      current,
+      previous,
+      orders:delta(current.orders,previous?.orders),
+      lines:delta(current.lines,previous?.lines),
+      units:delta(current.units,previous?.units),
+      revenue:delta(current.revenue,previous?.revenue),
+      averageOrder:delta(current.averageOrder,previous?.averageOrder)
+    }:null;
+
+    const visibleOrders=new Set();
+    let visibleLines=0,visibleUnits=0,visibleRevenue=0;
+    filteredMonths.forEach(m=>{
+      m.orderIds.forEach(id=>visibleOrders.add(id));
+      visibleLines+=m.lines;
+      visibleUnits+=m.units;
+      visibleRevenue+=m.revenue;
+    });
+    const missingOrderIds=normalized.filter(r=>!r.id).length;
+    const invalidQuantity=normalized.filter(r=>!Number.isFinite(r.qty)||r.qty<=0).length;
+    const invalidRevenue=normalized.filter(r=>{
+      const raw=value(r.row,["item-price","Item Price","Prezzo articolo","Prezzo dell'articolo","Totale articolo","Product Sales"]);
+      return raw===""||raw===null||raw===undefined||!Number.isFinite(r.sales)||r.sales<0;
+    }).length;
+    const monthlyLines=monthly.reduce((a,m)=>a+m.lines,0);
+    const monthlyUnits=monthly.reduce((a,m)=>a+m.units,0);
+    const monthlyRevenue=monthly.reduce((a,m)=>a+m.revenue,0);
+    const totals={
+      orders:new Set(valid.map(r=>r.id)).size,
+      lines:valid.length,
+      units:valid.reduce((a,r)=>a+r.qty,0),
+      revenue:valid.reduce((a,r)=>a+r.sales,0)
+    };
+    const arithmeticOk=monthlyLines===totals.lines &&
+      Math.abs(monthlyUnits-totals.units)<0.0001 &&
+      Math.abs(monthlyRevenue-totals.revenue)<0.005;
+    const coherence={
+      ok:missingOrderIds===0&&invalidQuantity===0&&invalidRevenue===0&&arithmeticOk,
+      rawLines:rawRows.length,
+      activeLines:normalized.length,
+      duplicateLines:duplicateRows.length,
+      missingOrderIds,
+      invalidQuantity,
+      invalidRevenue,
+      arithmeticOk
+    };
+
+    return {
+      hasData:rawRows.length>0,
+      totals,
+      visible:{
+        orders:visibleOrders.size,
+        lines:visibleLines,
+        units:visibleUnits,
+        revenue:visibleRevenue,
+        averageOrder:visibleOrders.size?visibleRevenue/visibleOrders.size:NaN
+      },
+      monthly,
+      years,
+      selectedYear,
+      selectedMonth,
+      availableMonths:monthsForYear.map(m=>({value:m.month,label:m.label,key:m.key})),
+      filteredMonths,
+      detailMonth,
+      detailOrders,
+      comparison,
+      coherence
+    };
+  },
   executiveSalesOverview(samples,c,filters={}){
     const rules=BBUtils.rules();
     const manual=this.manualSalesStatus(samples,rules.manualSales||[]);

@@ -75,6 +75,29 @@ textarea{min-height:110px}
 .overview-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}
 .overview-head h3{margin-bottom:6px}
 .data-query-tools{grid-template-columns:1fr 1fr auto;margin-bottom:18px}
+.order-kpis{grid-template-columns:repeat(5,1fr)}
+.table-scroll{overflow:auto;border:1px solid #e3ebf4;border-radius:16px;margin:10px 0 22px;background:#fff}
+.table-scroll table{min-width:860px}
+.order-month-row{cursor:pointer;transition:background .15s ease}
+.order-month-row:hover td,.order-month-row.selected td{background:#eefaff}
+.order-month-row.selected td:first-child{box-shadow:inset 4px 0 0 #087eaa}
+.order-comparison{margin:24px 0}
+.order-delta{display:block;margin-top:8px;font-size:12px;font-weight:900}
+.order-delta.up{color:#047857}
+.order-delta.down{color:#be123c}
+.order-delta.neutral{color:#64748b}
+.order-detail-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:26px}
+.order-products{min-width:330px}
+.order-products div{padding:4px 0;border-bottom:1px solid #edf2f7}
+.order-products div:last-child{border-bottom:0}
+.order-products b,.order-products span{display:block}
+.order-products span{color:#64748b;font-size:12px;margin-top:3px}
+.coherence-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:12px 0 18px}
+.coherence-item{border:1px solid #e3ebf4;border-radius:15px;padding:14px;background:#fbfdff}
+.coherence-item small{display:block;color:#64748b;font-weight:900;text-transform:uppercase}
+.coherence-item b{display:block;font-size:20px;margin-top:6px}
+.coherence-item.ok{border-color:#86efac;background:#f7fff9}
+.coherence-item.warn{border-color:#fda4af;background:#fff7f7;color:#be123c}
 .overview-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:18px;align-items:stretch}
 .overview-summary{border:1px solid #e3ebf4;border-radius:18px;background:#fbfdff;padding:18px;line-height:1.45}
 .overview-summary h3{margin-bottom:12px}
@@ -181,7 +204,7 @@ pre{white-space:pre-wrap;background:#111827;color:#e5e7eb;padding:16px;border-ra
 @media(max-width:1000px){body{display:block}
 aside{position:static;width:100%;min-height:auto}
 main{margin-left:0}
-.kpis,.grid2,.grid3,.import-grid,.tool-row,.target-guide,.ba-insights,.manual-sales-form,.score-breakdown,.fba-form,.overview-grid{grid-template-columns:1fr}
+.kpis,.grid2,.grid3,.import-grid,.tool-row,.target-guide,.ba-insights,.manual-sales-form,.score-breakdown,.fba-form,.overview-grid,.order-kpis,.coherence-grid{grid-template-columns:1fr}
 .overview-head{display:block}
 .ba-report-head,.ba-table-meta{display:block}
 .ba-controls{grid-template-columns:1fr}

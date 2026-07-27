@@ -187,13 +187,13 @@ window.BBRender = {
       month:BBUtils.el("dataExplorerMonth")?.value || "all"
     };
   },
-  dataExplorerHtml(overview){
+  dataExplorerHtml(analysis){
     const h=BBUtils.html;
-    if(!overview) return '<div class="action">Carica almeno Report ordini, Business Report, Profit Report o Store Amazon per interrogare i dati.</div>';
-    const years=overview.years||[];
-    const selectedYear=String(overview.year||"all");
-    const selectedMonth=overview.selectedMonth===null||overview.selectedMonth===undefined ? "all" : String(overview.selectedMonth);
-    const months=overview.availableMonths||[];
+    if(!analysis?.hasData) return '<div class="action yellow"><b>Report ordini mancante</b><br>Importa il Report ordini Amazon per controllare ordini unici, righe prodotto, pezzi, fatturato e riepilogo mensile.</div>';
+    const years=analysis.years||[];
+    const selectedYear=String(analysis.selectedYear||"all");
+    const selectedMonth=analysis.selectedMonth===null||analysis.selectedMonth===undefined ? "all" : String(analysis.selectedMonth);
+    const months=analysis.availableMonths||[];
     const controls='<div class="tool-row data-query-tools">'+
       '<select id="dataExplorerYear">'+
         years.map(y=>'<option value="'+h(y)+'" '+(String(y)===selectedYear?'selected':'')+'>'+h(y)+'</option>').join("")+
@@ -204,7 +204,58 @@ window.BBRender = {
       '</select>'+
       '<button id="resetDataExplorerBtn" class="secondaryBtn" type="button">Azzera filtri</button>'+
     '</div>';
-    return controls+this.executiveSalesOverviewHtml(overview);
+    const v=analysis.visible;
+    const coherence=analysis.coherence;
+    const delta=value=>{
+      if(!Number.isFinite(value)) return '<span class="order-delta neutral">—</span>';
+      const cls=value>0?"up":(value<0?"down":"neutral");
+      const sign=value>0?"+":"";
+      return '<span class="order-delta '+cls+'">'+sign+h(value.toFixed(1))+'%</span>';
+    };
+    const comparison=analysis.comparison;
+    const comparisonHtml=comparison?'<div class="order-comparison">'+
+      '<div class="overview-head"><div><h3>Confronto periodi</h3><p class="hint">'+h(comparison.current.label)+' rispetto a '+h(comparison.previous?.label||"periodo precedente non disponibile")+'.</p></div></div>'+
+      '<div class="grid3">'+[
+        ["Ordini",comparison.current.orders,comparison.orders],
+        ["Pezzi",comparison.current.units,comparison.units],
+        ["Fatturato",BBUtils.euro(comparison.current.revenue),comparison.revenue],
+        ["Valore medio ordine",BBUtils.euro(comparison.current.averageOrder),comparison.averageOrder]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong>'+delta(x[2])+'</div>').join("")+'</div>'+
+    '</div>':"";
+    const coherenceItems=[
+      ["Righe sorgente",coherence.rawLines,true],
+      ["Righe attive",coherence.activeLines,true],
+      ["Duplicati esclusi",coherence.duplicateLines,coherence.duplicateLines===0],
+      ["Order ID mancanti",coherence.missingOrderIds,coherence.missingOrderIds===0],
+      ["Quantità non valide",coherence.invalidQuantity,coherence.invalidQuantity===0],
+      ["Prezzi non validi",coherence.invalidRevenue,coherence.invalidRevenue===0],
+      ["Quadratura mensile",coherence.arithmeticOk?"OK":"Errore",coherence.arithmeticOk]
+    ];
+    const monthlyTable=analysis.filteredMonths.length?'<div class="table-scroll"><table class="order-month-table"><tr><th>Mese</th><th>Ordini unici</th><th>Righe prodotto</th><th>Pezzi</th><th>Fatturato</th><th>Valore medio ordine</th><th></th></tr>'+
+      analysis.filteredMonths.slice().reverse().map(m=>'<tr class="order-month-row '+(analysis.detailMonth?.key===m.key?'selected':'')+'" data-order-year="'+h(m.year)+'" data-order-month="'+h(m.month)+'"><td><b>'+h(m.label)+'</b></td><td>'+h(m.orders)+'</td><td>'+h(m.lines)+'</td><td>'+h(m.units)+'</td><td>'+h(BBUtils.euro(m.revenue))+'</td><td>'+h(BBUtils.euro(m.averageOrder))+'</td><td><button type="button" class="secondaryBtn openOrderMonthBtn" data-order-year="'+h(m.year)+'" data-order-month="'+h(m.month)+'">Dettaglio</button></td></tr>').join("")+
+      '</table></div>':'<div class="action">Nessun mese disponibile per il filtro selezionato.</div>';
+    const detail=analysis.detailMonth;
+    const detailTable=detail&&analysis.detailOrders.length?'<div class="table-scroll"><table class="order-detail-table"><tr><th>Data</th><th>Order ID</th><th>Righe</th><th>Pezzi</th><th>Fatturato</th><th>Articoli</th></tr>'+
+      analysis.detailOrders.map(order=>'<tr><td>'+h(order.date?order.date.toLocaleDateString("it-IT"):"—")+'</td><td><b>'+h(order.id)+'</b></td><td>'+h(order.lines.length)+'</td><td>'+h(order.units)+'</td><td>'+h(BBUtils.euro(order.revenue))+'</td><td class="order-products">'+order.lines.map(line=>'<div><b>'+h(line.title||line.asin||line.sku||"Articolo")+'</b><span>Qtà '+h(line.qty)+' · '+h(BBUtils.euro(line.sales))+(line.asin?' · '+h(line.asin):"")+'</span></div>').join("")+'</td></tr>').join("")+
+      '</table></div>':'<div class="action">Nessun ordine disponibile per il dettaglio mensile.</div>';
+    return controls+
+      '<div class="overview-head"><div><h3>Controllo ordini</h3><p class="hint">Gli ordini sono distinti per <b>order-id</b>; le righe prodotto sono deduplicate; i pezzi derivano da <b>quantity-purchased</b> e il fatturato da <b>item-price</b>.</p></div><span class="pill '+(coherence.ok?'green':'red')+'">'+h(coherence.ok?"Import coerente":"Controllo richiesto")+'</span></div>'+
+      '<div class="kpis order-kpis">'+[
+        ["Ordini unici",v.orders,"order-id distinti"],
+        ["Righe prodotto",v.lines,"righe attive non duplicate"],
+        ["Pezzi venduti",v.units,"somma quantity-purchased"],
+        ["Fatturato",BBUtils.euro(v.revenue),"somma item-price"],
+        ["Valore medio ordine",BBUtils.euro(v.averageOrder),"fatturato / ordini"]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[2])+'</span></div>').join("")+'</div>'+
+      '<h3>Riepilogo mese per mese</h3><p class="hint">Clicca un mese per aprire il dettaglio degli ordini distinti.</p>'+
+      monthlyTable+
+      comparisonHtml+
+      '<div class="order-detail-head"><h3>Dettaglio '+h(detail?.label||"mensile")+'</h3><span class="pill">'+h(analysis.detailOrders.length)+' ordini distinti</span></div>'+
+      detailTable+
+      '<h3>Controllo coerenza import</h3>'+
+      '<div class="coherence-grid">'+coherenceItems.map(x=>'<div class="coherence-item '+(x[2]?'ok':'warn')+'"><small>'+h(x[0])+'</small><b>'+h(x[1])+'</b></div>').join("")+'</div>'+
+      (coherence.duplicateLines?'<div class="action yellow"><b>Duplicati neutralizzati</b><br>'+h(coherence.duplicateLines)+' righe sovrapposte sono state escluse dai KPI, quindi non vengono sommate due volte.</div>':'')+
+      (!coherence.ok?'<div class="action red"><b>Import da verificare</b><br>Controlla le righe segnalate prima di usare i dati per decisioni economiche.</div>':'<div class="action green"><b>Quadratura completata</b><br>Ordini, righe prodotto, pezzi e fatturato mensile coincidono con il dettaglio attivo.</div>');
   },
   filteredAsinDecisionRows(rows){
     const c=this.asinControls();
@@ -283,7 +334,7 @@ window.BBRender = {
     const healthText=health>=70?"Da spingere":(health>=45?"Da controllare":"Da correggere");
     const firstDecision=execDecisions[0];
     const actionRows=execDecisions.slice(0,5);
-    const dataExplorerOverview=BBAnalytics.executiveSalesOverview ? BBAnalytics.executiveSalesOverview(scopedSamples,c,this.dataExplorerControls()) : null;
+    const dataExplorerOverview=BBAnalytics.orderAnalysis ? BBAnalytics.orderAnalysis(scopedSamples,this.dataExplorerControls()) : null;
     const missingCore=BBAnalytics.reportDefs.filter(r=>["business_report","transactions","ad_invoices","orders","inventory","search_terms","profit_report","store_date","store_live_page","store_source"].includes(r[0]) && !(s.counts[r[0]]||0));
     const targetPlan=[
       ["TACOS <= "+execRules.tacos+"%","Aumenta vendite organiche e riduci spesa Ads non produttiva.","Taglia keyword senza vendite, spingi solo campagne con ROAS buono, migliora schede prodotto e porta traffico verso Shopify."],
