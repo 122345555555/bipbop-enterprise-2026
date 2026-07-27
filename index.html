@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>BipBop Enterprise 2026 v1.3 — Controllo settimanale</title>
-  <link rel="stylesheet" href="style.css?v=5.15">
+  <link rel="stylesheet" href="style.css?v=5.16">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -75,46 +75,67 @@
     </section>
 
     <section id="import" class="view">
-      <div class="card">
-        <h3>Import universale v1.0 <span class="pill green">Smart Parser attivo</span></h3>
-        <p class="hint">Trascina insieme CSV, TSV o TXT Amazon. Il parser riconosce separatore, encoding e tipo report. I duplicati non vengono sommati nei dati attivi.</p>
-        <label>Destinazione import</label>
-        <select id="reportTypeOverride">
-          <option value="">Riconoscimento automatico</option>
-          <option value="business_report">Business Report</option>
-          <option value="transactions">Transazioni / Pagamenti</option>
-          <option value="ad_invoices">Fatture Ads</option>
-          <option value="sponsored_products">Sponsored Products</option>
-          <option value="sponsored_brands">Sponsored Brands</option>
-          <option value="sponsored_display">Sponsored Display</option>
-          <option value="search_terms">Search Terms</option>
-          <option value="orders">Report ordini</option>
-          <option value="inventory">Inventario</option>
-          <option value="store_date">Store Amazon - per data</option>
-          <option value="store_live_page">Store Amazon - pagine attive</option>
-          <option value="store_not_live_page">Store Amazon - pagine non attive</option>
-          <option value="store_source">Store Amazon - fonti traffico</option>
-          <option value="brand_analytics">Brand Analytics</option>
-          <option value="profit_report">Profit Report</option>
-        </select>
-        <p class="hint">Se un report finisce nella sezione sbagliata, eliminalo dall'Archivio, scegli qui la sezione corretta e ricaricalo.</p>
-        <label class="replace-toggle">
-          <input id="replaceExistingReports" type="checkbox" checked>
-          <span>
-            <b>Sostituisci i vecchi report dello stesso tipo</b>
-            <small>I vecchi dati vengono eliminati solo dopo un nuovo import riuscito. Per più campagne Sponsored Brands, Products o Display, seleziona insieme tutti i relativi file.</small>
-          </span>
-        </label>
-        <div id="dropZone" class="dropzone">
-          <b>Trascina qui tutti i report Amazon</b>
-          <span>CSV, TSV, TXT — UTF-8, UTF-16, ANSI</span>
-          <input id="multiFile" type="file" accept=".csv,.txt,.tsv" multiple hidden>
+      <div class="card import-main-card">
+        <div class="page-section-head">
+          <div>
+            <span class="eyebrow">Centro importazioni</span>
+            <h3>Import universale Amazon</h3>
+            <p class="hint">Carica insieme CSV, TSV o TXT. Il parser riconosce formato e tipologia; i duplicati non vengono sommati nei dati attivi.</p>
+          </div>
+          <span class="pill green">Smart Parser attivo</span>
         </div>
-        <button id="selectFilesBtn">Seleziona file</button>
-        <button id="clearImportLogBtn" class="secondaryBtn">Pulisci log</button>
-        <div id="importLog" class="log">Pronto.</div>
+        <div class="import-workspace">
+          <div class="import-settings">
+            <div class="import-panel-title">Impostazioni</div>
+            <label for="reportTypeOverride">Destinazione import</label>
+            <select id="reportTypeOverride">
+              <option value="">Riconoscimento automatico</option>
+              <option value="business_report">Business Report</option>
+              <option value="transactions">Transazioni / Pagamenti</option>
+              <option value="ad_invoices">Fatture Ads</option>
+              <option value="sponsored_products">Sponsored Products</option>
+              <option value="sponsored_brands">Sponsored Brands</option>
+              <option value="sponsored_display">Sponsored Display</option>
+              <option value="search_terms">Search Terms</option>
+              <option value="orders">Report ordini</option>
+              <option value="inventory">Inventario</option>
+              <option value="store_date">Store Amazon - per data</option>
+              <option value="store_live_page">Store Amazon - pagine attive</option>
+              <option value="store_not_live_page">Store Amazon - pagine non attive</option>
+              <option value="store_source">Store Amazon - fonti traffico</option>
+              <option value="brand_analytics">Brand Analytics</option>
+              <option value="profit_report">Profit Report</option>
+            </select>
+            <p class="hint import-help">Usa la selezione manuale solo se il riconoscimento automatico assegna il report alla sezione sbagliata.</p>
+            <label class="replace-toggle">
+              <input id="replaceExistingReports" type="checkbox" checked>
+              <span>
+                <b>Sostituisci i vecchi report dello stesso tipo</b>
+                <small>I vecchi dati vengono eliminati soltanto dopo un nuovo import riuscito. Per più campagne Ads, seleziona insieme tutti i file collegati.</small>
+              </span>
+            </label>
+          </div>
+          <div class="import-drop-panel">
+            <div id="dropZone" class="dropzone">
+              <span class="dropzone-icon" aria-hidden="true">⇧</span>
+              <b>Trascina qui tutti i report Amazon</b>
+              <span>CSV, TSV, TXT — UTF-8, UTF-16, ANSI</span>
+              <input id="multiFile" type="file" accept=".csv,.txt,.tsv" multiple hidden>
+            </div>
+            <div class="import-actions">
+              <button id="selectFilesBtn">Seleziona file</button>
+              <button id="clearImportLogBtn" class="secondaryBtn">Pulisci log</button>
+            </div>
+            <div id="importLog" class="log">Pronto.</div>
+          </div>
+        </div>
       </div>
-      <div class="card"><h3>Report attivi in database</h3><div id="statusGrid" class="import-grid"></div></div>
+      <div class="card import-status-card">
+        <div class="page-section-head compact">
+          <div><span class="eyebrow">Copertura dati</span><h3>Report attivi in database</h3></div>
+        </div>
+        <div id="statusGrid" class="import-grid"></div>
+      </div>
     </section>
 
     <section id="sales" class="view"><div class="card"><h3>Sales</h3><div id="salesBox"></div></div></section>
@@ -225,7 +246,7 @@
         <div id="keywordBox"></div>
       </div>
     </section>
-    <section id="brandanalytics" class="view"><div class="card"><h3>Brand Analytics – Performance query di ricerca</h3><div id="brandAnalyticsBox"></div></div></section>
+    <section id="brandanalytics" class="view"><div class="card brand-analytics-card"><div class="page-section-head compact"><div><span class="eyebrow">Intelligence di mercato</span><h3>Brand Analytics</h3></div></div><div id="brandAnalyticsBox"></div></div></section>
     <section id="profit" class="view">
       <div class="card">
         <h3>Profit Center</h3>
@@ -319,6 +340,6 @@
   <script src="src/analytics.js?v=5.14"></script>
   <script src="src/render.js?v=5.14"></script>
   <script src="src/app.js?v=5.14"></script>
-  <script src="layout.js?v=5.15"></script>
+  <script src="layout.js?v=5.16"></script>
 </body>
 </html>

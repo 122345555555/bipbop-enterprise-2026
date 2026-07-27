@@ -224,6 +224,366 @@ body *{visibility:hidden}
 }
 
 /* =========================================================
+   Import Amazon + Brand Analytics visual composition
+   ========================================================= */
+
+.page-section-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:12px 20px;
+  margin-bottom:18px;
+}
+
+.page-section-head.compact{
+  margin-bottom:12px;
+}
+
+.page-section-head h3{
+  margin:3px 0 5px;
+  font-size:clamp(20px,1.7vw,27px);
+}
+
+.page-section-head p{
+  max-width:900px;
+  margin:0;
+}
+
+.eyebrow{
+  display:block;
+  color:#087eaa;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.import-main-card{
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 100% 0,rgba(14,165,233,.09),transparent 32%),
+    #fff;
+}
+
+.import-workspace{
+  display:grid;
+  grid-template-columns:minmax(250px,.85fr) minmax(0,1.45fr);
+  gap:16px;
+  align-items:stretch;
+}
+
+.import-settings,
+.import-drop-panel{
+  min-width:0;
+  border:1px solid #dfe8f2;
+  border-radius:18px;
+  padding:16px;
+  background:rgba(248,251,255,.92);
+}
+
+.import-panel-title{
+  margin-bottom:12px;
+  color:#334155;
+  font-size:14px;
+  font-weight:900;
+}
+
+.import-settings>label:not(.replace-toggle){
+  color:#475569;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+.import-settings select{
+  margin:6px 0 8px;
+}
+
+.import-help{
+  margin:0 0 14px;
+  font-size:12px;
+  line-height:1.45;
+}
+
+.import-settings .replace-toggle{
+  margin:0;
+  padding:12px;
+  background:#fff;
+}
+
+.import-drop-panel{
+  display:flex;
+  flex-direction:column;
+}
+
+#import .dropzone{
+  display:grid;
+  flex:1 1 auto;
+  min-height:210px;
+  place-content:center;
+  padding:24px;
+  margin:0;
+  border-width:2px;
+  border-radius:18px;
+  background:linear-gradient(145deg,#f8fdff,#edf9ff);
+}
+
+#import .dropzone b{
+  font-size:clamp(19px,1.7vw,25px);
+}
+
+.dropzone-icon{
+  display:grid!important;
+  width:48px;
+  height:48px;
+  margin:0 auto 12px!important;
+  place-items:center;
+  border-radius:15px;
+  background:#087eaa;
+  color:#fff!important;
+  font-size:27px;
+  font-weight:900;
+  box-shadow:0 10px 22px rgba(8,126,170,.2);
+}
+
+.import-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+}
+
+.import-actions button{
+  flex:1 1 150px;
+  margin:0;
+}
+
+#import .log{
+  min-height:48px;
+  max-height:170px;
+  overflow:auto;
+  margin-top:10px;
+  padding:12px 14px;
+  border-radius:12px;
+  font-size:13px;
+}
+
+.import-status-card{
+  padding-top:18px;
+}
+
+#import .import-grid{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));
+  gap:10px;
+}
+
+#import .import-box{
+  padding:13px;
+  border-radius:14px;
+}
+
+.brand-analytics-card{
+  overflow:hidden;
+  padding:clamp(16px,1.8vw,24px);
+  background:
+    radial-gradient(circle at 100% 0,rgba(8,145,178,.08),transparent 27%),
+    #fff;
+}
+
+#brandanalytics .ba-report-shell{
+  display:grid;
+  gap:14px;
+  margin-top:0;
+}
+
+#brandanalytics .ba-report-head{
+  align-items:center;
+  margin:0;
+  padding:18px;
+  border:1px solid #dce8f1;
+  border-radius:17px;
+  background:linear-gradient(135deg,#f8fdff,#eef9fc);
+}
+
+#brandanalytics .ba-report-head h2{
+  font-size:clamp(21px,2vw,29px);
+}
+
+#brandanalytics .ba-market{
+  flex:0 0 auto;
+  padding:9px 14px;
+  border-color:#a5d8e5;
+  border-radius:999px;
+  background:#fff;
+  color:#087eaa;
+}
+
+#brandanalytics .ba-tabs{
+  gap:8px;
+  margin:0;
+  padding:4px;
+  border:0;
+  border-radius:13px;
+  background:#eef4f8;
+}
+
+#brandanalytics .ba-tabs span{
+  flex:1 1 180px;
+  padding:10px 14px;
+  border:0;
+  border-radius:10px;
+  text-align:center;
+}
+
+#brandanalytics .ba-tabs span.active{
+  border:0;
+  background:#fff;
+  color:#087eaa;
+  box-shadow:0 3px 12px rgba(20,40,80,.08);
+}
+
+#brandanalytics .ba-controls{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(160px,1fr)) auto auto;
+  gap:10px;
+  align-items:end;
+  margin:0;
+  padding:14px;
+  border:1px solid #e2eaf2;
+  border-radius:15px;
+  background:#fbfdff;
+}
+
+#brandanalytics .ba-controls label{
+  min-width:0;
+  font-size:11px;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+
+#brandanalytics .ba-controls select{
+  height:40px;
+  margin:5px 0 0;
+  border-radius:10px;
+}
+
+#brandanalytics .ba-controls button{
+  width:auto;
+  min-width:100px;
+  height:40px;
+  margin:0;
+  border-radius:10px;
+}
+
+#brandanalytics .ba-controls button.secondaryBtn{
+  width:auto;
+  min-width:145px;
+  justify-self:auto;
+}
+
+#brandanalytics .ba-summary{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,155px),1fr));
+  gap:10px;
+  margin:0;
+}
+
+#brandanalytics .ba-summary .kpi{
+  padding:14px;
+  border-radius:15px;
+  box-shadow:none;
+}
+
+#brandanalytics .ba-insights{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));
+  gap:10px;
+  margin:0;
+}
+
+#brandanalytics .ba-insight-card{
+  padding:14px;
+  border-radius:14px;
+}
+
+#brandanalytics .ba-table-meta{
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:8px 14px;
+  margin:4px 0 -6px;
+}
+
+#brandanalytics .ba-table-wrap{
+  max-width:100%;
+  border-radius:13px;
+  box-shadow:inset 0 0 0 1px rgba(216,226,238,.35);
+}
+
+#brandanalytics .ba-table{
+  min-width:1800px;
+}
+
+#brandanalytics .ba-table th{
+  position:sticky;
+  top:0;
+  z-index:1;
+}
+
+#brandanalytics .ba-pagination{
+  margin-top:-4px;
+}
+
+@media (max-width:1180px){
+  .import-workspace{
+    grid-template-columns:1fr;
+  }
+
+  #brandanalytics .ba-controls{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  #brandanalytics .ba-controls button{
+    width:100%;
+  }
+}
+
+@media (max-width:680px){
+  .import-settings,
+  .import-drop-panel{
+    padding:13px;
+  }
+
+  #import .dropzone{
+    min-height:180px;
+    padding:18px 12px;
+  }
+
+  #brandanalytics .ba-report-head{
+    padding:14px;
+  }
+
+  #brandanalytics .ba-market{
+    width:100%;
+    text-align:center;
+  }
+
+  #brandanalytics .ba-controls{
+    grid-template-columns:1fr;
+    padding:12px;
+  }
+
+  #brandanalytics .ba-controls button,
+  #brandanalytics .ba-controls button.secondaryBtn{
+    width:100%;
+  }
+
+  #brandanalytics .ba-table-meta{
+    display:flex;
+  }
+}
+
+/* =========================================================
    Responsive application layout — presentation only
    ========================================================= */
 
