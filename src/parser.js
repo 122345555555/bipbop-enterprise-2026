@@ -32,12 +32,46 @@ window.BBParser = {
     for(let i=0;i<line.length;i++){
       const c=line[i],nx=line[i+1];
       if(c=='"' && q && nx=='"'){cur+='"';i++;continue;}
-      if(c=='"'){q=!q;continue;}
+      if(c=='"'){
+        if(!q && cur===""){ q=true; continue; }
+        if(q && (nx===delim || nx===undefined)){ q=false; continue; }
+        cur+='"';
+        continue;
+      }
       if(c===delim && !q){out.push(cur);cur="";continue;}
       cur+=c;
     }
     out.push(cur);
     return out;
+  },
+
+  splitRecords(text,delim){
+    const records=[];let row=[],cur="",q=false;
+    const pushField=()=>{ row.push(cur); cur=""; };
+    const pushRow=()=>{
+      pushField();
+      if(row.some(v=>String(v||"").trim()!=="")) records.push(row);
+      row=[];
+    };
+    for(let i=0;i<text.length;i++){
+      const c=text[i],nx=text[i+1];
+      if(c=='"' && q && nx=='"'){ cur+='"'; i++; continue; }
+      if(c=='"'){
+        if(!q && cur===""){ q=true; continue; }
+        if(q && (nx===delim || nx==="\r" || nx==="\n" || nx===undefined)){ q=false; continue; }
+        cur+='"';
+        continue;
+      }
+      if(c===delim && !q){ pushField(); continue; }
+      if((c==="\r" || c==="\n") && !q){
+        if(c==="\r" && nx==="\n") i++;
+        pushRow();
+        continue;
+      }
+      cur+=c;
+    }
+    if(cur!=="" || row.length) pushRow();
+    return records;
   },
 
   isIntroLine(cells){
@@ -71,8 +105,7 @@ window.BBParser = {
 
   parse(text){
     const delimiter=this.detectDelimiter(text.slice(0,12000));
-    const lines=text.split(/\r\n|\n|\r/).filter(l=>l.trim()!=="");
-    const parsed=lines.map(l=>this.splitLine(l,delimiter));
+    const parsed=this.splitRecords(text,delimiter);
     if(!parsed.length) return {headers:[],rows:[],delimiter};
 
     let headerIndex=0,best=-999;

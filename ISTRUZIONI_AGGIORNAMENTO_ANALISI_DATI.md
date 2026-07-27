@@ -7,6 +7,14 @@
 3. Attendi il deploy automatico di Vercel.
 4. Apri il sito e aggiorna la pagina forzando la cache (`Cmd+Shift+R` su Mac).
 
+Se il Report ordini era già stato importato con la versione precedente:
+
+1. apri `Archivio`;
+2. elimina quel file ordini;
+3. importalo nuovamente come `Report ordini`.
+
+Il passaggio è necessario perché quantità e prezzi già salvati con colonne disallineate devono essere riletti dal parser corretto.
+
 ## SQL
 
 Non è necessario eseguire nuovo SQL: l'aggiornamento usa le tabelle `bb100_` già presenti, in particolare `bb100_raw_rows`.
