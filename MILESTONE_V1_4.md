@@ -25,6 +25,8 @@ La sezione calcola:
 
 La dashboard legge le righe del report Amazon “Cerca performance catalogo” già importate nell'archivio e mostra:
 
+- periodo complessivo coperto dal report;
+- data o intervallo temporale disponibile per ogni ASIN;
 - impressioni, clic, CTR, carrelli, acquisti e conversione;
 - prodotti con buona risposta;
 - prodotti con traffico ma CTR o conversione deboli;

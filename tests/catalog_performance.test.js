@@ -27,6 +27,7 @@ const rows = [
     "Titolo ASIN":"Bordo Mongolfiere",
     "ASIN":"B0TEST001",
     "Categoria":"Decorazioni",
+    "Data del report":"2026-07-01",
     "Impressioni":"1000",
     "Clic":"30",
     "Aggiunte al carrello":"4",
@@ -37,6 +38,7 @@ const rows = [
     "Titolo ASIN":"Adesivo Mongolfiere",
     "ASIN":"B0TEST002",
     "Categoria":"Decorazioni",
+    "Data del report":"2026-07-07",
     "Impressioni":"800",
     "Clic":"2",
     "Aggiunte al carrello":"0",
@@ -51,6 +53,8 @@ assert.equal(analysis.products.length,2);
 assert.equal(analysis.totals.impressions,1800);
 assert.equal(analysis.totals.clicks,32);
 assert.equal(analysis.totals.purchases,2);
+assert.equal(context.window.BBAnalytics.dateKey(analysis.period.start),"2026-07-01");
+assert.equal(context.window.BBAnalytics.dateKey(analysis.period.end),"2026-07-07");
 assert.equal(analysis.winners[0].asin,"B0TEST001");
 assert.equal(analysis.lowCtr[0].asin,"B0TEST002");
 assert.ok(analysis.actions.length>=2);

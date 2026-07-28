@@ -944,7 +944,10 @@ window.BBAnalytics = {
       asin:text(row,["ASIN","asin","Codice ASIN"]),
       title:text(row,["Titolo ASIN","ASIN Title","Titolo","Product Title","Nome prodotto"]),
       category:text(row,["Categoria","Category"]),
-      date:this.parseReportDate(pick(row,["Data del report","Data della segnalazione","Report Date","Date"])),
+      date:this.parseReportDate(pick(row,[
+        "Data del report","Data della segnalazione","Report Date","Date",
+        "Data di fine","Data fine","End Date","Data"
+      ])),
       impressions:metric(row,["Impressioni","Impressions","Impressioni: numero totale"]),
       clicks:metric(row,["Clic","Click","Clicks","Clic: numero totale"]),
       carts:metric(row,["Aggiunte al carrello","Add to cart","Add-to-cart","Carrelli"]),
@@ -976,6 +979,7 @@ window.BBAnalytics = {
       cartRate:item.clicks?item.carts/item.clicks*100:NaN,
       conversion:item.clicks?item.purchases/item.clicks*100:NaN,
       price:item.prices.length?item.prices.reduce((a,b)=>a+b,0)/item.prices.length:NaN,
+      firstDate:item.dates.length?new Date(Math.min(...item.dates.map(d=>d.getTime()))):null,
       latestDate:item.dates.length?new Date(Math.max(...item.dates.map(d=>d.getTime()))):null
     })).sort((a,b)=>b.purchases-a.purchases||b.clicks-a.clicks||b.impressions-a.impressions);
     const totals=products.reduce((acc,row)=>{
@@ -988,6 +992,11 @@ window.BBAnalytics = {
     totals.ctr=totals.impressions?totals.clicks/totals.impressions*100:NaN;
     totals.cartRate=totals.clicks?totals.carts/totals.clicks*100:NaN;
     totals.conversion=totals.clicks?totals.purchases/totals.clicks*100:NaN;
+    const reportDates=parsed.map(row=>row.date).filter(Boolean);
+    const period={
+      start:reportDates.length?new Date(Math.min(...reportDates.map(date=>date.getTime()))):null,
+      end:reportDates.length?new Date(Math.max(...reportDates.map(date=>date.getTime()))):null
+    };
     const lowCtr=products.filter(row=>row.impressions>=Math.max(50,(totals.impressions/Math.max(products.length,1))*.5) && (!Number.isFinite(row.ctr)||row.ctr<Math.max(totals.ctr*.75,.5)));
     const lowConversion=products.filter(row=>row.clicks>=3 && row.purchases===0);
     const cartLeak=products.filter(row=>row.carts>0 && row.purchases===0);
@@ -1022,6 +1031,7 @@ window.BBAnalytics = {
       rows:parsed,
       products,
       totals,
+      period,
       lowCtr,
       lowConversion,
       cartLeak,

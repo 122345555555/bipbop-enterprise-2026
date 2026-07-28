@@ -7,7 +7,7 @@ Versione stabile del centro di comando Amazon per BipBop.
 - Restyling responsive completo: nessuno scroll orizzontale globale; le tabelle larghe scorrono solo nel proprio riquadro.
 - **Analisi Dati** con ordini univoci, righe prodotto, pezzi, fatturato, riepilogo mensile, dettaglio mese e filtri per Order ID, ASIN, SKU e prodotto.
 - Controllo di coerenza dell'import indipendente dai filtri di consultazione.
-- Dashboard **Catalog Search Performance** con KPI, riepilogo, punti forti, criticità, opportunità e azioni consigliate.
+- Dashboard **Catalog Search Performance** con periodo coperto, data/periodo per ASIN, KPI, riepilogo, punti forti, criticità, opportunità e azioni consigliate.
 - Struttura base **AI Coach** con sintesi e priorità operative in sola lettura.
 
 ## Compatibilità e sicurezza dati

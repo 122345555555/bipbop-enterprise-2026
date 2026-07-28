@@ -288,6 +288,18 @@ window.BBRender = {
     const h=BBUtils.html;
     if(!analysis?.hasData) return '<div class="action yellow"><b>Report Catalog Search Performance non trovato</b><br>Importa “Cerca performance catalogo”. Se il file è già nello storico, assegnalo a Brand Analytics: questa pagina riconosce le righe catalogo senza cambiare parser o database.</div>';
     const t=analysis.totals;
+    const dateLabel=date=>date?BBUtils.dateIT(date):"—";
+    const periodLabel=analysis.period?.start
+      ? (dateLabel(analysis.period.start)===dateLabel(analysis.period.end)
+        ? dateLabel(analysis.period.start)
+        : dateLabel(analysis.period.start)+" – "+dateLabel(analysis.period.end))
+      : "Data non presente nel report";
+    const productPeriod=row=>{
+      if(!row.firstDate) return "—";
+      return dateLabel(row.firstDate)===dateLabel(row.latestDate)
+        ? dateLabel(row.firstDate)
+        : dateLabel(row.firstDate)+" – "+dateLabel(row.latestDate);
+    };
     const list=(title,items,emptyText)=>'<div class="insight-panel"><h3>'+h(title)+'</h3>'+(items.length?'<ul>'+items.map(item=>'<li><b>'+h(item.title||item.asin)+'</b><span>'+h(item.detail||"")+'</span></li>').join("")+'</ul>':'<p class="hint">'+h(emptyText)+'</p>')+'</div>';
     const strengths=analysis.winners.slice(0,4).map(row=>({
       title:row.title||row.asin,
@@ -302,9 +314,10 @@ window.BBRender = {
       detail:row.impressions+" impressioni · "+row.clicks+" clic · "+row.purchases+" acquisti"
     }));
     const actionTable=analysis.actions.length?'<div class="table-scroll"><table class="decision-table catalog-action-table"><tr><th>Priorità</th><th>Prodotto</th><th>Perché</th><th>Azione proposta</th></tr>'+analysis.actions.map(row=>'<tr><td><span class="pill '+(row.type==="red"?"red":(row.type==="green"?"green":""))+'">'+h(row.priority)+'</span></td><td><b>'+h(row.title)+'</b></td><td>'+h(row.why)+'</td><td>'+h(row.action)+'</td></tr>').join("")+'</table></div>':'<div class="action green">Nessuna azione urgente rilevata.</div>';
-    const productTable='<div class="table-scroll"><table class="catalog-performance-table"><tr><th>ASIN / Prodotto</th><th>Impressioni</th><th>Clic</th><th>CTR</th><th>Carrelli</th><th>Acquisti</th><th>Conversione</th><th>Prezzo medio</th></tr>'+analysis.products.map(row=>'<tr><td>'+this.asinCell(row.asin,row.title)+'</td><td>'+h(row.impressions)+'</td><td>'+h(row.clicks)+'</td><td>'+h(BBUtils.pct(row.ctr))+'</td><td>'+h(row.carts)+'</td><td><b>'+h(row.purchases)+'</b></td><td>'+h(BBUtils.pct(row.conversion))+'</td><td>'+h(Number.isFinite(row.price)?BBUtils.euro(row.price):"—")+'</td></tr>').join("")+'</table></div>';
-    return '<div class="catalog-summary"><b>Riassunto</b><p>Il report copre '+h(analysis.products.length)+' ASIN. Il catalogo ha generato '+h(t.clicks)+' clic da '+h(t.impressions)+' impressioni e '+h(t.purchases)+' acquisti. Usa i suggerimenti come priorità di verifica, non come modifiche automatiche.</p></div>'+
+    const productTable='<div class="table-scroll"><table class="catalog-performance-table"><tr><th>Periodo</th><th>ASIN / Prodotto</th><th>Impressioni</th><th>Clic</th><th>CTR</th><th>Carrelli</th><th>Acquisti</th><th>Conversione</th><th>Prezzo medio</th></tr>'+analysis.products.map(row=>'<tr><td><b>'+h(productPeriod(row))+'</b></td><td>'+this.asinCell(row.asin,row.title)+'</td><td>'+h(row.impressions)+'</td><td>'+h(row.clicks)+'</td><td>'+h(BBUtils.pct(row.ctr))+'</td><td>'+h(row.carts)+'</td><td><b>'+h(row.purchases)+'</b></td><td>'+h(BBUtils.pct(row.conversion))+'</td><td>'+h(Number.isFinite(row.price)?BBUtils.euro(row.price):"—")+'</td></tr>').join("")+'</table></div>';
+    return '<div class="catalog-summary"><b>Riassunto</b><p><strong>Periodo coperto: '+h(periodLabel)+'.</strong> Il report comprende '+h(analysis.products.length)+' ASIN. Il catalogo ha generato '+h(t.clicks)+' clic da '+h(t.impressions)+' impressioni e '+h(t.purchases)+' acquisti. Usa i suggerimenti come priorità di verifica, non come modifiche automatiche.</p></div>'+
       '<div class="kpis catalog-kpis">'+[
+        ["Periodo",periodLabel,"date presenti nel report"],
         ["Impressioni",t.impressions,"visibilità totale"],
         ["Clic",t.clicks,"CTR "+BBUtils.pct(t.ctr)],
         ["Carrelli",t.carts,"tasso "+BBUtils.pct(t.cartRate)],
