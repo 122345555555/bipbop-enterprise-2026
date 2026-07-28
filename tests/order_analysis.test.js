@@ -63,6 +63,26 @@ assert.equal(july.detailOrders.length, 8);
 assert.equal(july.comparison.current.key, "2026-07");
 assert.equal(july.comparison.previous, null);
 
+const filteredByProduct = context.window.BBAnalytics.orderAnalysis(
+  { orders },
+  { year: "2026", month: "6", product: "mongolfiere" }
+);
+assert.equal(filteredByProduct.visible.orders, 1);
+assert.equal(filteredByProduct.visible.lines, 1);
+assert.equal(filteredByProduct.visible.units, 1);
+assert.equal(Number(filteredByProduct.visible.revenue.toFixed(2)), 19.50);
+assert.equal(filteredByProduct.totals.orders, 8);
+assert.equal(filteredByProduct.coherence.ok, true);
+
+const filteredByOrder = context.window.BBAnalytics.orderAnalysis(
+  { orders },
+  { year: "2026", month: "6", orderId: "403-7278592" }
+);
+assert.equal(filteredByOrder.visible.orders, 1);
+assert.equal(filteredByOrder.visible.lines, 2);
+assert.equal(filteredByOrder.visible.units, 2);
+assert.equal(Number(filteredByOrder.visible.revenue.toFixed(2)), 39.80);
+
 const augustOrders = orders.concat(row("TEST-AUGUST", "i-10", "2026-08-02", 1, 19.90, "Test agosto"));
 const august = context.window.BBAnalytics.orderAnalysis({ orders: augustOrders }, { year: "2026", month: "7" });
 assert.equal(august.comparison.current.key, "2026-08");

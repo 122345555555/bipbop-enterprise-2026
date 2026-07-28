@@ -768,8 +768,20 @@ window.BBAnalytics = {
       }
     });
     const normalized=Array.from(bestByIdentity.values());
-
-    const valid=normalized.filter(r=>r.id);
+    const allValid=normalized.filter(r=>r.id);
+    const searchFilters={
+      orderId:BBUtils.low(filters.orderId||"").trim(),
+      asin:BBUtils.low(filters.asin||"").trim(),
+      sku:BBUtils.low(filters.sku||"").trim(),
+      product:BBUtils.low(filters.product||"").trim()
+    };
+    const valid=allValid.filter(item=>{
+      if(searchFilters.orderId && !BBUtils.low(item.id).includes(searchFilters.orderId)) return false;
+      if(searchFilters.asin && !BBUtils.low(item.asin).includes(searchFilters.asin)) return false;
+      if(searchFilters.sku && !BBUtils.low(item.sku).includes(searchFilters.sku)) return false;
+      if(searchFilters.product && !BBUtils.low(item.title).includes(searchFilters.product)) return false;
+      return true;
+    });
     const monthMap=new Map();
     const orderMap=new Map();
     valid.forEach(item=>{
@@ -856,18 +868,27 @@ window.BBAnalytics = {
       const raw=value(r.row,["item-price","Item Price","Prezzo articolo","Prezzo dell'articolo","Totale articolo","Product Sales"]);
       return raw===""||raw===null||raw===undefined||!Number.isFinite(r.sales)||r.sales<0;
     }).length;
-    const monthlyLines=monthly.reduce((a,m)=>a+m.lines,0);
-    const monthlyUnits=monthly.reduce((a,m)=>a+m.units,0);
-    const monthlyRevenue=monthly.reduce((a,m)=>a+m.revenue,0);
     const totals={
-      orders:new Set(valid.map(r=>r.id)).size,
-      lines:valid.length,
-      units:valid.reduce((a,r)=>a+r.qty,0),
-      revenue:valid.reduce((a,r)=>a+r.sales,0)
+      orders:new Set(allValid.map(r=>r.id)).size,
+      lines:allValid.length,
+      units:allValid.reduce((a,r)=>a+r.qty,0),
+      revenue:allValid.reduce((a,r)=>a+r.sales,0)
     };
-    const arithmeticOk=monthlyLines===totals.lines &&
-      Math.abs(monthlyUnits-totals.units)<0.0001 &&
-      Math.abs(monthlyRevenue-totals.revenue)<0.005;
+    const allMonthChecks=new Map();
+    allValid.forEach(item=>{
+      const key=item.date?item.date.getFullYear()+"-"+String(item.date.getMonth()+1).padStart(2,"0"):"senza-data";
+      const check=allMonthChecks.get(key)||{lines:0,units:0,revenue:0};
+      check.lines++;
+      check.units+=item.qty;
+      check.revenue+=item.sales;
+      allMonthChecks.set(key,check);
+    });
+    const checkedLines=Array.from(allMonthChecks.values()).reduce((a,m)=>a+m.lines,0);
+    const checkedUnits=Array.from(allMonthChecks.values()).reduce((a,m)=>a+m.units,0);
+    const checkedRevenue=Array.from(allMonthChecks.values()).reduce((a,m)=>a+m.revenue,0);
+    const arithmeticOk=checkedLines===totals.lines &&
+      Math.abs(checkedUnits-totals.units)<0.0001 &&
+      Math.abs(checkedRevenue-totals.revenue)<0.005;
     const coherence={
       ok:missingOrderIds===0&&invalidQuantity===0&&invalidRevenue===0&&arithmeticOk,
       rawLines:rawRows.length,
@@ -898,9 +919,147 @@ window.BBAnalytics = {
       detailMonth,
       detailOrders,
       normalizedItems:valid,
+      filters:searchFilters,
+      filtered:valid.length!==allValid.length,
       comparison,
       coherence
     };
+  },
+  catalogSearchPerformance(samples){
+    const allRows=Object.values(samples||{}).flatMap(rows=>Array.isArray(rows)?rows:[]);
+    const keyText=row=>Object.keys(row||{}).map(BBUtils.low).join(" | ");
+    const isCatalogRow=row=>{
+      const keys=keyText(row);
+      const hasAsin=/(^|\| )asin( |$|\|)|titolo asin|asin title/.test(keys);
+      const hasTraffic=keys.includes("impression") && (keys.includes("clic")||keys.includes("click"));
+      const hasFunnel=keys.includes("aggiunte al carrello")||keys.includes("add to cart")||keys.includes("tasso di conversione")||keys.includes("conversion rate");
+      return hasAsin&&hasTraffic&&hasFunnel;
+    };
+    const rows=allRows.filter(isCatalogRow);
+    const pick=(row,names)=>BBUtils.pick(row,names);
+    const text=(row,names)=>String(pick(row,names)||"").trim();
+    const metric=(row,names)=>BBUtils.num(pick(row,names));
+    const parsed=rows.map(row=>({
+      row,
+      asin:text(row,["ASIN","asin","Codice ASIN"]),
+      title:text(row,["Titolo ASIN","ASIN Title","Titolo","Product Title","Nome prodotto"]),
+      category:text(row,["Categoria","Category"]),
+      date:this.parseReportDate(pick(row,["Data del report","Data della segnalazione","Report Date","Date"])),
+      impressions:metric(row,["Impressioni","Impressions","Impressioni: numero totale"]),
+      clicks:metric(row,["Clic","Click","Clicks","Clic: numero totale"]),
+      carts:metric(row,["Aggiunte al carrello","Add to cart","Add-to-cart","Carrelli"]),
+      purchases:metric(row,["Acquisti","Purchases","Orders","Ordini"]),
+      reportedCtr:metric(row,["CTR","Click-through rate","Percentuale di clic"]),
+      reportedCvr:metric(row,["Tasso di conversione","Conversion Rate","Purchase rate"]),
+      price:metric(row,["Prezzo mediano","Median Price","Prezzo medio","Average Price"])
+    })).filter(row=>row.asin||row.title);
+    const byAsin=new Map();
+    parsed.forEach(row=>{
+      const key=row.asin||BBUtils.low(row.title);
+      const item=byAsin.get(key)||{
+        asin:row.asin,title:row.title,category:row.category,impressions:0,clicks:0,carts:0,purchases:0,prices:[],dates:[]
+      };
+      item.asin=item.asin||row.asin;
+      item.title=item.title||row.title;
+      item.category=item.category||row.category;
+      item.impressions+=row.impressions;
+      item.clicks+=row.clicks;
+      item.carts+=row.carts;
+      item.purchases+=row.purchases;
+      if(row.price>0) item.prices.push(row.price);
+      if(row.date) item.dates.push(row.date);
+      byAsin.set(key,item);
+    });
+    const products=Array.from(byAsin.values()).map(item=>({
+      ...item,
+      ctr:item.impressions?item.clicks/item.impressions*100:NaN,
+      cartRate:item.clicks?item.carts/item.clicks*100:NaN,
+      conversion:item.clicks?item.purchases/item.clicks*100:NaN,
+      price:item.prices.length?item.prices.reduce((a,b)=>a+b,0)/item.prices.length:NaN,
+      latestDate:item.dates.length?new Date(Math.max(...item.dates.map(d=>d.getTime()))):null
+    })).sort((a,b)=>b.purchases-a.purchases||b.clicks-a.clicks||b.impressions-a.impressions);
+    const totals=products.reduce((acc,row)=>{
+      acc.impressions+=row.impressions;
+      acc.clicks+=row.clicks;
+      acc.carts+=row.carts;
+      acc.purchases+=row.purchases;
+      return acc;
+    },{impressions:0,clicks:0,carts:0,purchases:0});
+    totals.ctr=totals.impressions?totals.clicks/totals.impressions*100:NaN;
+    totals.cartRate=totals.clicks?totals.carts/totals.clicks*100:NaN;
+    totals.conversion=totals.clicks?totals.purchases/totals.clicks*100:NaN;
+    const lowCtr=products.filter(row=>row.impressions>=Math.max(50,(totals.impressions/Math.max(products.length,1))*.5) && (!Number.isFinite(row.ctr)||row.ctr<Math.max(totals.ctr*.75,.5)));
+    const lowConversion=products.filter(row=>row.clicks>=3 && row.purchases===0);
+    const cartLeak=products.filter(row=>row.carts>0 && row.purchases===0);
+    const winners=products.filter(row=>row.purchases>0).sort((a,b)=>b.purchases-a.purchases||b.conversion-a.conversion);
+    const opportunities=products.filter(row=>row.impressions>0).sort((a,b)=>{
+      const score=r=>(r.impressions*.02)+(r.clicks*2)+(r.carts*5)+(r.purchases*12)-(r.purchases===0&&r.clicks>=3?4:0);
+      return score(b)-score(a);
+    });
+    const actions=[];
+    lowCtr.slice(0,3).forEach(row=>actions.push({
+      priority:"Alta",type:"red",title:row.title||row.asin,
+      why:"Molte impressioni ma CTR "+(Number.isFinite(row.ctr)?row.ctr.toFixed(2)+"%":"non disponibile")+".",
+      action:"Testa immagine principale e titolo, mantenendo dimensioni e promessa del prodotto realistiche."
+    }));
+    lowConversion.slice(0,3).forEach(row=>actions.push({
+      priority:"Alta",type:"yellow",title:row.title||row.asin,
+      why:row.clicks+" clic senza acquisti.",
+      action:"Controlla prezzo, recensioni, tempi di consegna, immagini informative e coerenza tra ricerca e scheda."
+    }));
+    cartLeak.slice(0,2).forEach(row=>actions.push({
+      priority:"Media",type:"yellow",title:row.title||row.asin,
+      why:row.carts+" aggiunte al carrello senza acquisto.",
+      action:"Verifica prezzo finale, spedizione e disponibilità; valuta un test promozionale controllato."
+    }));
+    winners.slice(0,2).forEach(row=>actions.push({
+      priority:"Opportunità",type:"green",title:row.title||row.asin,
+      why:row.purchases+" acquisti e conversione "+(Number.isFinite(row.conversion)?row.conversion.toFixed(1)+"%":"positiva")+".",
+      action:"Proteggi la visibilità e concentra budget solo sulle keyword più pertinenti."
+    }));
+    return {
+      hasData:products.length>0,
+      rows:parsed,
+      products,
+      totals,
+      lowCtr,
+      lowConversion,
+      cartLeak,
+      winners,
+      opportunities,
+      actions:actions.slice(0,8)
+    };
+  },
+  aiCoach(samples,counts,catalog){
+    const c=this.calc(samples);
+    const decisions=this.decisionRows?this.decisionRows(samples,counts):[];
+    const strong=decisions.filter(row=>row.type==="green").slice(0,4).map(row=>({
+      title:row.title||row.item,detail:row.why||row.action
+    }));
+    const critical=decisions.filter(row=>row.type==="red").slice(0,4).map(row=>({
+      title:row.title||row.item,detail:row.why||row.action
+    }));
+    const opportunities=(catalog?.winners||[]).slice(0,3).map(row=>({
+      title:row.title||row.asin,
+      detail:row.purchases+" acquisti da "+row.clicks+" clic: proteggi e scala con prudenza."
+    }));
+    const actions=(catalog?.actions||[]).slice(0,5);
+    if(!actions.length){
+      decisions.slice(0,5).forEach((row,index)=>actions.push({
+        priority:index<2?"Alta":"Media",
+        type:row.type,
+        title:row.title||row.item,
+        why:row.why,
+        action:row.action
+      }));
+    }
+    const imported=Object.values(counts||{}).filter(Boolean).length;
+    const summary=[
+      "Report attivi: "+imported+" su "+this.reportDefs.length+".",
+      "Vendite lette: "+BBUtils.euro(c.sales)+"; unità: "+c.units+".",
+      Number.isFinite(c.tacos)?"TACOS: "+c.tacos.toFixed(1)+"%.":"TACOS non calcolabile finché mancano ricavi o spesa Ads."
+    ];
+    return {summary,strong,critical,opportunities,actions};
   },
   executiveSalesOverview(samples,c,filters={}){
     const rules=BBUtils.rules();

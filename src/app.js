@@ -8,7 +8,7 @@ function show(view){
   document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
   document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active",s.id===view));
   const active=document.querySelector('.nav[data-view="'+view+'"]');
-  if(active) BBUtils.el("pageTitle").textContent=active.textContent.replace(/[📊📥🧭💶📈📦📋🚚🛟🏬🕵️🔎🏷️💰🧾🗓️🎨🚀🧠🚨📁🧪⚙️]/g,"").trim();
+  if(active) BBUtils.el("pageTitle").textContent=active.textContent.replace(/[📊📥🧭💶📈📦📋🚚🛟🏬🕵️🔎🏷️🎯💰🧾🗓️🎨🚀🧠🚨📁🧪⚙️]/g,"").trim();
 }
 
 async function importFiles(files){
@@ -96,6 +96,9 @@ function bind(){
   document.addEventListener("change",e=>{
     if(e.target && (e.target.id==="dataExplorerYear" || e.target.id==="dataExplorerMonth")) BBRender.renderAll();
   });
+  document.addEventListener("input",e=>{
+    if(e.target && ["dataExplorerOrderId","dataExplorerAsin","dataExplorerSku","dataExplorerProduct"].includes(e.target.id)) BBRender.renderAll();
+  });
   document.addEventListener("click",e=>{
     const orderMonth=e.target.closest(".openOrderMonthBtn,.order-month-row");
     if(orderMonth){
@@ -109,6 +112,10 @@ function bind(){
       const y=BBUtils.el("dataExplorerYear"), m=BBUtils.el("dataExplorerMonth");
       if(y) y.value=y.options[0]?.value || "all";
       if(m) m.value="all";
+      ["dataExplorerOrderId","dataExplorerAsin","dataExplorerSku","dataExplorerProduct"].forEach(id=>{
+        const input=BBUtils.el(id);
+        if(input) input.value="";
+      });
       BBRender.renderAll();
     }
   });

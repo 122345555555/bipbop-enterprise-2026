@@ -3,17 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop Enterprise 2026 v1.3 — Controllo settimanale</title>
-  <link rel="stylesheet" href="style.css?v=5.16">
+  <title>BipBop Enterprise 2026 v1.4 — Intelligence operativa</title>
+  <link rel="stylesheet" href="style.css?v=5.30">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <aside>
     <div class="brand">
       <div class="logo">B</div>
-      <div><b>BipBop</b><small>Enterprise 2026 v1.3</small></div>
+      <div><b>BipBop</b><small>Enterprise 2026 v1.4</small></div>
     </div>
     <button class="nav active" data-view="executive">📊 Executive</button>
+    <button class="nav" data-view="aicoach">🧭 AI Coach</button>
     <button class="nav" data-view="import">📥 Import Amazon</button>
     <button class="nav" data-view="dataexplorer">🧭 Analisi dati</button>
     <button class="nav" data-view="sales">💶 Sales</button>
@@ -26,6 +27,7 @@
     <button class="nav" data-view="competitors">🕵️ Competitor</button>
     <button class="nav" data-view="keyword">🔎 Keyword</button>
     <button class="nav" data-view="brandanalytics">🏷️ Brand Analytics</button>
+    <button class="nav" data-view="catalogperformance">🎯 Catalog Search</button>
     <button class="nav" data-view="profit">💰 Profit Center</button>
     <button class="nav" data-view="costs">🧾 Costi prodotto</button>
     <button class="nav" data-view="weekly">🗓️ Weekly Action Plan</button>
@@ -63,6 +65,20 @@
       <div class="grid2">
         <div class="card"><h3>Priorità operative</h3><div id="topActions"></div></div>
         <div class="card"><h3>Completezza dati</h3><div id="dataHealth"></div></div>
+      </div>
+    </section>
+
+    <section id="aicoach" class="view">
+      <div class="card ai-coach-card">
+        <div class="page-section-head">
+          <div>
+            <span class="eyebrow">Assistente decisionale</span>
+            <h3>AI Coach</h3>
+            <p class="hint">Riassunto operativo generato esclusivamente dai report attivi. I suggerimenti non modificano campagne, prezzi o dati.</p>
+          </div>
+          <span class="pill green">Solo lettura</span>
+        </div>
+        <div id="aiCoachBox"></div>
       </div>
     </section>
 
@@ -247,6 +263,19 @@
       </div>
     </section>
     <section id="brandanalytics" class="view"><div class="card brand-analytics-card"><div class="page-section-head compact"><div><span class="eyebrow">Intelligence di mercato</span><h3>Brand Analytics</h3></div></div><div id="brandAnalyticsBox"></div></div></section>
+    <section id="catalogperformance" class="view">
+      <div class="card catalog-performance-card">
+        <div class="page-section-head">
+          <div>
+            <span class="eyebrow">Performance di ricerca per ASIN</span>
+            <h3>Catalog Search Performance</h3>
+            <p class="hint">Riepilogo, KPI e proposte operative basati sul report “Cerca performance catalogo”.</p>
+          </div>
+          <span class="pill">Analisi automatica</span>
+        </div>
+        <div id="catalogPerformanceBox"></div>
+      </div>
+    </section>
     <section id="profit" class="view">
       <div class="card">
         <h3>Profit Center</h3>
@@ -334,13 +363,13 @@
   </main>
 
   <script src="config.js?v=5.14"></script>
-  <script src="src/utils.js?v=5.22"></script>
+  <script src="src/utils.js?v=5.30"></script>
   <script src="src/parser.js?v=5.22"></script>
   <script src="src/reconcile.js?v=5.22"></script>
   <script src="src/storage.js?v=5.22"></script>
-  <script src="src/analytics.js?v=5.22"></script>
-  <script src="src/render.js?v=5.22"></script>
-  <script src="src/app.js?v=5.22"></script>
-  <script src="layout.js?v=5.16"></script>
+  <script src="src/analytics.js?v=5.30"></script>
+  <script src="src/render.js?v=5.30"></script>
+  <script src="src/app.js?v=5.30"></script>
+  <script src="layout.js?v=5.30"></script>
 </body>
 </html>

@@ -1,6 +1,26 @@
-# BipBop Enterprise 2026 v1.3 Growth Engine
+# BipBop Enterprise 2026 v1.4 — Milestone Intelligence operativa
 
 Versione stabile del centro di comando Amazon per BipBop.
+
+## Novità della milestone
+
+- Restyling responsive completo: nessuno scroll orizzontale globale; le tabelle larghe scorrono solo nel proprio riquadro.
+- **Analisi Dati** con ordini univoci, righe prodotto, pezzi, fatturato, riepilogo mensile, dettaglio mese e filtri per Order ID, ASIN, SKU e prodotto.
+- Controllo di coerenza dell'import indipendente dai filtri di consultazione.
+- Dashboard **Catalog Search Performance** con KPI, riepilogo, punti forti, criticità, opportunità e azioni consigliate.
+- Struttura base **AI Coach** con sintesi e priorità operative in sola lettura.
+
+## Compatibilità e sicurezza dati
+
+Questa milestone non modifica:
+
+- `src/parser.js`;
+- `src/reconcile.js`;
+- `src/storage.js`;
+- `supabase.js`;
+- tabelle, dati o prefisso database `bb100_`.
+
+Per l'aggiornamento non serve eseguire SQL.
 
 ## Include
 - Amazon Smart Parser

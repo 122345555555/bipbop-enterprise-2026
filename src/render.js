@@ -202,7 +202,11 @@ window.BBRender = {
   dataExplorerControls(){
     return {
       year:BBUtils.el("dataExplorerYear")?.value || "all",
-      month:BBUtils.el("dataExplorerMonth")?.value || "all"
+      month:BBUtils.el("dataExplorerMonth")?.value || "all",
+      orderId:BBUtils.el("dataExplorerOrderId")?.value || "",
+      asin:BBUtils.el("dataExplorerAsin")?.value || "",
+      sku:BBUtils.el("dataExplorerSku")?.value || "",
+      product:BBUtils.el("dataExplorerProduct")?.value || ""
     };
   },
   dataExplorerHtml(analysis){
@@ -212,7 +216,7 @@ window.BBRender = {
     const selectedYear=String(analysis.selectedYear||"all");
     const selectedMonth=analysis.selectedMonth===null||analysis.selectedMonth===undefined ? "all" : String(analysis.selectedMonth);
     const months=analysis.availableMonths||[];
-    const controls='<div class="tool-row data-query-tools">'+
+    const controls='<div class="data-query-tools">'+
       '<select id="dataExplorerYear">'+
         years.map(y=>'<option value="'+h(y)+'" '+(String(y)===selectedYear?'selected':'')+'>'+h(y)+'</option>').join("")+
       '</select>'+
@@ -220,6 +224,10 @@ window.BBRender = {
         '<option value="all" '+(selectedMonth==="all"?'selected':'')+'>Tutti i mesi</option>'+
         months.map(m=>'<option value="'+h(m.value)+'" '+(String(m.value)===selectedMonth?'selected':'')+'>'+h(m.label)+'</option>').join("")+
       '</select>'+
+      '<input id="dataExplorerOrderId" value="'+h(analysis.filters?.orderId||"")+'" placeholder="Filtra Order ID">'+
+      '<input id="dataExplorerAsin" value="'+h(analysis.filters?.asin||"")+'" placeholder="Filtra ASIN">'+
+      '<input id="dataExplorerSku" value="'+h(analysis.filters?.sku||"")+'" placeholder="Filtra SKU">'+
+      '<input id="dataExplorerProduct" value="'+h(analysis.filters?.product||"")+'" placeholder="Filtra prodotto">'+
       '<button id="resetDataExplorerBtn" class="secondaryBtn" type="button">Azzera filtri</button>'+
     '</div>';
     const v=analysis.visible;
@@ -257,6 +265,7 @@ window.BBRender = {
       analysis.detailOrders.map(order=>'<tr><td>'+h(order.date?order.date.toLocaleDateString("it-IT"):"—")+'</td><td><b>'+h(order.id)+'</b></td><td>'+h(order.lines.length)+'</td><td>'+h(order.units)+'</td><td>'+h(BBUtils.euro(order.revenue))+'</td><td class="order-products">'+order.lines.map(line=>'<div><b>'+h(line.title||line.asin||line.sku||"Articolo")+'</b><span>Qtà '+h(line.qty)+' · '+h(BBUtils.euro(line.sales))+(line.asin?' · '+h(line.asin):"")+'</span></div>').join("")+'</td></tr>').join("")+
       '</table></div>':'<div class="action">Nessun ordine disponibile per il dettaglio mensile.</div>';
     return controls+
+      (analysis.filtered?'<div class="action yellow"><b>Filtri attivi</b><br>I KPI e il riepilogo mensile mostrano solo gli ordini corrispondenti. Il controllo di coerenza continua a verificare l’intero import.</div>':'')+
       '<div class="overview-head"><div><h3>Controllo ordini</h3><p class="hint">Gli ordini sono distinti per <b>order-id</b>; le righe prodotto sono deduplicate; i pezzi derivano da <b>quantity-purchased</b> e il fatturato da <b>item-price</b>.</p></div><span class="pill '+(coherence.ok?'green':'red')+'">'+h(coherence.ok?"Import coerente":"Controllo richiesto")+'</span></div>'+
       '<div class="kpis order-kpis">'+[
         ["Ordini unici",v.orders,"order-id distinti"],
@@ -274,6 +283,55 @@ window.BBRender = {
       '<div class="coherence-grid">'+coherenceItems.map(x=>'<div class="coherence-item '+(x[2]?'ok':'warn')+'"><small>'+h(x[0])+'</small><b>'+h(x[1])+'</b></div>').join("")+'</div>'+
       (coherence.duplicateLines?'<div class="action yellow"><b>Duplicati neutralizzati</b><br>'+h(coherence.duplicateLines)+' righe sovrapposte sono state escluse dai KPI, quindi non vengono sommate due volte.</div>':'')+
       (!coherence.ok?'<div class="action red"><b>Import da verificare</b><br>Controlla le righe segnalate prima di usare i dati per decisioni economiche.</div>':'<div class="action green"><b>Quadratura completata</b><br>Ordini, righe prodotto, pezzi e fatturato mensile coincidono con il dettaglio attivo.</div>');
+  },
+  catalogPerformanceHtml(analysis){
+    const h=BBUtils.html;
+    if(!analysis?.hasData) return '<div class="action yellow"><b>Report Catalog Search Performance non trovato</b><br>Importa “Cerca performance catalogo”. Se il file è già nello storico, assegnalo a Brand Analytics: questa pagina riconosce le righe catalogo senza cambiare parser o database.</div>';
+    const t=analysis.totals;
+    const list=(title,items,emptyText)=>'<div class="insight-panel"><h3>'+h(title)+'</h3>'+(items.length?'<ul>'+items.map(item=>'<li><b>'+h(item.title||item.asin)+'</b><span>'+h(item.detail||"")+'</span></li>').join("")+'</ul>':'<p class="hint">'+h(emptyText)+'</p>')+'</div>';
+    const strengths=analysis.winners.slice(0,4).map(row=>({
+      title:row.title||row.asin,
+      detail:row.purchases+" acquisti · "+(Number.isFinite(row.conversion)?row.conversion.toFixed(1)+"% conversione":"conversione non disponibile")
+    }));
+    const issues=[
+      ...analysis.lowCtr.slice(0,3).map(row=>({title:row.title||row.asin,detail:"CTR "+(Number.isFinite(row.ctr)?row.ctr.toFixed(2)+"%":"—")+" su "+row.impressions+" impressioni"})),
+      ...analysis.lowConversion.slice(0,3).map(row=>({title:row.title||row.asin,detail:row.clicks+" clic senza acquisti"}))
+    ].slice(0,5);
+    const opportunityItems=analysis.opportunities.slice(0,5).map(row=>({
+      title:row.title||row.asin,
+      detail:row.impressions+" impressioni · "+row.clicks+" clic · "+row.purchases+" acquisti"
+    }));
+    const actionTable=analysis.actions.length?'<div class="table-scroll"><table class="decision-table catalog-action-table"><tr><th>Priorità</th><th>Prodotto</th><th>Perché</th><th>Azione proposta</th></tr>'+analysis.actions.map(row=>'<tr><td><span class="pill '+(row.type==="red"?"red":(row.type==="green"?"green":""))+'">'+h(row.priority)+'</span></td><td><b>'+h(row.title)+'</b></td><td>'+h(row.why)+'</td><td>'+h(row.action)+'</td></tr>').join("")+'</table></div>':'<div class="action green">Nessuna azione urgente rilevata.</div>';
+    const productTable='<div class="table-scroll"><table class="catalog-performance-table"><tr><th>ASIN / Prodotto</th><th>Impressioni</th><th>Clic</th><th>CTR</th><th>Carrelli</th><th>Acquisti</th><th>Conversione</th><th>Prezzo medio</th></tr>'+analysis.products.map(row=>'<tr><td>'+this.asinCell(row.asin,row.title)+'</td><td>'+h(row.impressions)+'</td><td>'+h(row.clicks)+'</td><td>'+h(BBUtils.pct(row.ctr))+'</td><td>'+h(row.carts)+'</td><td><b>'+h(row.purchases)+'</b></td><td>'+h(BBUtils.pct(row.conversion))+'</td><td>'+h(Number.isFinite(row.price)?BBUtils.euro(row.price):"—")+'</td></tr>').join("")+'</table></div>';
+    return '<div class="catalog-summary"><b>Riassunto</b><p>Il report copre '+h(analysis.products.length)+' ASIN. Il catalogo ha generato '+h(t.clicks)+' clic da '+h(t.impressions)+' impressioni e '+h(t.purchases)+' acquisti. Usa i suggerimenti come priorità di verifica, non come modifiche automatiche.</p></div>'+
+      '<div class="kpis catalog-kpis">'+[
+        ["Impressioni",t.impressions,"visibilità totale"],
+        ["Clic",t.clicks,"CTR "+BBUtils.pct(t.ctr)],
+        ["Carrelli",t.carts,"tasso "+BBUtils.pct(t.cartRate)],
+        ["Acquisti",t.purchases,"conversione "+BBUtils.pct(t.conversion)],
+        ["ASIN analizzati",analysis.products.length,"righe catalogo "+analysis.rows.length]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[2])+'</span></div>').join("")+'</div>'+
+      '<div class="intelligence-grid">'+
+        list("Punti forti",strengths,"Non ci sono ancora acquisti attribuiti nel report.")+
+        list("Criticità",issues,"Nessuna criticità evidente con le soglie attuali.")+
+        list("Opportunità",opportunityItems,"Servono più dati per ordinare le opportunità.")+
+      '</div>'+
+      '<h3>Azioni consigliate</h3>'+actionTable+
+      '<h3>Dati per ASIN</h3>'+productTable;
+  },
+  aiCoachHtml(model){
+    const h=BBUtils.html;
+    const panel=(title,className,items,emptyText)=>'<div class="coach-panel '+className+'"><h3>'+h(title)+'</h3>'+(items.length?'<ul>'+items.map(item=>'<li><b>'+h(item.title)+'</b><span>'+h(item.detail||"")+'</span></li>').join("")+'</ul>':'<p class="hint">'+h(emptyText)+'</p>')+'</div>';
+    const actions=model.actions||[];
+    return '<div class="coach-summary"><span class="eyebrow">Riassunto</span><h2>Situazione attuale</h2><ul>'+model.summary.map(item=>'<li>'+h(item)+'</li>').join("")+'</ul></div>'+
+      '<div class="coach-grid">'+
+        panel("Punti forti","positive",model.strong,"Nessun segnale forte ancora disponibile.")+
+        panel("Criticità","negative",model.critical,"Nessuna criticità grave rilevata.")+
+        panel("Opportunità","opportunity",model.opportunities,"Importa Catalog Search Performance per trovare opportunità per ASIN.")+
+      '</div>'+
+      '<div class="coach-actions"><div class="overview-head"><div><span class="eyebrow">Priorità operative</span><h3>Azioni consigliate</h3></div><span class="pill">Nessuna modifica automatica</span></div>'+
+      (actions.length?'<div class="action-stack">'+actions.map((row,index)=>'<article class="coach-action '+(row.type||"")+'"><span class="coach-rank">'+h(index+1)+'</span><div><small>'+h(row.priority||"Priorità")+'</small><h3>'+h(row.title||"Azione")+'</h3><p><b>Perché:</b> '+h(row.why||"Segnale rilevato dai report.")+'</p><p><b>Cosa fare:</b> '+h(row.action||"Verifica manualmente il dato.")+'</p></div></article>').join("")+'</div>':'<div class="action green">Nessuna azione urgente. Mantieni aggiornati i report.</div>')+
+      '</div>';
   },
   filteredAsinDecisionRows(rows){
     const c=this.asinControls();
@@ -363,6 +421,8 @@ window.BBRender = {
     const firstDecision=execDecisions[0];
     const actionRows=execDecisions.slice(0,5);
     const dataExplorerOverview=BBAnalytics.orderAnalysis ? BBAnalytics.orderAnalysis(scopedSamples,this.dataExplorerControls()) : null;
+    const catalogPerformance=BBAnalytics.catalogSearchPerformance ? BBAnalytics.catalogSearchPerformance(scopedSamples) : null;
+    const aiCoach=BBAnalytics.aiCoach ? BBAnalytics.aiCoach(scopedSamples,s.counts,catalogPerformance) : null;
     const missingCore=BBAnalytics.reportDefs.filter(r=>["business_report","transactions","ad_invoices","orders","inventory","search_terms","profit_report","store_date","store_live_page","store_source"].includes(r[0]) && !(s.counts[r[0]]||0));
     const targetPlan=[
       ["TACOS <= "+execRules.tacos+"%","Aumenta vendite organiche e riduci spesa Ads non produttiva.","Taglia keyword senza vendite, spingi solo campagne con ROAS buono, migliora schede prodotto e porta traffico verso Shopify."],
@@ -395,6 +455,10 @@ window.BBRender = {
 
     const dataExplorerEl=BBUtils.el("dataExplorerBox");
     if(dataExplorerEl) dataExplorerEl.innerHTML=this.dataExplorerHtml(dataExplorerOverview);
+    const catalogPerformanceEl=BBUtils.el("catalogPerformanceBox");
+    if(catalogPerformanceEl) catalogPerformanceEl.innerHTML=this.catalogPerformanceHtml(catalogPerformance);
+    const aiCoachEl=BBUtils.el("aiCoachBox");
+    if(aiCoachEl&&aiCoach) aiCoachEl.innerHTML=this.aiCoachHtml(aiCoach);
 
     BBUtils.el("topActions").innerHTML='<div class="executive-status '+healthClass+'"><b>'+h(healthText)+'</b><span>'+h(health>=70?"La base e' utilizzabile: investi sulle opportunita' migliori, ma continua a controllare margini e competitor.":(health>=45?"Ci sono segnali buoni, ma prima di spingere devi risolvere le priorita' sotto.":"Serve mettere ordine: correggi i blocchi prima di aumentare budget o creare troppe varianti."))+'</span></div>'+
       '<div class="score-breakdown">'+healthParts.map(r=>'<div><small>'+h(r[0])+'</small><b>'+h(Math.round(r[1]))+'/100</b><span>Peso '+h(r[2])+'%</span></div>').join("")+'</div>'+

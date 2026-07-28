@@ -223,6 +223,229 @@ body *{visibility:hidden}
 .fba-print-head button{display:none}
 }
 
+/* Milestone v1.4: responsive shell. Solo presentazione, nessun dato modificato. */
+html,
+body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
+
+body,
+main,
+.view,
+.card,
+.hero,
+header,
+.page-section-head{
+  min-width:0;
+  max-width:100%;
+}
+
+main{
+  width:calc(100% - 292px);
+  max-width:calc(100% - 292px);
+}
+
+header{
+  flex-wrap:wrap;
+  gap:14px;
+}
+
+header>div:last-child{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+}
+
+.kpis,
+.grid2,
+.grid3,
+.import-grid,
+.score-breakdown,
+.target-guide,
+.coherence-grid,
+.order-kpis,
+.catalog-kpis{
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));
+}
+
+.data-query-tools{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));
+  gap:10px;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.data-query-tools input,
+.data-query-tools select,
+.data-query-tools button{
+  width:100%;
+  min-width:0;
+  margin:0;
+}
+
+.intelligence-grid,
+.coach-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));
+  gap:16px;
+  margin:18px 0 24px;
+}
+
+.insight-panel,
+.coach-panel,
+.coach-summary,
+.coach-actions,
+.catalog-summary{
+  border:1px solid #e3ebf4;
+  border-radius:18px;
+  background:#fbfdff;
+  padding:18px;
+}
+
+.catalog-summary{
+  margin-bottom:16px;
+  background:linear-gradient(135deg,#f0f9ff,#f8fafc);
+}
+
+.catalog-summary b{
+  display:block;
+  font-size:20px;
+  margin-bottom:6px;
+}
+
+.catalog-summary p,
+.coach-action p{
+  margin:6px 0;
+  line-height:1.45;
+}
+
+.insight-panel ul,
+.coach-panel ul,
+.coach-summary ul{
+  margin:0;
+  padding-left:20px;
+}
+
+.insight-panel li,
+.coach-panel li{
+  margin:10px 0;
+}
+
+.insight-panel li span,
+.coach-panel li span{
+  display:block;
+  color:#64748b;
+  font-size:13px;
+  margin-top:3px;
+}
+
+.coach-panel.positive{border-color:#86efac;background:#f7fff9}
+.coach-panel.negative{border-color:#fecdd3;background:#fff7f7}
+.coach-panel.opportunity{border-color:#bae6fd;background:#f0f9ff}
+
+.coach-summary{
+  background:linear-gradient(135deg,#0f172a,#075985);
+  color:#fff;
+  margin-bottom:18px;
+}
+
+.coach-summary .eyebrow{color:#bae6fd}
+.coach-summary h2{margin:6px 0 12px}
+
+.action-stack{
+  display:grid;
+  gap:12px;
+}
+
+.coach-action{
+  display:grid;
+  grid-template-columns:46px minmax(0,1fr);
+  gap:14px;
+  border:1px solid #e3ebf4;
+  border-radius:16px;
+  padding:16px;
+  background:#fff;
+}
+
+.coach-action.red{border-color:#fecdd3}
+.coach-action.yellow{border-color:#fde68a}
+.coach-action.green{border-color:#86efac}
+
+.coach-rank{
+  width:40px;
+  height:40px;
+  border-radius:14px;
+  display:grid;
+  place-items:center;
+  background:#e0f2fe;
+  color:#0369a1;
+  font-weight:900;
+}
+
+.coach-action small{
+  color:#64748b;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+.coach-action h3{
+  margin:3px 0 8px;
+}
+
+.catalog-performance-table{
+  min-width:980px;
+}
+
+.catalog-action-table{
+  min-width:840px;
+}
+
+@media (max-width:1100px){
+  aside{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:6px;
+  }
+
+  aside .brand{
+    grid-column:1/-1;
+  }
+
+  aside .nav{
+    width:100%;
+    min-width:0;
+    margin:0;
+    text-align:center;
+  }
+
+  main{
+    width:100%;
+    max-width:100%;
+  }
+}
+
+@media (max-width:760px){
+  aside{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  h1{font-size:28px}
+
+  .coach-action{
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width:480px){
+  aside{
+    grid-template-columns:1fr;
+  }
+}
+
 /* =========================================================
    Import Amazon + Brand Analytics visual composition
    ========================================================= */
