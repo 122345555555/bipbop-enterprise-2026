@@ -28,6 +28,9 @@ La dashboard legge le righe del report Amazon “Cerca performance catalogo” g
 - periodo complessivo coperto dal report;
 - data o intervallo temporale disponibile per ogni ASIN;
 - impressioni, clic, CTR, carrelli, acquisti e conversione;
+- conferma esplicita quando gli acquisti sono realmente zero nel CSV sorgente;
+- confronto con gli ordini Amazon complessivi dello stesso periodo, se è presente il Report ordini;
+- lettura delle intestazioni italiane `Aggiunte carrello: aggiunte carrello` e `Acquisti: acquisti`;
 - prodotti con buona risposta;
 - prodotti con traffico ma CTR o conversione deboli;
 - azioni consigliate basate su regole trasparenti.

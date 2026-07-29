@@ -306,6 +306,18 @@ header>div:last-child{
   padding:18px;
 }
 
+.catalog-zero-notice{
+  margin:0 0 16px;
+}
+
+.catalog-order-comparison{
+  border:1px solid #d8e2ee;
+  border-radius:18px;
+  padding:18px;
+  margin:4px 0 22px;
+  background:#fff;
+}
+
 .catalog-summary{
   margin-bottom:16px;
   background:linear-gradient(135deg,#f0f9ff,#f8fafc);

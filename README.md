@@ -8,6 +8,8 @@ Versione stabile del centro di comando Amazon per BipBop.
 - **Analisi Dati** con ordini univoci, righe prodotto, pezzi, fatturato, riepilogo mensile, dettaglio mese e filtri per Order ID, ASIN, SKU e prodotto.
 - Controllo di coerenza dell'import indipendente dai filtri di consultazione.
 - Dashboard **Catalog Search Performance** con periodo coperto, data/periodo per ASIN, KPI, riepilogo, punti forti, criticità, opportunità e azioni consigliate.
+- Distinzione esplicita tra acquisti attribuiti a Catalog Search e ordini Amazon complessivi, con confronto sullo stesso periodo quando il Report ordini è disponibile.
+- Supporto ai nomi colonna italiani effettivi di Amazon, inclusi `Aggiunte carrello: aggiunte carrello` e `Acquisti: acquisti`.
 - Struttura base **AI Coach** con sintesi e priorità operative in sola lettura.
 
 ## Compatibilità e sicurezza dati

@@ -301,9 +301,14 @@ window.BBRender = {
         : dateLabel(row.firstDate)+" – "+dateLabel(row.latestDate);
     };
     const list=(title,items,emptyText)=>'<div class="insight-panel"><h3>'+h(title)+'</h3>'+(items.length?'<ul>'+items.map(item=>'<li><b>'+h(item.title||item.asin)+'</b><span>'+h(item.detail||"")+'</span></li>').join("")+'</ul>':'<p class="hint">'+h(emptyText)+'</p>')+'</div>';
+    const interestSignals=analysis.products.filter(row=>row.clicks>0).sort((a,b)=>b.ctr-a.ctr||b.clicks-a.clicks);
     const strengths=analysis.winners.slice(0,4).map(row=>({
       title:row.title||row.asin,
       detail:row.purchases+" acquisti · "+(Number.isFinite(row.conversion)?row.conversion.toFixed(1)+"% conversione":"conversione non disponibile")
+    }));
+    if(!strengths.length) interestSignals.slice(0,4).forEach(row=>strengths.push({
+      title:row.title||row.asin,
+      detail:row.clicks+" clic · CTR "+(Number.isFinite(row.ctr)?row.ctr.toFixed(2)+"%":"—")+"; interesse presente, conversione da verificare"
     }));
     const issues=[
       ...analysis.lowCtr.slice(0,3).map(row=>({title:row.title||row.asin,detail:"CTR "+(Number.isFinite(row.ctr)?row.ctr.toFixed(2)+"%":"—")+" su "+row.impressions+" impressioni"})),
@@ -315,17 +320,30 @@ window.BBRender = {
     }));
     const actionTable=analysis.actions.length?'<div class="table-scroll"><table class="decision-table catalog-action-table"><tr><th>Priorità</th><th>Prodotto</th><th>Perché</th><th>Azione proposta</th></tr>'+analysis.actions.map(row=>'<tr><td><span class="pill '+(row.type==="red"?"red":(row.type==="green"?"green":""))+'">'+h(row.priority)+'</span></td><td><b>'+h(row.title)+'</b></td><td>'+h(row.why)+'</td><td>'+h(row.action)+'</td></tr>').join("")+'</table></div>':'<div class="action green">Nessuna azione urgente rilevata.</div>';
     const productTable='<div class="table-scroll"><table class="catalog-performance-table"><tr><th>Periodo</th><th>ASIN / Prodotto</th><th>Impressioni</th><th>Clic</th><th>CTR</th><th>Carrelli</th><th>Acquisti</th><th>Conversione</th><th>Prezzo medio</th></tr>'+analysis.products.map(row=>'<tr><td><b>'+h(productPeriod(row))+'</b></td><td>'+this.asinCell(row.asin,row.title)+'</td><td>'+h(row.impressions)+'</td><td>'+h(row.clicks)+'</td><td>'+h(BBUtils.pct(row.ctr))+'</td><td>'+h(row.carts)+'</td><td><b>'+h(row.purchases)+'</b></td><td>'+h(BBUtils.pct(row.conversion))+'</td><td>'+h(Number.isFinite(row.price)?BBUtils.euro(row.price):"—")+'</td></tr>').join("")+'</table></div>';
-    return '<div class="catalog-summary"><b>Riassunto</b><p><strong>Periodo coperto: '+h(periodLabel)+'.</strong> Il report comprende '+h(analysis.products.length)+' ASIN. Il catalogo ha generato '+h(t.clicks)+' clic da '+h(t.impressions)+' impressioni e '+h(t.purchases)+' acquisti. Usa i suggerimenti come priorità di verifica, non come modifiche automatiche.</p></div>'+
+    const zeroPurchaseNotice=t.purchases===0
+      ? '<div class="action yellow catalog-zero-notice"><b>Zero acquisti nel report sorgente: dato confermato</b><br>Amazon riporta 0 nella colonna “Acquisti: acquisti” per tutti gli ASIN del periodo. Questo indica zero acquisti attribuiti al percorso di ricerca catalogo e non necessariamente zero ordini complessivi Amazon.</div>'
+      : "";
+    const orderComparison=analysis.orderComparison?.available
+      ? '<div class="catalog-order-comparison"><div class="overview-head"><div><h3>Confronto con Report ordini</h3><p class="hint">Ordini complessivi Amazon trovati nello stesso periodo. Possono differire dagli acquisti attribuiti alla ricerca catalogo.</p></div><span class="pill">Fonti separate</span></div><div class="grid3">'+[
+          ["Acquisti da Catalog Search",t.purchases,"attribuiti alla ricerca"],
+          ["Ordini Amazon",analysis.orderComparison.orders,"order-id distinti"],
+          ["Pezzi ordinati",analysis.orderComparison.units,"quantity-purchased"],
+          ["Fatturato ordini",BBUtils.euro(analysis.orderComparison.revenue),"item-price"]
+        ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[2])+'</span></div>').join("")+'</div></div>'
+      : '<div class="action"><b>Confronto ordini non disponibile</b><br>Importa il Report ordini per confrontare gli acquisti attribuiti alla ricerca con gli ordini Amazon complessivi dello stesso periodo.</div>';
+    return '<div class="catalog-summary"><b>Riassunto</b><p><strong>Periodo coperto: '+h(periodLabel)+'.</strong> Il report comprende '+h(analysis.products.length)+' ASIN. Il catalogo ha generato '+h(t.clicks)+' clic da '+h(t.impressions)+' impressioni e '+h(t.purchases)+' acquisti attribuiti alla ricerca. Usa i suggerimenti come priorità di verifica, non come modifiche automatiche.</p></div>'+
+      zeroPurchaseNotice+
       '<div class="kpis catalog-kpis">'+[
         ["Periodo",periodLabel,"date presenti nel report"],
         ["Impressioni",t.impressions,"visibilità totale"],
         ["Clic",t.clicks,"CTR "+BBUtils.pct(t.ctr)],
         ["Carrelli",t.carts,"tasso "+BBUtils.pct(t.cartRate)],
-        ["Acquisti",t.purchases,"conversione "+BBUtils.pct(t.conversion)],
+        ["Acquisti da ricerca",t.purchases,"conversione "+BBUtils.pct(t.conversion)],
         ["ASIN analizzati",analysis.products.length,"righe catalogo "+analysis.rows.length]
       ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[2])+'</span></div>').join("")+'</div>'+
+      orderComparison+
       '<div class="intelligence-grid">'+
-        list("Punti forti",strengths,"Non ci sono ancora acquisti attribuiti nel report.")+
+        list(t.purchases?"Punti forti":"Segnali di interesse",strengths,"Non ci sono ancora clic o acquisti attribuiti nel report.")+
         list("Criticità",issues,"Nessuna criticità evidente con le soglie attuali.")+
         list("Opportunità",opportunityItems,"Servono più dati per ordinare le opportunità.")+
       '</div>'+

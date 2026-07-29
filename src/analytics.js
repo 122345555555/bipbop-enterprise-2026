@@ -932,35 +932,48 @@ window.BBAnalytics = {
       const keys=keyText(row);
       const hasAsin=/(^|\| )asin( |$|\|)|titolo asin|asin title/.test(keys);
       const hasTraffic=keys.includes("impression") && (keys.includes("clic")||keys.includes("click"));
-      const hasFunnel=keys.includes("aggiunte al carrello")||keys.includes("add to cart")||keys.includes("tasso di conversione")||keys.includes("conversion rate");
+      const hasFunnel=keys.includes("aggiunte carrello")||keys.includes("aggiunte al carrello")||keys.includes("add to cart")||keys.includes("tasso di conversione")||keys.includes("conversion rate");
       return hasAsin&&hasTraffic&&hasFunnel;
     };
     const rows=allRows.filter(isCatalogRow);
     const pick=(row,names)=>BBUtils.pick(row,names);
     const text=(row,names)=>String(pick(row,names)||"").trim();
     const metric=(row,names)=>BBUtils.num(pick(row,names));
-    const parsed=rows.map(row=>({
-      row,
-      asin:text(row,["ASIN","asin","Codice ASIN"]),
-      title:text(row,["Titolo ASIN","ASIN Title","Titolo","Product Title","Nome prodotto"]),
-      category:text(row,["Categoria","Category"]),
-      date:this.parseReportDate(pick(row,[
+    const parsed=rows.map(row=>{
+      const date=this.parseReportDate(pick(row,[
         "Data del report","Data della segnalazione","Report Date","Date",
         "Data di fine","Data fine","End Date","Data"
-      ])),
-      impressions:metric(row,["Impressioni","Impressions","Impressioni: numero totale"]),
-      clicks:metric(row,["Clic","Click","Clicks","Clic: numero totale"]),
-      carts:metric(row,["Aggiunte al carrello","Add to cart","Add-to-cart","Carrelli"]),
-      purchases:metric(row,["Acquisti","Purchases","Orders","Ordini"]),
-      reportedCtr:metric(row,["CTR","Click-through rate","Percentuale di clic"]),
-      reportedCvr:metric(row,["Tasso di conversione","Conversion Rate","Purchase rate"]),
-      price:metric(row,["Prezzo mediano","Median Price","Prezzo medio","Average Price"])
-    })).filter(row=>row.asin||row.title);
+      ]));
+      const fileName=String(row.__file_name||"");
+      const periodStart=date?new Date(date):null;
+      if(periodStart&&/(week|settim)/i.test(fileName)) periodStart.setDate(periodStart.getDate()-6);
+      else if(periodStart&&/(quarter|trimestr)/i.test(fileName)){
+        periodStart.setMonth(periodStart.getMonth()-2,1);
+      }else if(periodStart&&/(month|mensil)/i.test(fileName)){
+        periodStart.setDate(1);
+      }
+      return {
+        row,
+        fileName,
+        asin:text(row,["ASIN","asin","Codice ASIN"]),
+        title:text(row,["Titolo dell'ASIN","Titolo ASIN","ASIN Title","Titolo","Product Title","Nome prodotto"]),
+        category:text(row,["Categoria","Category"]),
+        date,
+        periodStart,
+        impressions:metric(row,["Impressioni: impressioni","Impressioni","Impressions","Impressioni: numero totale"]),
+        clicks:metric(row,["Clic: clic","Clic","Click","Clicks","Clic: numero totale"]),
+        carts:metric(row,["Aggiunte carrello: aggiunte carrello","Aggiunte carrello","Aggiunte al carrello","Add to cart","Add-to-cart","Carrelli"]),
+        purchases:metric(row,["Acquisti: acquisti","Acquisti","Purchases","Orders","Ordini"]),
+        reportedCtr:metric(row,["Clic: tasso di clic (CTR)","CTR","Click-through rate","Percentuale di clic"]),
+        reportedCvr:metric(row,["Acquisti: % tasso di conversione","Tasso di conversione","Conversion Rate","Purchase rate"]),
+        price:metric(row,["Impressioni: prezzo (mediana)","Acquisti: prezzo (mediana)","Prezzo mediano","Median Price","Prezzo medio","Average Price"])
+      };
+    }).filter(row=>row.asin||row.title);
     const byAsin=new Map();
     parsed.forEach(row=>{
       const key=row.asin||BBUtils.low(row.title);
       const item=byAsin.get(key)||{
-        asin:row.asin,title:row.title,category:row.category,impressions:0,clicks:0,carts:0,purchases:0,prices:[],dates:[]
+        asin:row.asin,title:row.title,category:row.category,impressions:0,clicks:0,carts:0,purchases:0,prices:[],dates:[],periodStarts:[]
       };
       item.asin=item.asin||row.asin;
       item.title=item.title||row.title;
@@ -971,6 +984,7 @@ window.BBAnalytics = {
       item.purchases+=row.purchases;
       if(row.price>0) item.prices.push(row.price);
       if(row.date) item.dates.push(row.date);
+      if(row.periodStart) item.periodStarts.push(row.periodStart);
       byAsin.set(key,item);
     });
     const products=Array.from(byAsin.values()).map(item=>({
@@ -979,7 +993,7 @@ window.BBAnalytics = {
       cartRate:item.clicks?item.carts/item.clicks*100:NaN,
       conversion:item.clicks?item.purchases/item.clicks*100:NaN,
       price:item.prices.length?item.prices.reduce((a,b)=>a+b,0)/item.prices.length:NaN,
-      firstDate:item.dates.length?new Date(Math.min(...item.dates.map(d=>d.getTime()))):null,
+      firstDate:item.periodStarts.length?new Date(Math.min(...item.periodStarts.map(d=>d.getTime()))):(item.dates.length?new Date(Math.min(...item.dates.map(d=>d.getTime()))):null),
       latestDate:item.dates.length?new Date(Math.max(...item.dates.map(d=>d.getTime()))):null
     })).sort((a,b)=>b.purchases-a.purchases||b.clicks-a.clicks||b.impressions-a.impressions);
     const totals=products.reduce((acc,row)=>{
@@ -993,10 +1007,29 @@ window.BBAnalytics = {
     totals.cartRate=totals.clicks?totals.carts/totals.clicks*100:NaN;
     totals.conversion=totals.clicks?totals.purchases/totals.clicks*100:NaN;
     const reportDates=parsed.map(row=>row.date).filter(Boolean);
+    const reportStarts=parsed.map(row=>row.periodStart||row.date).filter(Boolean);
     const period={
-      start:reportDates.length?new Date(Math.min(...reportDates.map(date=>date.getTime()))):null,
+      start:reportStarts.length?new Date(Math.min(...reportStarts.map(date=>date.getTime()))):null,
       end:reportDates.length?new Date(Math.max(...reportDates.map(date=>date.getTime()))):null
     };
+    const normalizedHeaders=rows.length?Object.keys(rows[0]).map(BBUtils.low):[];
+    const sourceFields={
+      carts:normalizedHeaders.some(key=>key.includes("aggiunte carrello: aggiunte carrello")||key.includes("add to cart")),
+      purchases:normalizedHeaders.some(key=>key.includes("acquisti: acquisti")||key.includes("purchases"))
+    };
+    const orderAnalysis=period.start&&period.end&&(samples.orders||[]).length
+      ? this.orderAnalysis({orders:samples.orders},{year:"all",month:"all"})
+      : null;
+    const matchingOrderItems=(orderAnalysis?.normalizedItems||[]).filter(item=>
+      item.date&&item.date>=period.start&&item.date<=period.end
+    );
+    const orderComparison=orderAnalysis?{
+      available:true,
+      orders:new Set(matchingOrderItems.map(item=>item.id)).size,
+      lines:matchingOrderItems.length,
+      units:matchingOrderItems.reduce((sum,item)=>sum+item.qty,0),
+      revenue:matchingOrderItems.reduce((sum,item)=>sum+item.sales,0)
+    }:{available:false,orders:0,lines:0,units:0,revenue:0};
     const lowCtr=products.filter(row=>row.impressions>=Math.max(50,(totals.impressions/Math.max(products.length,1))*.5) && (!Number.isFinite(row.ctr)||row.ctr<Math.max(totals.ctr*.75,.5)));
     const lowConversion=products.filter(row=>row.clicks>=3 && row.purchases===0);
     const cartLeak=products.filter(row=>row.carts>0 && row.purchases===0);
@@ -1032,6 +1065,8 @@ window.BBAnalytics = {
       products,
       totals,
       period,
+      sourceFields,
+      orderComparison,
       lowCtr,
       lowConversion,
       cartLeak,
