@@ -12,6 +12,16 @@ Non eseguire script SQL: il database resta `bb100_`.
 
 L'Archivio mostra la copertura temporale dichiarata nel nome del file o, quando il nome non contiene date, l'intervallo ricavato dalle righe. Transazioni e Report ordini sono conservati come fonti distinte: il primo contiene movimenti economici e commissioni, il secondo ordini distinti, righe prodotto e quantità.
 
+Per i Report ordini è presente un controllo mese per mese a partire da gennaio 2025. Ogni mese viene indicato come:
+
+- **Mensile**, se esiste un file ordini dedicato a quel mese;
+- **Cumulativo**, se i dati del mese sono presenti soltanto in un file che copre più mesi;
+- **Manca**, se non risulta alcun file che copra quel mese.
+
+I file originali non vengono creati o suddivisi artificialmente: devono essere scaricati da Amazon e importati. Gli `order-item-id` sovrapposti restano deduplicati nei KPI.
+
+Prima del caricamento manuale è possibile usare **Recupera Report ordini dai vecchi archivi**. La funzione cerca i Report ordini nelle tabelle delle precedenti versioni, copia in `bb100_` soltanto quelli non ancora presenti e lascia intatti i dati sorgente. Se una vecchia tabella non esiste, viene semplicemente ignorata.
+
 ## Analisi Dati
 
 La sezione calcola:

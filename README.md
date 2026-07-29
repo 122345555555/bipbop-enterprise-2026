@@ -8,6 +8,8 @@ Versione stabile del centro di comando Amazon per BipBop.
 - **Analisi Dati** con ordini univoci, righe prodotto, pezzi, fatturato, riepilogo mensile, dettaglio mese e filtri per Order ID, ASIN, SKU e prodotto.
 - Controllo di coerenza dell'import indipendente dai filtri di consultazione.
 - Archivio con copertura temporale visibile per ogni file e distinzione esplicita tra Transazioni e Report ordini.
+- Controllo dei Report ordini mensili da gennaio 2025: presente, coperto solo da cumulativo oppure mancante.
+- Recupero guidato dei Report ordini dalle precedenti tabelle BB14/BB20/BB30/BB40/BB50/BB60/BB70 ed Enterprise, con deduplicazione prima della copia in `bb100_`.
 - Dashboard **Catalog Search Performance** con periodo coperto, data/periodo per ASIN, KPI, riepilogo, punti forti, criticità, opportunità e azioni consigliate.
 - Distinzione esplicita tra acquisti attribuiti a Catalog Search e ordini Amazon complessivi, con confronto sullo stesso periodo quando il Report ordini è disponibile.
 - Nel confronto ordini sono visibili order ID distinti, righe prodotto, pezzi e fatturato; il giorno finale del periodo è incluso per intero anche quando gli ordini contengono ora e fuso.

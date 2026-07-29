@@ -49,12 +49,21 @@ window.BBRender = {
       const start=unique[0],end=unique[unique.length-1];
       return {
         label:format(start)===format(end)?format(start):format(start)+" – "+format(end),
-        source:"intervallo dichiarato nel nome"
+        source:"intervallo dichiarato nel nome",
+        start,
+        end
       };
     }
 
-    const rows=(this.resolution(file?.report_type)?.rows||[])
-      .filter(row=>String(row.__file_id)===String(file?.id));
+    const archivedOrderRows=file?.report_type==="orders"
+      ? (this.state.orderArchiveRows||[])
+          .filter(record=>String(record.file_id)===String(file?.id))
+          .map(record=>record.row_data||{})
+      : [];
+    const rows=archivedOrderRows.length
+      ? archivedOrderRows
+      : (this.resolution(file?.report_type)?.rows||[])
+          .filter(row=>String(row.__file_id)===String(file?.id));
     const rowDates=rows.map(row=>BBAnalytics.parseReportDate(BBUtils.pick(row,[
       "purchase-date","Purchase Date","Data acquisto","Data dell'acquisto",
       "Data","Date","Data del report","Data della segnalazione",
@@ -64,10 +73,62 @@ window.BBRender = {
       const start=rowDates[0],end=rowDates[rowDates.length-1];
       return {
         label:format(start)===format(end)?format(start):format(start)+" – "+format(end),
-        source:"date presenti nei dati"
+        source:"date presenti nei dati",
+        start,
+        end
       };
     }
-    return {label:"—",source:"periodo non rilevabile"};
+    return {label:"—",source:"periodo non rilevabile",start:null,end:null};
+  },
+  orderMonthlyArchiveAudit(){
+    const start=new Date(2025,0,1);
+    const now=new Date();
+    const end=new Date(now.getFullYear(),now.getMonth(),1);
+    const monthKey=date=>date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0");
+    const monthLabel=date=>new Intl.DateTimeFormat("it-IT",{month:"short",year:"2-digit"}).format(date);
+    const months=[];
+    for(let cursor=new Date(start);cursor<=end;cursor.setMonth(cursor.getMonth()+1)){
+      months.push({
+        key:monthKey(cursor),
+        label:monthLabel(cursor),
+        monthlyFiles:[],
+        cumulativeFiles:[]
+      });
+    }
+    const files=(this.state.files||[]).filter(file=>file.report_type==="orders"&&!file.is_duplicate);
+    files.forEach(file=>{
+      const coverage=this.fileCoverage(file);
+      if(!coverage.start||!coverage.end) return;
+      const startKey=monthKey(coverage.start);
+      const endKey=monthKey(coverage.end);
+      const isMonthly=startKey===endKey;
+      months.forEach(month=>{
+        if(month.key<startKey||month.key>endKey) return;
+        (isMonthly?month.monthlyFiles:month.cumulativeFiles).push(file);
+      });
+    });
+    const monthly=months.filter(month=>month.monthlyFiles.length).length;
+    const cumulativeOnly=months.filter(month=>!month.monthlyFiles.length&&month.cumulativeFiles.length).length;
+    const missing=months.filter(month=>!month.monthlyFiles.length&&!month.cumulativeFiles.length).length;
+    return {months,monthly,cumulativeOnly,missing,total:months.length};
+  },
+  orderMonthlyArchiveHtml(){
+    const h=BBUtils.html;
+    const audit=this.orderMonthlyArchiveAudit();
+    const chips=audit.months.map(month=>{
+      const status=month.monthlyFiles.length?"monthly":(month.cumulativeFiles.length?"cumulative":"missing");
+      const detail=month.monthlyFiles.length
+        ? "File mensile presente"
+        : (month.cumulativeFiles.length?"Coperto solo da file cumulativo":"File mensile mancante");
+      return '<div class="archive-month '+status+'" title="'+h(detail)+'"><b>'+h(month.label)+'</b><span>'+h(status==="monthly"?"Mensile":(status==="cumulative"?"Cumulativo":"Manca"))+'</span></div>';
+    }).join("");
+    return '<div class="order-archive-audit"><div class="overview-head"><div><span class="eyebrow">Copertura storica richiesta</span><h3>Report ordini mensili dal 01/01/2025</h3><p class="hint">Il controllo verifica i file originali presenti nell’Archivio. Un report cumulativo può coprire i dati del mese, ma non viene considerato equivalente al file mensile richiesto.</p></div><span class="pill '+(audit.missing||audit.cumulativeOnly?"":"green")+'">'+h(audit.monthly)+' / '+h(audit.total)+' mensili</span></div><div class="grid3 archive-audit-kpis">'+[
+      ["File mensili presenti",audit.monthly],
+      ["Solo copertura cumulativa",audit.cumulativeOnly],
+      ["File mensili mancanti",audit.missing]
+    ].map(item=>'<div class="kpi"><small>'+h(item[0])+'</small><strong>'+h(item[1])+'</strong></div>').join("")+'</div><div class="archive-month-grid">'+chips+'</div>'+
+      (audit.missing||audit.cumulativeOnly?'<div class="action yellow"><b>Archivio mensile incompleto</b><br>Prima di ricaricare manualmente i file, prova il recupero dagli archivi delle versioni precedenti. Verranno copiati soltanto i Report ordini non ancora presenti in `bb100_`.</div><div class="archive-recovery-actions"><button id="recoverLegacyOrdersBtn" type="button">Recupera Report ordini dai vecchi archivi</button><span id="legacyRecoveryStatus" class="hint">Operazione sicura: non elimina i dati originali.</span></div>':'<div class="action green"><b>Archivio mensile completo</b><br>È presente un file ordini dedicato per ogni mese dal gennaio 2025.</div>')+
+      '</div>';
   },
   activeProfitFiles(state=this.state){
     const ids=new Set((state.resolution?.profit_report?.activeFileIds||[]).map(String));
@@ -583,7 +644,7 @@ window.BBRender = {
       return '<div class="import-box '+boxClass+'"><h4>'+h(r[1])+'</h4><p><span class="pill">'+h(r[2])+'</span></p><b>Stato:</b> '+traffic+'<br><b>Data ultimo import:</b> '+h(BBUtils.dateTimeIT(importedAt))+'<br><b>File attivi:</b> '+fc+'<br><b>Righe attive:</b> '+(s.counts[r[0]]||0)+'<br><b>Ultimo file:</b> '+h(latest?.file_name||'—')+'</div>';
     }).join("");
 
-    BBUtils.el("archiveTable").innerHTML=s.files.length?'<div class="action"><b>Come leggere lo storico</b><br>I file Transazioni e Report ordini restano separati: il primo ricostruisce movimenti economici e commissioni, il secondo ordini distinti, quantità e righe prodotto. Nessuno dei due cancella automaticamente l’altro.</div><div class="table-scroll"><table><tr><th>Report</th><th>File</th><th>Copertura</th><th>Righe</th><th>Colonne</th><th>Uso nei dati</th><th>Hash</th><th>Importato</th><th>Azione</th></tr>'+s.files.map(f=>{
+    BBUtils.el("archiveTable").innerHTML=s.files.length?this.orderMonthlyArchiveHtml()+'<div class="action"><b>Come leggere lo storico</b><br>I file Transazioni e Report ordini restano separati: il primo ricostruisce movimenti economici e commissioni, il secondo ordini distinti, quantità e righe prodotto. Nessuno dei due cancella automaticamente l’altro.</div><div class="table-scroll"><table><tr><th>Report</th><th>File</th><th>Copertura</th><th>Righe</th><th>Colonne</th><th>Uso nei dati</th><th>Hash</th><th>Importato</th><th>Azione</th></tr>'+s.files.map(f=>{
       const usage=this.fileUsage(f);
       const coverage=this.fileCoverage(f);
       return '<tr><td><span class="pill">'+h(BBAnalytics.label(f.report_type))+'</span></td><td>'+h(f.file_name)+'</td><td><b>'+h(coverage.label)+'</b><br><span class="small">'+h(coverage.source)+'</span></td><td>'+h(f.row_count)+'</td><td>'+h(f.column_count)+'</td><td><span class="pill '+h(usage.className)+'">'+h(usage.label)+'</span></td><td class="small">'+h(String(f.fingerprint||"").slice(0,12))+'...</td><td>'+h(new Date(f.imported_at).toLocaleString("it-IT"))+'</td><td><button class="secondaryBtn deleteFileBtn" data-file-id="'+h(f.id)+'" data-file-name="'+h(f.file_name)+'">Elimina</button></td></tr>';

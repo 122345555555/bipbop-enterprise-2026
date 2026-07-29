@@ -1,7 +1,7 @@
 (function(){
 "use strict";
 
-const state={files:[],counts:{},samples:{},resolution:{},errors:[]};
+const state={files:[],counts:{},samples:{},resolution:{},orderArchiveRows:[],errors:[]};
 BBRender.setState(state);
 
 function show(view){
@@ -84,6 +84,10 @@ async function refresh(){
       state.samples[type]=resolution.rows;
       state.counts[type]=resolution.rows.length;
     }
+    // Solo per il controllo Archivio: conserva la copertura di ogni file
+    // ordini originale, compresi quelli sostituiti dalla deduplicazione.
+    // Non modifica i dati attivi né i KPI.
+    state.orderArchiveRows=await BBStorage.rawRows("orders");
     BBRender.renderAll();
   }catch(e){
     state.errors.push(String(e.message||e));
@@ -124,6 +128,25 @@ function bind(){
   BBUtils.el("multiFile").addEventListener("change",e=>importFiles(Array.from(e.target.files)));
   BBUtils.el("clearImportLogBtn").addEventListener("click",()=>BBUtils.el("importLog").textContent="Pronto.");
   BBUtils.el("archiveTable").addEventListener("click",async e=>{
+    const recoverBtn=e.target.closest("#recoverLegacyOrdersBtn");
+    if(recoverBtn){
+      const status=BBUtils.el("legacyRecoveryStatus");
+      recoverBtn.disabled=true;
+      try{
+        const result=await BBLegacy.recoverOrders(message=>{
+          if(status) status.textContent=message;
+        });
+        if(status) status.textContent="Recupero completato: "+result.recovered+" file copiati, "+result.duplicates+" già presenti, "+result.empty+" senza righe.";
+        BBUtils.el("importLog").innerHTML="<div>✅ Recupero archivio completato: "+result.recovered+" Report ordini aggiunti a bb100_. I duplicati sono stati esclusi.</div>";
+        await refresh();
+      }catch(err){
+        state.errors.push(String(err.message||err));
+        if(status) status.textContent="Errore: "+String(err.message||err);
+      }finally{
+        recoverBtn.disabled=false;
+      }
+      return;
+    }
     const btn=e.target.closest(".deleteFileBtn");
     if(!btn) return;
     const fileName=btn.dataset.fileName || "questo file";
