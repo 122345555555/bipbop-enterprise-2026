@@ -49,7 +49,31 @@ const rows = [
   }
 ];
 
-const analysis=context.window.BBAnalytics.catalogSearchPerformance({brand_analytics:rows});
+const orderRows = [
+  {
+    "order-id":"ORDER-1",
+    "order-item-id":"ITEM-1",
+    "purchase-date":"2026-07-01T10:30:00+00:00",
+    "quantity-purchased":"2",
+    "item-price":"39.80"
+  },
+  {
+    "order-id":"ORDER-2",
+    "order-item-id":"ITEM-2",
+    "purchase-date":"2026-07-07T23:59:00+00:00",
+    "quantity-purchased":"1",
+    "item-price":"19.90"
+  },
+  {
+    "order-id":"ORDER-OUTSIDE",
+    "order-item-id":"ITEM-3",
+    "purchase-date":"2026-07-08T09:00:00+00:00",
+    "quantity-purchased":"1",
+    "item-price":"19.90"
+  }
+];
+
+const analysis=context.window.BBAnalytics.catalogSearchPerformance({brand_analytics:rows,orders:orderRows});
 assert.equal(analysis.hasData,true);
 assert.equal(analysis.products.length,2);
 assert.equal(analysis.totals.impressions,1800);
@@ -59,6 +83,12 @@ assert.equal(context.window.BBAnalytics.dateKey(analysis.period.start),"2026-06-
 assert.equal(context.window.BBAnalytics.dateKey(analysis.period.end),"2026-07-07");
 assert.equal(analysis.sourceFields.purchases,true);
 assert.equal(analysis.sourceFields.carts,true);
+assert.equal(analysis.orderComparison.available,true);
+assert.equal(analysis.orderComparison.orders,2);
+assert.equal(analysis.orderComparison.lines,2);
+assert.equal(analysis.orderComparison.units,3);
+assert.ok(Math.abs(analysis.orderComparison.revenue-59.7)<0.001);
+assert.equal(analysis.orderComparison.reportOrders,3);
 assert.equal(analysis.winners[0].asin,"B0TEST001");
 assert.equal(analysis.lowCtr[0].asin,"B0TEST002");
 assert.ok(analysis.actions.length>=2);

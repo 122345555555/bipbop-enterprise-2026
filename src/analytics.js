@@ -1020,16 +1020,32 @@ window.BBAnalytics = {
     const orderAnalysis=period.start&&period.end&&(samples.orders||[]).length
       ? this.orderAnalysis({orders:samples.orders},{year:"all",month:"all"})
       : null;
-    const matchingOrderItems=(orderAnalysis?.normalizedItems||[]).filter(item=>
-      item.date&&item.date>=period.start&&item.date<=period.end
-    );
+    /*
+     * Confrontiamo chiavi di calendario e non timestamp. Il report Catalog
+     * Search indica un giorno intero, mentre il Report ordini include anche
+     * ora e fuso: un ordine avvenuto nel giorno finale dopo le 00:00 deve
+     * comunque rientrare nel periodo.
+     */
+    const periodStartKey=this.dateKey(period.start);
+    const periodEndKey=this.dateKey(period.end);
+    const matchingOrderItems=(orderAnalysis?.normalizedItems||[]).filter(item=>{
+      if(!item.date) return false;
+      const key=this.dateKey(item.date);
+      return key>=periodStartKey&&key<=periodEndKey;
+    });
     const orderComparison=orderAnalysis?{
       available:true,
       orders:new Set(matchingOrderItems.map(item=>item.id)).size,
       lines:matchingOrderItems.length,
       units:matchingOrderItems.reduce((sum,item)=>sum+item.qty,0),
-      revenue:matchingOrderItems.reduce((sum,item)=>sum+item.sales,0)
-    }:{available:false,orders:0,lines:0,units:0,revenue:0};
+      revenue:matchingOrderItems.reduce((sum,item)=>sum+item.sales,0),
+      periodStart:period.start,
+      periodEnd:period.end,
+      reportOrders:orderAnalysis.totals.orders,
+      reportLines:orderAnalysis.totals.lines,
+      reportUnits:orderAnalysis.totals.units,
+      reportRevenue:orderAnalysis.totals.revenue
+    }:{available:false,orders:0,lines:0,units:0,revenue:0,reportOrders:0,reportLines:0,reportUnits:0,reportRevenue:0};
     const lowCtr=products.filter(row=>row.impressions>=Math.max(50,(totals.impressions/Math.max(products.length,1))*.5) && (!Number.isFinite(row.ctr)||row.ctr<Math.max(totals.ctr*.75,.5)));
     const lowConversion=products.filter(row=>row.clicks>=3 && row.purchases===0);
     const cartLeak=products.filter(row=>row.carts>0 && row.purchases===0);

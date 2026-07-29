@@ -8,6 +8,10 @@
 
 Non eseguire script SQL: il database resta `bb100_`.
 
+## Archivio e copertura
+
+L'Archivio mostra la copertura temporale dichiarata nel nome del file o, quando il nome non contiene date, l'intervallo ricavato dalle righe. Transazioni e Report ordini sono conservati come fonti distinte: il primo contiene movimenti economici e commissioni, il secondo ordini distinti, righe prodotto e quantità.
+
 ## Analisi Dati
 
 La sezione calcola:
@@ -29,7 +33,9 @@ La dashboard legge le righe del report Amazon “Cerca performance catalogo” g
 - data o intervallo temporale disponibile per ogni ASIN;
 - impressioni, clic, CTR, carrelli, acquisti e conversione;
 - conferma esplicita quando gli acquisti sono realmente zero nel CSV sorgente;
-- confronto con gli ordini Amazon complessivi dello stesso periodo, se è presente il Report ordini;
+- confronto con gli ordini Amazon complessivi dello stesso periodo, se è presente il Report ordini: order ID distinti, righe prodotto, pezzi e fatturato;
+- inclusione dell'intera giornata finale anche quando `purchase-date` contiene ora e fuso;
+- distinzione esplicita tra acquisti attribuiti alla ricerca e ordini Amazon provenienti da qualsiasi percorso;
 - lettura delle intestazioni italiane `Aggiunte carrello: aggiunte carrello` e `Acquisti: acquisti`;
 - prodotti con buona risposta;
 - prodotti con traffico ma CTR o conversione deboli;

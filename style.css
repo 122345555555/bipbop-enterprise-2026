@@ -318,6 +318,10 @@ header>div:last-child{
   background:#fff;
 }
 
+.catalog-order-footnote{
+  margin:12px 2px 0;
+}
+
 .catalog-summary{
   margin-bottom:16px;
   background:linear-gradient(135deg,#f0f9ff,#f8fafc);

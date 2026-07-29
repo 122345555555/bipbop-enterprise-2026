@@ -20,6 +20,55 @@ window.BBRender = {
     if((resolution.activeFileIds||[]).map(String).includes(String(file.id))) return {label:"Attivo nei KPI",className:"green"};
     return {label:"Storico sostituito",className:""};
   },
+  fileCoverage(file){
+    const format=date=>date?date.toLocaleDateString("it-IT"):"";
+    const validDate=(year,month,day)=>{
+      const date=new Date(Number(year),Number(month)-1,Number(day));
+      return Number.isNaN(date.getTime())?null:date;
+    };
+    const name=String(file?.file_name||"");
+    const dates=[];
+    let match;
+    const italian=/(\d{1,2})[-_.](\d{1,2})[-_.](20\d{2})/g;
+    while((match=italian.exec(name))){
+      const date=validDate(match[3],match[2],match[1]);
+      if(date) dates.push(date);
+    }
+    const iso=/(20\d{2})[-_.](\d{1,2})[-_.](\d{1,2})/g;
+    while((match=iso.exec(name))){
+      const date=validDate(match[1],match[2],match[3]);
+      if(date) dates.push(date);
+    }
+    const compact=/(20\d{2})(\d{2})(\d{2})/g;
+    while((match=compact.exec(name))){
+      const date=validDate(match[1],match[2],match[3]);
+      if(date) dates.push(date);
+    }
+    const unique=Array.from(new Map(dates.map(date=>[date.getTime(),date])).values()).sort((a,b)=>a-b);
+    if(unique.length){
+      const start=unique[0],end=unique[unique.length-1];
+      return {
+        label:format(start)===format(end)?format(start):format(start)+" – "+format(end),
+        source:"intervallo dichiarato nel nome"
+      };
+    }
+
+    const rows=(this.resolution(file?.report_type)?.rows||[])
+      .filter(row=>String(row.__file_id)===String(file?.id));
+    const rowDates=rows.map(row=>BBAnalytics.parseReportDate(BBUtils.pick(row,[
+      "purchase-date","Purchase Date","Data acquisto","Data dell'acquisto",
+      "Data","Date","Data del report","Data della segnalazione",
+      "payments-date","order-date","Start Date","End Date"
+    ]))).filter(Boolean).sort((a,b)=>a-b);
+    if(rowDates.length){
+      const start=rowDates[0],end=rowDates[rowDates.length-1];
+      return {
+        label:format(start)===format(end)?format(start):format(start)+" – "+format(end),
+        source:"date presenti nei dati"
+      };
+    }
+    return {label:"—",source:"periodo non rilevabile"};
+  },
   activeProfitFiles(state=this.state){
     const ids=new Set((state.resolution?.profit_report?.activeFileIds||[]).map(String));
     return (state.files||[]).filter(f=>f.report_type==="profit_report" && ids.has(String(f.id)));
@@ -324,14 +373,18 @@ window.BBRender = {
       ? '<div class="action yellow catalog-zero-notice"><b>Zero acquisti nel report sorgente: dato confermato</b><br>Amazon riporta 0 nella colonna “Acquisti: acquisti” per tutti gli ASIN del periodo. Questo indica zero acquisti attribuiti al percorso di ricerca catalogo e non necessariamente zero ordini complessivi Amazon.</div>'
       : "";
     const orderComparison=analysis.orderComparison?.available
-      ? '<div class="catalog-order-comparison"><div class="overview-head"><div><h3>Confronto con Report ordini</h3><p class="hint">Ordini complessivi Amazon trovati nello stesso periodo. Possono differire dagli acquisti attribuiti alla ricerca catalogo.</p></div><span class="pill">Fonti separate</span></div><div class="grid3">'+[
+      ? '<div class="catalog-order-comparison"><div class="overview-head"><div><span class="eyebrow">Report ordini rilevato</span><h3>I dati si sono aggiornati: '+h(analysis.orderComparison.orders)+' ordini Amazon nello stesso periodo</h3><p class="hint">Lo zero di Catalog Search resta corretto: indica gli acquisti attribuiti da Amazon alla ricerca catalogo. Il Report ordini misura invece tutte le vendite Amazon, indipendentemente dal percorso seguito dal cliente.</p></div><span class="pill green">Import collegato</span></div><div class="grid3">'+[
           ["Acquisti da Catalog Search",t.purchases,"attribuiti alla ricerca"],
           ["Ordini Amazon",analysis.orderComparison.orders,"order-id distinti"],
+          ["Righe prodotto",analysis.orderComparison.lines,"order-item-id nel periodo"],
           ["Pezzi ordinati",analysis.orderComparison.units,"quantity-purchased"],
           ["Fatturato ordini",BBUtils.euro(analysis.orderComparison.revenue),"item-price"]
-        ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[2])+'</span></div>').join("")+'</div></div>'
+        ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[2])+'</span></div>').join("")+'</div><p class="hint catalog-order-footnote">Il file ordini completo contiene '+h(analysis.orderComparison.reportOrders)+' ordini, '+h(analysis.orderComparison.reportUnits)+' pezzi e '+h(BBUtils.euro(analysis.orderComparison.reportRevenue))+'. Qui sopra mostriamo esclusivamente gli ordini compresi nel periodo Catalog Search '+h(periodLabel)+'.</p></div>'
       : '<div class="action"><b>Confronto ordini non disponibile</b><br>Importa il Report ordini per confrontare gli acquisti attribuiti alla ricerca con gli ordini Amazon complessivi dello stesso periodo.</div>';
-    return '<div class="catalog-summary"><b>Riassunto</b><p><strong>Periodo coperto: '+h(periodLabel)+'.</strong> Il report comprende '+h(analysis.products.length)+' ASIN. Il catalogo ha generato '+h(t.clicks)+' clic da '+h(t.impressions)+' impressioni e '+h(t.purchases)+' acquisti attribuiti alla ricerca. Usa i suggerimenti come priorità di verifica, non come modifiche automatiche.</p></div>'+
+    const orderSummary=analysis.orderComparison?.available
+      ? ' Nello stesso periodo il Report ordini registra <strong>'+h(analysis.orderComparison.orders)+' ordini Amazon, '+h(analysis.orderComparison.units)+' pezzi e '+h(BBUtils.euro(analysis.orderComparison.revenue))+'</strong>.'
+      : "";
+    return '<div class="catalog-summary"><b>Riassunto</b><p><strong>Periodo coperto: '+h(periodLabel)+'.</strong> Il report comprende '+h(analysis.products.length)+' ASIN. Il catalogo ha generato '+h(t.clicks)+' clic da '+h(t.impressions)+' impressioni e '+h(t.purchases)+' acquisti attribuiti alla ricerca.'+orderSummary+' Usa i suggerimenti come priorità di verifica, non come modifiche automatiche.</p></div>'+
       zeroPurchaseNotice+
       '<div class="kpis catalog-kpis">'+[
         ["Periodo",periodLabel,"date presenti nel report"],
@@ -530,10 +583,11 @@ window.BBRender = {
       return '<div class="import-box '+boxClass+'"><h4>'+h(r[1])+'</h4><p><span class="pill">'+h(r[2])+'</span></p><b>Stato:</b> '+traffic+'<br><b>Data ultimo import:</b> '+h(BBUtils.dateTimeIT(importedAt))+'<br><b>File attivi:</b> '+fc+'<br><b>Righe attive:</b> '+(s.counts[r[0]]||0)+'<br><b>Ultimo file:</b> '+h(latest?.file_name||'—')+'</div>';
     }).join("");
 
-    BBUtils.el("archiveTable").innerHTML=s.files.length?'<table><tr><th>Report</th><th>File</th><th>Righe</th><th>Colonne</th><th>Uso nei dati</th><th>Hash</th><th>Importato</th><th>Azione</th></tr>'+s.files.map(f=>{
+    BBUtils.el("archiveTable").innerHTML=s.files.length?'<div class="action"><b>Come leggere lo storico</b><br>I file Transazioni e Report ordini restano separati: il primo ricostruisce movimenti economici e commissioni, il secondo ordini distinti, quantità e righe prodotto. Nessuno dei due cancella automaticamente l’altro.</div><div class="table-scroll"><table><tr><th>Report</th><th>File</th><th>Copertura</th><th>Righe</th><th>Colonne</th><th>Uso nei dati</th><th>Hash</th><th>Importato</th><th>Azione</th></tr>'+s.files.map(f=>{
       const usage=this.fileUsage(f);
-      return '<tr><td><span class="pill">'+h(BBAnalytics.label(f.report_type))+'</span></td><td>'+h(f.file_name)+'</td><td>'+h(f.row_count)+'</td><td>'+h(f.column_count)+'</td><td><span class="pill '+h(usage.className)+'">'+h(usage.label)+'</span></td><td class="small">'+h(String(f.fingerprint||"").slice(0,12))+'...</td><td>'+h(new Date(f.imported_at).toLocaleString("it-IT"))+'</td><td><button class="secondaryBtn deleteFileBtn" data-file-id="'+h(f.id)+'" data-file-name="'+h(f.file_name)+'">Elimina</button></td></tr>';
-    }).join("")+'</table>':'<div class="action">Nessun report importato.</div>';
+      const coverage=this.fileCoverage(f);
+      return '<tr><td><span class="pill">'+h(BBAnalytics.label(f.report_type))+'</span></td><td>'+h(f.file_name)+'</td><td><b>'+h(coverage.label)+'</b><br><span class="small">'+h(coverage.source)+'</span></td><td>'+h(f.row_count)+'</td><td>'+h(f.column_count)+'</td><td><span class="pill '+h(usage.className)+'">'+h(usage.label)+'</span></td><td class="small">'+h(String(f.fingerprint||"").slice(0,12))+'...</td><td>'+h(new Date(f.imported_at).toLocaleString("it-IT"))+'</td><td><button class="secondaryBtn deleteFileBtn" data-file-id="'+h(f.id)+'" data-file-name="'+h(f.file_name)+'">Elimina</button></td></tr>';
+    }).join("")+'</table></div>':'<div class="action">Nessun report importato.</div>';
 
     BBUtils.el("salesBox").innerHTML='<div class="grid3">'+[
       ["Vendite",c.sales?BBUtils.euro(c.sales):"—"],["Unità",c.units||"—"],["Sessioni",c.sessions||"—"],["Conversione",BBUtils.pct(c.conversion)],["Commissioni Amazon",BBUtils.euro(c.amazonFees)],["Profitto stimato",c.sales?BBUtils.euro(c.profit):"—"],
