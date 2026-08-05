@@ -400,9 +400,40 @@ window.BBAnalytics = {
     if(String(row.year)==="2026" && avgPrice<20) return 8;
     return 15;
   },
+  orderProductRows(samples,startValue="2025-01-01"){
+    const start=this.parseReportDate(startValue)||new Date(2025,0,1);
+    start.setHours(0,0,0,0);
+    const analysis=this.orderAnalysis({orders:samples.orders||[]},{year:"all",month:"all"});
+    const profitRows=this.profitRows(samples);
+    const profitBySku=new Map();
+    const profitByAsin=new Map();
+    profitRows.forEach(r=>{
+      if(r.sku) profitBySku.set(BBUtils.low(r.sku),r);
+      if(r.asin&&r.asin!=="N/D") profitByAsin.set(BBUtils.low(r.asin),r);
+    });
+    const map=new Map();
+    (analysis.validItems||analysis.normalizedItems||[]).filter(item=>item.date&&item.date>=start).forEach(item=>{
+      const matched=(item.sku&&profitBySku.get(BBUtils.low(item.sku)))||(item.asin&&profitByAsin.get(BBUtils.low(item.asin)))||null;
+      const asin=item.asin||matched?.asin||"N/D";
+      const sku=item.sku||matched?.sku||"";
+      const title=item.title||matched?.title||"";
+      const key=sku||asin||title||item.identity;
+      const row=map.get(key)||{year:"2025-oggi",asin,sku,title,sales:0,units:0,profit:0,margin:NaN,latestDate:null,orders:new Set(),source:"Report ordini validi"};
+      row.asin=row.asin==="N/D"&&asin!=="N/D"?asin:row.asin;
+      row.sku=row.sku||sku;
+      row.title=row.title||title;
+      row.sales+=item.sales||0;
+      row.units+=item.qty||0;
+      if(item.id) row.orders.add(item.id);
+      if(item.date&&(!row.latestDate||item.date>row.latestDate)) row.latestDate=item.date;
+      map.set(key,row);
+    });
+    return Array.from(map.values()).map(r=>({...r,orders:r.orders.size})).sort((a,b)=>b.sales-a.sales);
+  },
   productCostRows(samples,c){
     const profiles=this.costProfiles();
-    const sourceRows=this.profitRows(samples);
+    const orderRows=this.orderProductRows(samples,"2025-01-01");
+    const sourceRows=orderRows.length?orderRows:this.profitRows(samples);
     const salesTotal=sourceRows.reduce((a,r)=>a+(r.sales||0),0) || c.sales || 0;
     return sourceRows.map(r=>{
       const text=[r.title,r.sku,r.asin,this.categoryForText(r.title||r.sku||"")].join(" ");
@@ -423,7 +454,7 @@ window.BBAnalytics = {
       const costPerSale=units?totalCost/units:0;
       const net=simulatedRevenue-totalCost;
       const margin=simulatedRevenue?net/simulatedRevenue*100:NaN;
-      return {...r,category:this.categoryForText(text),profileKey:key,profileLabel:profile.label,salePrice,simulatedRevenue,adhesive,ink,packaging,shipping,referral,referralRate,adsAllocated,internal,totalCost,costPerSale,net,marginAfterCosts:margin};
+      return {...r,category:this.categoryForText(text),profileKey:key,profileLabel:profile.label,salePrice,simulatedRevenue,adhesive,ink,packaging,shipping,referral,referralRate,adsAllocated,internal,totalCost,costPerSale,net,marginAfterCosts:margin,dataSource:orderRows.length?"Report ordini validi":"Profit Report"};
     }).sort((a,b)=>(a.marginAfterCosts||0)-(b.marginAfterCosts||0));
   },
   productCostSummary(samples,c){
@@ -443,6 +474,7 @@ window.BBAnalytics = {
     return {
       rows,
       profiles:this.costProfiles(),
+      sourceLabel:rows[0]?.dataSource||"Nessun dato",
       totals:{
         sales:totalSales,
         simulatedRevenue:sum("simulatedRevenue"),

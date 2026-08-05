@@ -1,4 +1,8 @@
-# BipBop Enterprise 2026 v1.3.3 Growth Engine — FBA Manager
+# BipBop Enterprise 2026 v1.3.4 Growth Engine — FBA Manager
+
+## Profit Center allineato v1.3.4
+
+Profit Center e Costi prodotto usano ora ricavi e quantità dei Report ordini validi dal 01/01/2025. Gli ordini annullati e le righe non valide sono esclusi; i costi unitari manuali restano invariati.
 
 ## Correzione ordini v1.3.3
 

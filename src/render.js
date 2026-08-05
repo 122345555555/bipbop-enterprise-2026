@@ -347,6 +347,7 @@ window.BBRender = {
     const execRules=BBUtils.rules();
     const manualStatus=BBAnalytics.manualSalesStatus ? BBAnalytics.manualSalesStatus(scopedSamples,execRules.manualSales||[]) : null;
     const historicalSales=BBAnalytics.historicalSalesSummary ? BBAnalytics.historicalSalesSummary(scopedSamples,"2025-01-01",execRules.manualSales||[]) : null;
+    const profitCostSummary=BBAnalytics.productCostSummary ? BBAnalytics.productCostSummary(scopedSamples,c) : null;
     const sortManual=(rows)=>(rows||[]).slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
     const manualPending=sortManual(manualStatus?.pending || execRules.manualSales || []);
     const manualCovered=sortManual(manualStatus?.covered || []);
@@ -678,9 +679,18 @@ window.BBRender = {
       '</div>':'<div class="action">Importa Brand Analytics – Performance query di ricerca.</div>';
     }
 
-    BBUtils.el("profitBox").innerHTML='<div class="grid3">'+[
-      ["Ricavi",BBUtils.euro(c.sales)],["Commissioni Amazon",BBUtils.euro(c.amazonFees)],["Ads",BBUtils.euro(c.ads)],["Profitto",BBUtils.euro(c.profit)],["Margine",BBUtils.pct(c.margin)],["TACOS",BBUtils.pct(c.tacos)],
-      ["Da Profit Report",c.netProfitReport?BBUtils.euro(c.netProfitReport):"—"],["Ricavi Profit Report",c.salesProfit?BBUtils.euro(c.salesProfit):"—"],["Fee Profit Report",c.amazonFeesProfit?BBUtils.euro(c.amazonFeesProfit):"—"]
+    const profitUsesOrderCosts=profitCostSummary?.sourceLabel==="Report ordini validi"&&profitCostSummary.rows.length>0;
+    const profitRevenue=profitUsesOrderCosts?profitCostSummary.totals.sales:(historicalSales?.hasData?historicalSales.sales:c.sales);
+    const profitUnits=profitUsesOrderCosts?profitCostSummary.totals.units:(historicalSales?.hasData?historicalSales.units:c.units);
+    const profitOrders=historicalSales?.ordersAvailable?historicalSales.orders:null;
+    const simulatedNet=profitCostSummary?.totals?.net;
+    const simulatedMargin=profitCostSummary?.totals?.margin;
+    const finalEstimatedNet=Number.isFinite(simulatedNet)?simulatedNet-c.subscriptionCost-c.extraFixedCosts:NaN;
+    BBUtils.el("profitBox").innerHTML='<div class="overview-head"><div><h3>Profit Center storico dal 01/01/2025</h3><p class="hint">Ricavi, ordini e unità provengono dal Report ordini valido. Costi Amazon del Profit Report restano separati per evitare periodi o fonti sovrapposte.</p></div><span class="pill green">Fonte: '+h(historicalSales?.sourceLabel||"Report disponibili")+'</span></div><div class="grid3">'+[
+      ["Ricavi ordini validi",BBUtils.euro(profitRevenue)],["Ordini validi",profitOrders===null?"—":profitOrders],["Unità vendute",profitUnits||"—"],
+      ["Costi interni",profitCostSummary?BBUtils.euro(profitCostSummary.totals.internal):"—"],["Commissioni stimate",profitCostSummary?BBUtils.euro(profitCostSummary.totals.referral):"—"],["Ads allocati",profitCostSummary?BBUtils.euro(profitCostSummary.totals.adsAllocated):BBUtils.euro(c.ads)],
+      ["Netto simulato",Number.isFinite(simulatedNet)?BBUtils.euro(simulatedNet):"—"],["Margine simulato",Number.isFinite(simulatedMargin)?BBUtils.pct(simulatedMargin):"—"],["Netto dopo costi fissi",Number.isFinite(finalEstimatedNet)?BBUtils.euro(finalEstimatedNet):"—"],
+      ["Profitto Amazon (report)",c.netProfitReport?BBUtils.euro(c.netProfitReport):"—"],["Ricavi Profit Report",c.salesProfit?BBUtils.euro(c.salesProfit):"—"],["Fee Profit Report",c.amazonFeesProfit?BBUtils.euro(c.amazonFeesProfit):"—"]
     ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>';
     BBUtils.el("profitBox").innerHTML += '<h3>Riconciliazione saldo</h3><div class="grid3">'+[
       ["Profitto Amazon",BBUtils.euro(c.netProfitReport||c.profit)],
@@ -690,18 +700,19 @@ window.BBRender = {
       ["Canone stimato",BBUtils.euro(c.subscriptionCost)],
       ["Saldo finale stimato",BBUtils.euro(c.reconciledProfit)]
     ].map(x=>'<div class="kpi '+(x[0]==="Saldo finale stimato" ? ((c.reconciledProfit||0)<0?'recon-bad':'recon-good') : '')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Formula: Profitto Amazon - ADS extra non già incluse - canone stimato. Saldo prudente sottraendo tutte le ADS fatturate: <b>'+h(BBUtils.euro(c.conservativeProfit))+'</b>.</p>';
-    BBUtils.el("profitBox").innerHTML += '<h3>Conto economico manuale</h3><div class="grid3">'+[
-      ["Vendite totali",BBUtils.euro(c.sales)],
-      ["N. vendite",c.units||"—"],
-      ["Prezzo medio",Number.isFinite(c.avgPrice)?BBUtils.euro(c.avgPrice):"—"],
+    BBUtils.el("profitBox").innerHTML += '<h3>Conto economico storico simulato</h3><div class="grid3">'+[
+      ["Vendite totali",BBUtils.euro(profitRevenue)],
+      ["Ordini validi",profitOrders===null?"—":profitOrders],
+      ["Unità vendute",profitUnits||"—"],
+      ["Prezzo medio",profitUnits?BBUtils.euro(profitRevenue/profitUnits):"—"],
       ["Canone Amazon",BBUtils.euro(c.subscriptionCost)],
-      ["Commissioni segnalazione",BBUtils.euro(c.referralFeesProfit)],
-      ["Spese ADS",BBUtils.euro(c.ads)],
-      ["Produzione",BBUtils.euro(c.productionCost)],
-      ["Spedizione",BBUtils.euro(c.shippingCost)],
+      ["Commissioni stimate",profitCostSummary?BBUtils.euro(profitCostSummary.totals.referral):BBUtils.euro(c.referralFeesProfit)],
+      ["Spese ADS allocate",profitCostSummary?BBUtils.euro(profitCostSummary.totals.adsAllocated):BBUtils.euro(c.ads)],
+      ["Produzione e imballo",profitCostSummary?BBUtils.euro(profitCostSummary.totals.adhesive+profitCostSummary.totals.ink+profitCostSummary.totals.packaging):BBUtils.euro(c.productionCost)],
+      ["Spedizione",profitCostSummary?BBUtils.euro(profitCostSummary.totals.shipping):BBUtils.euro(c.shippingCost)],
       ["Altri costi fissi",BBUtils.euro(c.extraFixedCosts)],
-      ["Saldo manuale",BBUtils.euro(c.manualBalance)]
-    ].map(x=>'<div class="kpi '+(x[0]==="Saldo manuale" ? ((c.manualBalance||0)<0?'recon-bad':'recon-good') : '')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Formula manuale: vendite totali - commissioni segnalazione - ADS - canone - produzione - spedizione - altri costi fissi. Inserisci produzione e spedizione in Setup.</p>';
+      ["Saldo simulato",Number.isFinite(finalEstimatedNet)?BBUtils.euro(finalEstimatedNet):"—"]
+    ].map(x=>'<div class="kpi '+(x[0]==="Saldo simulato"&&Number.isFinite(finalEstimatedNet) ? (finalEstimatedNet<0?'recon-bad':'recon-good') : '')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Formula: ricavo simulato - costi unitari - commissioni stimate - Ads allocate - canone - altri costi fissi. Le quantità derivano dagli ordini validi deduplicati.</p>';
     if(profitFiles.length>1){
       BBUtils.el("profitBox").innerHTML += '<div class="action yellow"><b>Attenzione: più Profit Report attivi</b><br>Per evitare doppi conteggi sto usando solo l’ultimo Profit Report caricato: <b>'+h(activeProfitFile)+'</b>. Gli altri restano in archivio ma non vengono sommati nei KPI principali.</div>';
     }
@@ -712,12 +723,12 @@ window.BBRender = {
     BBUtils.el("profitBox").innerHTML += py.length?'<h3>Riepilogo per anno</h3><div class="grid3">'+py.map(r=>'<div class="kpi"><small>'+h(r.year)+' — '+h(r.asinCount)+' ASIN/SKU</small><strong>'+h(BBUtils.euro(r.profit))+'</strong><br><span class="small">Vendite '+h(BBUtils.euro(r.sales))+' · Margine '+h(BBUtils.pct(r.margin))+'</span></div>').join("")+'</div>':'';
     BBUtils.el("profitBox").innerHTML += pr.length?'<h3>Profitto per ASIN</h3><p class="hint">Risultati mostrati: '+pf.length+' su '+pr.length+'.</p><table><tr><th>Anno</th><th>ASIN / Prodotto</th><th>SKU</th><th>Vendite</th><th>Unità</th><th>Profitto</th><th>Margine</th></tr>'+pf.map(r=>'<tr><td>'+h(r.year)+'</td><td>'+this.asinCell(r.asin,r.title)+'</td><td>'+h(r.sku)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.units)+'</td><td class="'+((r.profit||0)<0?'stock-bad':'')+'">'+h(BBUtils.euro(r.profit))+'</td><td>'+h(BBUtils.pct(r.margin))+'</td></tr>').join("")+'</table>':'<p class="hint">Carica il Profit Report per vedere profitto e margine per ASIN. I costi interni potranno essere collegati dopo.</p>';
 
-    const costSummary=BBAnalytics.productCostSummary ? BBAnalytics.productCostSummary(scopedSamples,c) : null;
+    const costSummary=profitCostSummary;
     const costEl=BBUtils.el("productCostBox");
     if(costEl && costSummary){
       const profiles=costSummary.profiles;
       const profileRows=Object.keys(profiles).map(key=>({key,...profiles[key]}));
-      costEl.innerHTML='<h3>Costi unitari per tipologia</h3><p class="hint">Valori per singolo ordine/unita. Inserisci ricavo/prezzo vendita, commissione Amazon, adesivo, inchiostro, imballo e spedizione. La commissione predefinita e 8%, ma puoi cambiarla per articoli sopra 20 euro.</p>'+
+      costEl.innerHTML='<div class="action green"><b>Dati quantità aggiornati</b><br>Ricavi e unità sono calcolati da '+h(costSummary.sourceLabel)+', con ordini annullati e righe non valide esclusi.</div><h3>Costi unitari per tipologia</h3><p class="hint">Valori per singolo ordine/unita. Inserisci ricavo/prezzo vendita, commissione Amazon, adesivo, inchiostro, imballo e spedizione. La commissione predefinita e 8%, ma puoi cambiarla per articoli sopra 20 euro.</p>'+
       '<table class="compact-table product-cost-table"><tr><th>Tipologia</th><th>Ricavo / prezzo vendita €</th><th>Commissione Amazon %</th><th>Adesivo €</th><th>Inchiostro €</th><th>Imballo €</th><th>Spedizione €</th><th>Totale costi €</th><th>Differenza ricavo-costi €</th></tr>'+
       profileRows.map(p=>{ const sale=BBUtils.num(p.salePrice); const commission=sale*BBUtils.num(p.amazonCommission)/100; const total=commission+BBUtils.num(p.adhesive)+BBUtils.num(p.ink)+BBUtils.num(p.packaging)+BBUtils.num(p.shipping); const diff=sale-total; return '<tr><td><b>'+h(p.label)+'</b></td><td>'+this.productCostInput(p.key,"salePrice",p.salePrice)+'</td><td>'+this.productCostInput(p.key,"amazonCommission",p.amazonCommission)+'</td><td>'+this.productCostInput(p.key,"adhesive",p.adhesive)+'</td><td>'+this.productCostInput(p.key,"ink",p.ink)+'</td><td>'+this.productCostInput(p.key,"packaging",p.packaging)+'</td><td>'+this.productCostInput(p.key,"shipping",p.shipping)+'</td><td><b>'+h(BBUtils.euro(total))+'</b><br><span class="small">Comm. '+h(BBUtils.euro(commission))+'</span></td><td class="'+(diff<0?'stock-bad':'status-ok')+'"><b>'+h(BBUtils.euro(diff))+'</b></td></tr>'; }).join("")+'</table>'+
       '<button id="saveProductCosts">Salva costi prodotto</button>'+
