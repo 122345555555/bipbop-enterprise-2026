@@ -49,7 +49,17 @@ assert.equal(summary.manualSales, 20);
 const partial = context.window.BBAnalytics.historicalSalesSummary({
   orders: [order("c","c-1","2025-03-01",1,25)]
 }, "2025-01-01", []);
-assert.equal(partial.coverageStatus, "partial");
+assert.equal(partial.coverageStatus, "observed");
+
+const cancelled = context.window.BBAnalytics.historicalSalesSummary({
+  orders: [
+    {...order("cancelled","cancelled-1","2025-03-02",0,9.9),"order-status":"Cancelled"},
+    order("valid","valid-1","2025-03-03",3,59.7)
+  ]
+}, "2025-01-01", []);
+assert.equal(cancelled.orders, 1);
+assert.equal(cancelled.units, 3);
+assert.equal(cancelled.sales, 59.7);
 
 const undated = context.window.BBAnalytics.historicalSalesSummary({
   business_report: [{"Ordered Product Sales":"100","Units Ordered":"5"}]

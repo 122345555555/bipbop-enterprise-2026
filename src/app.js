@@ -44,12 +44,14 @@ async function importFiles(files){
       };
       const result=await BBStorage.insertFile(
         reportType,file.name,parsed.headers,parsed.rows,fingerprint,source,parsed.delimiter,
-        {smartReconciliation:true}
+        {smartReconciliation:true,repairDuplicate:reportType==="orders"}
       );
       const placement=forcedType
         ? "forzato in "+BBUtils.html(BBAnalytics.label(reportType))+" (automatico: "+BBUtils.html(BBAnalytics.label(detectedType))+")"
         : "rilevato come "+BBUtils.html(BBAnalytics.label(reportType));
-      if(result.isDuplicate){
+      if(result.repaired){
+        lines.push("🔧 "+safeFileName+": Report ordini già presente, riprocessato con il lettore aggiornato. Le vecchie righe restano nello storico ma sono escluse dai KPI.");
+      }else if(result.isDuplicate){
         const existing=result.duplicateFile;
         const existingInfo=existing
           ? " Era già stato caricato come "+BBUtils.html(existing.file_name)+" ("+BBUtils.html(existing.row_count)+" righe)."

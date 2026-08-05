@@ -205,10 +205,11 @@ window.BBRender = {
     if(!summary?.hasData) return '<div class="overview-head"><div><span class="eyebrow">Storico attività</span><h3>Totali dal '+startLabel+' a oggi</h3><p class="hint">Importa il Report ordini storico a partire dal '+startLabel+' per costruire il totale complessivo.</p></div><span class="pill yellow">Dati storici mancanti</span></div>';
     const date=d=>d?d.toLocaleDateString("it-IT"):"—";
     const coverageClass=summary.coverageStatus==="complete"?"green":"yellow";
-    const coverageLabel=summary.coverageStatus==="complete"?"Copertura completa":(summary.coverageStatus==="partial"?"Copertura parziale":(summary.coverageStatus==="unknown"?"Periodo da verificare":"Copertura non disponibile"));
+    const coverageLabel=summary.coverageStatus==="complete"?"Copertura completa":(summary.coverageStatus==="partial"?"Copertura parziale":(summary.coverageStatus==="observed"?"Primo ordine disponibile":(summary.coverageStatus==="unknown"?"Periodo da verificare":"Copertura non disponibile")));
     let coverageText="";
     if(summary.coverageStatus==="complete") coverageText="I dati importati coprono il periodo richiesto dal "+startLabel+" fino al "+date(summary.coverageEnd)+".";
     else if(summary.coverageStatus==="partial") coverageText="I dati disponibili iniziano il "+date(summary.coverageStart)+". Per ottenere il totale reale dal "+startLabel+", importa anche i report precedenti.";
+    else if(summary.coverageStatus==="observed") coverageText="Il primo ordine disponibile è del "+date(summary.coverageStart)+". L'assenza di ordini il "+startLabel+" non significa che manchino dati: indica semplicemente che la prima vendita registrata è successiva.";
     else if(summary.coverageStatus==="unknown") coverageText="Il "+summary.sourceLabel+" non contiene date verificabili. Il totale è mostrato, ma occorre confermare che il report inizi dal "+startLabel+".";
     else coverageText="Non è possibile verificare la copertura temporale dei dati importati.";
     return '<div class="overview-head"><div><span class="eyebrow">Storico attività</span><h3>Totali dal '+startLabel+' a oggi</h3><p class="hint">Fonte primaria: '+h(summary.sourceLabel)+'. Le fonti alternative non vengono sommate, così si evitano duplicazioni.</p></div><span class="pill '+coverageClass+'">'+h(coverageLabel)+'</span></div>'+
@@ -268,6 +269,7 @@ window.BBRender = {
       ["Righe sorgente",coherence.rawLines,true],
       ["Righe attive",coherence.activeLines,true],
       ["Duplicati esclusi",coherence.duplicateLines,coherence.duplicateLines===0],
+      ["Ordini annullati",coherence.cancelledOrders||0,true],
       ["Order ID mancanti",coherence.missingOrderIds,coherence.missingOrderIds===0],
       ["Quantità non valide",coherence.invalidQuantity,coherence.invalidQuantity===0],
       ["Prezzi non validi",coherence.invalidRevenue,coherence.invalidRevenue===0],
@@ -297,6 +299,7 @@ window.BBRender = {
       '<h3>Controllo coerenza import</h3>'+
       '<div class="coherence-grid">'+coherenceItems.map(x=>'<div class="coherence-item '+(x[2]?'ok':'warn')+'"><small>'+h(x[0])+'</small><b>'+h(x[1])+'</b></div>').join("")+'</div>'+
       (coherence.duplicateLines?'<div class="action yellow"><b>Duplicati neutralizzati</b><br>'+h(coherence.duplicateLines)+' righe sovrapposte sono state escluse dai KPI, quindi non vengono sommate due volte.</div>':'')+
+      (coherence.cancelledOrders?'<div class="action yellow"><b>Ordini annullati esclusi</b><br>'+h(coherence.cancelledOrders)+' ordini annullati sono presenti nel report, ma non entrano in ordini, pezzi, fatturato e valore medio.</div>':'')+
       (!coherence.ok?'<div class="action red"><b>Import da verificare</b><br>Controlla le righe segnalate prima di usare i dati per decisioni economiche.</div>':'<div class="action green"><b>Quadratura completata</b><br>Ordini, righe prodotto, pezzi e fatturato mensile coincidono con il dettaglio attivo.</div>');
   },
   filteredAsinDecisionRows(rows){

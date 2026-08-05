@@ -13,13 +13,14 @@ window.BBStorage = {
     const db=this.client();
     if(!db) throw new Error("Supabase non configurato.");
 
-    const dup=await db.from("bb100_report_files").select("id,file_name,imported_at,row_count,column_count").eq("fingerprint",fingerprint).eq("report_type",reportType).limit(1);
+    const dup=await db.from("bb100_report_files").select("id,file_name,imported_at,row_count,column_count,is_duplicate").eq("fingerprint",fingerprint).eq("report_type",reportType).limit(100);
     if(dup.error) throw new Error(dup.error.message);
     const duplicateFound=(dup.data||[]).length>0;
     // Un file con lo stesso hash è sempre uno storico duplicato. Non deve
     // tornare attivo neppure durante un aggiornamento, altrimenti i valori
     // vengono temporaneamente raddoppiati o sostituiscono campagne diverse.
-    const isDuplicate=duplicateFound;
+    const repairDuplicate=duplicateFound&&options.repairDuplicate===true;
+    const isDuplicate=duplicateFound&&!repairDuplicate;
 
     const filePayload={
       report_type:reportType,
@@ -29,7 +30,7 @@ window.BBStorage = {
       column_count:headers.length,
       headers,
       delimiter,
-      source:source||{},
+      source:repairDuplicate?{...(source||{}),reparsed:true,reparsed_from_file_ids:(dup.data||[]).map(x=>x.id)}:(source||{}),
       is_duplicate:isDuplicate,
       imported_at:new Date().toISOString()
     };
@@ -57,7 +58,14 @@ window.BBStorage = {
       }
     }
 
-    return {isDuplicate,file:insFile.data,duplicateFile:(dup.data||[])[0]||null};
+    if(repairDuplicate){
+      for(const previous of (dup.data||[])){
+        const old=await db.from("bb100_report_files").update({is_duplicate:true}).eq("id",previous.id);
+        if(old.error) throw new Error(old.error.message);
+      }
+    }
+
+    return {isDuplicate,repaired:repairDuplicate,file:insFile.data,duplicateFile:(dup.data||[])[0]||null};
   },
   async deleteTypeExcept(reportType,keepFileIds=[]){
     const db=this.client();

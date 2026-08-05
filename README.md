@@ -1,4 +1,8 @@
-# BipBop Enterprise 2026 v1.3.2 Growth Engine — FBA Manager
+# BipBop Enterprise 2026 v1.3.3 Growth Engine — FBA Manager
+
+## Correzione ordini v1.3.3
+
+Gli ordini annullati sono esclusi dai KPI. Se un Report ordini già caricato viene importato nuovamente, viene riprocessato con il parser aggiornato e sostituisce nei calcoli la precedente copia importata male, senza cancellare lo storico.
 
 ## Riepilogo storico v1.3.2
 

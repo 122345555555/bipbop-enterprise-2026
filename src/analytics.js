@@ -674,7 +674,7 @@ window.BBAnalytics = {
       {orders:samples.orders||[]},
       {year:"all",month:"all"}
     );
-    const official=(orderData.normalizedItems||[]).filter(r=>r.date);
+    const official=(orderData.validItems||orderData.normalizedItems||[]).filter(r=>r.date);
     const manual=(manualPending||[]).map(r=>({
       date:r._dateObj||this.parseReportDate(r.date),
       qty:BBUtils.num(r.units),
@@ -708,7 +708,7 @@ window.BBAnalytics = {
     const start=this.parseReportDate(startValue)||new Date(2025,0,1);
     start.setHours(0,0,0,0);
     const orderData=this.orderAnalysis({orders:samples.orders||[]},{year:"all",month:"all"});
-    const normalizedOrders=orderData.normalizedItems||[];
+    const normalizedOrders=orderData.validItems||orderData.normalizedItems||[];
     const datedOrders=normalizedOrders.filter(r=>r.date);
     const candidates=[
       {type:"orders",label:"Report ordini",rows:datedOrders,sales:r=>r.sales,units:r=>r.qty},
@@ -748,7 +748,7 @@ window.BBAnalytics = {
     const sales=officialSales+manualTotal;
     const units=officialUnits+manualUnits;
     const orders=orderIds.size;
-    const coverageStatus=undated?"unknown":(!coverageStart?"missing":(coverageStart<=start?"complete":"partial"));
+    const coverageStatus=undated?"unknown":(!coverageStart?"missing":(coverageStart<=start?"complete":(source?.type==="orders"?"observed":"partial")));
     return {
       hasData:!!sourceRows.length||pendingManual.length>0,
       start,
@@ -782,7 +782,7 @@ window.BBAnalytics = {
       "order-item-id","Amazon Order Item Id","Amazon Order Item ID","Numero articolo ordine","ID articolo ordine"
     ])||"").trim();
     const quantity=row=>BBUtils.num(value(row,[
-      "quantity-purchased","Quantity Purchased","Quantità acquistata","Quantita acquistata","Quantity","Quantità"
+      "quantity-purchased","Quantity Purchased","Quantità acquistata","Quantita acquistata","quantity","Quantity","Quantità"
     ]));
     const revenue=row=>BBUtils.num(value(row,[
       "item-price","Item Price","Prezzo articolo","Prezzo dell'articolo","Totale articolo","Product Sales"
@@ -795,6 +795,10 @@ window.BBAnalytics = {
     const title=row=>String(value(row,[
       "product-name","Product Name","item-name","Item Name","title","Titolo","Dettagli prodotto"
     ])||"").trim();
+    const status=row=>String(value(row,[
+      "order-status","Order Status","Stato ordine","item-status","Item Status","Stato articolo","status","Stato"
+    ])||"").trim();
+    const isCancelled=row=>/cancelled|canceled|annullat/i.test(status(row));
 
     const bestByIdentity=new Map();
     const duplicateRows=[];
@@ -821,7 +825,7 @@ window.BBAnalytics = {
       const identity=itemId
         ? "item:"+itemId
         : "row:"+[id,this.dateKey(date),asin(row),sku(row),qty,sales,title(row)].join("|").toLowerCase();
-      const item={row,index,id,itemId,date,qty,sales,asin:asin(row),sku:sku(row),title:title(row),identity};
+      const item={row,index,id,itemId,date,qty,sales,asin:asin(row),sku:sku(row),title:title(row),status:status(row),cancelled:isCancelled(row),identity};
       item.quality=rowQuality(item);
       const existing=bestByIdentity.get(identity);
       if(existing){
@@ -837,7 +841,8 @@ window.BBAnalytics = {
     });
     const normalized=Array.from(bestByIdentity.values());
 
-    const valid=normalized.filter(r=>r.id);
+    const cancelled=normalized.filter(r=>r.id&&r.cancelled);
+    const valid=normalized.filter(r=>r.id&&!r.cancelled&&Number.isFinite(r.qty)&&r.qty>0);
     const monthMap=new Map();
     const orderMap=new Map();
     valid.forEach(item=>{
@@ -919,8 +924,9 @@ window.BBAnalytics = {
       visibleRevenue+=m.revenue;
     });
     const missingOrderIds=normalized.filter(r=>!r.id).length;
-    const invalidQuantity=normalized.filter(r=>!Number.isFinite(r.qty)||r.qty<=0).length;
-    const invalidRevenue=normalized.filter(r=>{
+    const nonCancelled=normalized.filter(r=>!r.cancelled);
+    const invalidQuantity=nonCancelled.filter(r=>!Number.isFinite(r.qty)||r.qty<=0).length;
+    const invalidRevenue=nonCancelled.filter(r=>{
       const raw=value(r.row,["item-price","Item Price","Prezzo articolo","Prezzo dell'articolo","Totale articolo","Product Sales"]);
       return raw===""||raw===null||raw===undefined||!Number.isFinite(r.sales)||r.sales<0;
     }).length;
@@ -941,6 +947,8 @@ window.BBAnalytics = {
       rawLines:rawRows.length,
       activeLines:normalized.length,
       duplicateLines:duplicateRows.length,
+      cancelledLines:cancelled.length,
+      cancelledOrders:new Set(cancelled.map(r=>r.id)).size,
       missingOrderIds,
       invalidQuantity,
       invalidRevenue,
@@ -966,6 +974,9 @@ window.BBAnalytics = {
       detailMonth,
       detailOrders,
       normalizedItems:valid,
+      validItems:valid,
+      allItems:normalized,
+      cancelledItems:cancelled,
       comparison,
       coherence
     };

@@ -119,4 +119,31 @@ assert.equal(executive.weeklyUnits, 8);
 assert.equal(Number(executive.weeklySales.toFixed(2)), 159.20);
 assert.match(executive.weeklyLabel,/20\/07.+26\/07\/2026/);
 
+const withCancelled = context.window.BBAnalytics.orderAnalysis({orders:[
+  row("valid-order","valid-item","2026-07-27",3,59.70,"Ordine valido"),
+  {
+    "order-id":"cancelled-order",
+    "order-item-id":"cancelled-item",
+    "purchase-date":"2026-07-27",
+    "quantity":"0",
+    "item-price":"9.90",
+    "order-status":"Cancelled"
+  },
+  {
+    "order-id":"broken-order",
+    "order-item-id":"broken-item",
+    "purchase-date":"2026-07-27",
+    "quantity-purchased":"",
+    "item-price":""
+  }
+]},{year:"2026",month:"6"});
+assert.equal(withCancelled.totals.orders,1);
+assert.equal(withCancelled.totals.units,3);
+assert.equal(Number(withCancelled.totals.revenue.toFixed(2)),59.70);
+assert.equal(withCancelled.coherence.cancelledOrders,1);
+assert.equal(withCancelled.coherence.invalidQuantity,1);
+assert.equal(withCancelled.coherence.invalidRevenue,1);
+assert.equal(withCancelled.validItems.length,1);
+assert.equal(withCancelled.allItems.length,3);
+
 console.log("OK: Executive cumulativo 207 unità / 4.041,92 euro; settimana 8 unità / 159,20 euro.");
