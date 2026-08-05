@@ -3,35 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop Enterprise 2026 v1.4 — Intelligence operativa</title>
-  <link rel="stylesheet" href="style.css?v=5.35">
+  <title>BipBop Enterprise 2026 v1.1 FBA Manager</title>
+  <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <aside>
     <div class="brand">
       <div class="logo">B</div>
-      <div><b>BipBop</b><small>Enterprise 2026 v1.4</small></div>
+      <div><b>BipBop</b><small>Enterprise 2026 v1.1</small></div>
     </div>
     <button class="nav active" data-view="executive">📊 Executive</button>
-    <button class="nav" data-view="aicoach">🧭 AI Coach</button>
     <button class="nav" data-view="import">📥 Import Amazon</button>
-    <button class="nav" data-view="dataexplorer">🧭 Analisi dati</button>
     <button class="nav" data-view="sales">💶 Sales</button>
     <button class="nav" data-view="advertising">📈 Advertising</button>
     <button class="nav" data-view="asin">📦 ASIN</button>
-    <button class="nav" data-view="inventory">📋 Inventario</button>
     <button class="nav" data-view="fba">🚚 FBA Test</button>
-    <button class="nav" data-view="recovery">🛟 Sales Recovery</button>
-    <button class="nav" data-view="store">🏬 Store Intelligence</button>
-    <button class="nav" data-view="competitors">🕵️ Competitor</button>
     <button class="nav" data-view="keyword">🔎 Keyword</button>
     <button class="nav" data-view="brandanalytics">🏷️ Brand Analytics</button>
-    <button class="nav" data-view="catalogperformance">🎯 Catalog Search</button>
     <button class="nav" data-view="profit">💰 Profit Center</button>
-    <button class="nav" data-view="costs">🧾 Costi prodotto</button>
-    <button class="nav" data-view="weekly">🗓️ Weekly Action Plan</button>
-    <button class="nav" data-view="trends">🎨 Trend & Idee</button>
     <button class="nav" data-view="growth">🚀 Growth Plan</button>
     <button class="nav" data-view="decision">🧠 AI Decision Center</button>
     <button class="nav" data-view="alerts">🚨 Alert Center</button>
@@ -44,10 +34,9 @@
     <header>
       <div>
         <h1 id="pageTitle">Executive</h1>
-        <p>Growth Engine con controllo ordini, riepilogo mensile e verifica della coerenza degli import.</p>
+        <p>Enterprise 2026 v1.1: Amazon Smart Parser, Brand Analytics, KPI, decisioni operative e FBA Manager.</p>
       </div>
       <div>
-        <span id="weeklyImportBadge" class="badge bad">🔴 Aggiornamento del martedì mancante</span>
         <span id="cloudBadge" class="badge bad">Cloud non collegato</span>
         <button id="refreshBtn">Aggiorna dati</button>
       </div>
@@ -55,7 +44,7 @@
 
     <section id="executive" class="view active">
       <div class="hero">
-        <div id="healthScore" class="circle">0</div>
+        <div class="circle">7.0</div>
         <div>
           <h2 id="headline">Amazon Growth Engine pronto</h2>
           <p id="subline">Importa i report Amazon per generare KPI, alert e priorità operative.</p>
@@ -68,254 +57,54 @@
       </div>
     </section>
 
-    <section id="aicoach" class="view">
-      <div class="card ai-coach-card">
-        <div class="page-section-head">
-          <div>
-            <span class="eyebrow">Assistente decisionale</span>
-            <h3>AI Coach</h3>
-            <p class="hint">Riassunto operativo generato esclusivamente dai report attivi. I suggerimenti non modificano campagne, prezzi o dati.</p>
-          </div>
-          <span class="pill green">Solo lettura</span>
-        </div>
-        <div id="aiCoachBox"></div>
-      </div>
-    </section>
-
-    <section id="dataexplorer" class="view">
-      <div class="card">
-        <h3>Analisi Dati</h3>
-        <p class="hint">Controlla ordini unici, righe prodotto, pezzi e fatturato. Seleziona un mese per vedere il dettaglio e il confronto con il periodo precedente.</p>
-        <div id="dataExplorerBox"></div>
-      </div>
-    </section>
-
     <section id="import" class="view">
-      <div class="card import-main-card">
-        <div class="page-section-head">
-          <div>
-            <span class="eyebrow">Centro importazioni</span>
-            <h3>Import universale Amazon</h3>
-            <p class="hint">Carica insieme CSV, TSV o TXT. Il parser riconosce formato e tipologia; i duplicati non vengono sommati nei dati attivi.</p>
-          </div>
-          <span class="pill green">Smart Parser attivo</span>
+      <div class="card">
+        <h3>Import universale v1.0 <span class="pill green">Smart Parser attivo</span></h3>
+        <p class="hint">Trascina insieme CSV, TSV o TXT Amazon. Il parser riconosce separatore, encoding e tipo report. I duplicati non vengono sommati nei dati attivi.</p>
+        <div id="dropZone" class="dropzone">
+          <b>Trascina qui tutti i report Amazon</b>
+          <span>CSV, TSV, TXT — UTF-8, UTF-16, ANSI</span>
+          <input id="multiFile" type="file" accept=".csv,.txt,.tsv" multiple hidden>
         </div>
-        <div class="import-workspace">
-          <div class="import-settings">
-            <div class="import-panel-title">Impostazioni</div>
-            <label for="reportTypeOverride">Destinazione import</label>
-            <select id="reportTypeOverride">
-              <option value="">Riconoscimento automatico</option>
-              <option value="business_report">Business Report</option>
-              <option value="transactions">Transazioni / Pagamenti</option>
-              <option value="ad_invoices">Fatture Ads</option>
-              <option value="sponsored_products">Sponsored Products</option>
-              <option value="sponsored_brands">Sponsored Brands</option>
-              <option value="sponsored_display">Sponsored Display</option>
-              <option value="search_terms">Search Terms</option>
-              <option value="orders">Report ordini</option>
-              <option value="inventory">Inventario</option>
-              <option value="store_date">Store Amazon - per data</option>
-              <option value="store_live_page">Store Amazon - pagine attive</option>
-              <option value="store_not_live_page">Store Amazon - pagine non attive</option>
-              <option value="store_source">Store Amazon - fonti traffico</option>
-              <option value="brand_analytics">Brand Analytics</option>
-              <option value="profit_report">Profit Report</option>
-            </select>
-            <p class="hint import-help">Usa la selezione manuale solo se il riconoscimento automatico assegna il report alla sezione sbagliata.</p>
-            <div class="replace-toggle smart-reconcile-note">
-              <span aria-hidden="true">✓</span>
-              <span>
-                <b>Aggiornamento intelligente sempre attivo</b>
-                <small>I file restano nello storico. Il sistema usa l'ultimo Business Report, neutralizza le righe sovrapposte e mantiene separate tutte le campagne Ads.</small>
-              </span>
-            </div>
-          </div>
-          <div class="import-drop-panel">
-            <div id="dropZone" class="dropzone">
-              <span class="dropzone-icon" aria-hidden="true">⇧</span>
-              <b>Trascina qui tutti i report Amazon</b>
-              <span>CSV, TSV, TXT — UTF-8, UTF-16, ANSI</span>
-              <input id="multiFile" type="file" accept=".csv,.txt,.tsv" multiple hidden>
-            </div>
-            <div class="import-actions">
-              <button id="selectFilesBtn">Seleziona file</button>
-              <button id="clearImportLogBtn" class="secondaryBtn">Pulisci log</button>
-            </div>
-            <div id="importLog" class="log">Pronto.</div>
-          </div>
-        </div>
+        <button id="selectFilesBtn">Seleziona file</button>
+        <button id="clearImportLogBtn" class="secondaryBtn">Pulisci log</button>
+        <div id="importLog" class="log">Pronto.</div>
       </div>
-      <div class="card import-status-card">
-        <div class="page-section-head compact">
-          <div><span class="eyebrow">Copertura dati</span><h3>Report attivi in database</h3></div>
-        </div>
-        <div id="statusGrid" class="import-grid"></div>
-      </div>
+      <div class="card"><h3>Report attivi in database</h3><div id="statusGrid" class="import-grid"></div></div>
     </section>
 
     <section id="sales" class="view"><div class="card"><h3>Sales</h3><div id="salesBox"></div></div></section>
     <section id="advertising" class="view"><div class="card"><h3>Advertising Intelligence</h3><div id="adsBox"></div><div id="adsFilesBox"></div></div></section>
-    <section id="asin" class="view">
-      <div class="card">
-        <h3>ASIN Intelligence</h3>
-        <div class="tool-row asin-tools">
-          <input id="asinSearch" placeholder="Cerca ASIN o SKU">
-          <select id="asinDecisionFilter">
-            <option value="all">Tutti gli ASIN</option>
-            <option value="scale">Da spingere</option>
-            <option value="protect">Da proteggere</option>
-            <option value="fix">Da correggere</option>
-            <option value="stock">Controlla stock</option>
-            <option value="watch">Da monitorare</option>
-          </select>
-          <select id="asinSort">
-            <option value="profit_desc">Profitto alto prima</option>
-            <option value="sales_desc">Vendite alte prima</option>
-            <option value="profit_asc">Perdite prima</option>
-            <option value="margin_asc">Margine basso prima</option>
-            <option value="units_desc">Unità alte prima</option>
-          </select>
-          <button id="asinReset" class="secondaryBtn" type="button">Azzera filtri</button>
-        </div>
-        <div id="asinBox"></div>
-      </div>
-    </section>
-    <section id="inventory" class="view">
-      <div class="card">
-        <h3>Inventario / Catalogo offerte</h3>
-        <div class="tool-row inventory-tools">
-          <input id="inventorySearch" placeholder="Cerca prodotto, SKU o ASIN">
-          <select id="inventoryFilter">
-            <option value="all">Tutti i prodotti</option>
-            <option value="active">Solo attivi</option>
-            <option value="inactive">Non attivi</option>
-            <option value="outofstock">Esauriti</option>
-            <option value="lowstock">Sotto scorta</option>
-            <option value="missingasin">Senza ASIN valido</option>
-          </select>
-          <input id="inventoryLowStock" type="number" min="0" value="10" title="Soglia sotto scorta">
-          <select id="inventorySort">
-            <option value="title">Ordina per prodotto</option>
-            <option value="qty_asc">Quantità bassa prima</option>
-            <option value="qty_desc">Quantità alta prima</option>
-            <option value="price_desc">Prezzo alto prima</option>
-            <option value="price_asc">Prezzo basso prima</option>
-          </select>
-          <button id="inventoryReset" class="secondaryBtn" type="button">Azzera filtri</button>
-        </div>
-        <div id="inventoryBox"></div>
-      </div>
-    </section>
+    <section id="asin" class="view"><div class="card"><h3>ASIN Intelligence</h3><div id="asinBox"></div></div></section>
     <section id="fba" class="view">
-      <div class="card">
-        <h3>FBA Test</h3>
-        <p class="hint">Gestisci qui gli ASIN da provare con Logistica di Amazon. Pensato per test controllati: pochi articoli forti, 10 pezzi circa, controllo dopo 14-21 giorni.</p>
-        <div id="fbaBox"></div>
+      <div class="section-heading">
+        <div><h2>FBA Test</h2><p class="hint">Gestisci la preparazione e monitora i tempi logistici di ogni ASIN.</p></div>
       </div>
-    </section>
-    <section id="recovery" class="view">
+      <div id="fbaKpis" class="fba-kpis"></div>
       <div class="card">
-        <h3>Sales Recovery Center</h3>
-        <p class="hint">Diagnosi automatica per capire perche' le vendite si fermano: offerta acquistabile, produzione su ordine, Featured Offer, traffico senza conversioni e controlli urgenti.</p>
-        <div id="recoveryBox"></div>
-      </div>
-    </section>
-    <section id="store" class="view">
-      <div class="card">
-        <h3>Store Intelligence</h3>
-        <p class="hint">Qui capiamo quali categorie attirano traffico, quali pagine convertono e dove conviene creare nuove varianti di disegno.</p>
-        <div id="storeBox"></div>
-      </div>
-    </section>
-    <section id="competitors" class="view">
-      <div class="card">
-        <h3>Competitor & Shopify Intelligence</h3>
-        <p class="hint">Inserisci competitor Amazon, siti esterni e il tuo Shopify bipbopstickers.it. La dashboard confronta prezzo, spedizione, posizionamento e opportunita' per spostare clienti fuori da Amazon.</p>
-        <div id="competitorBox"></div>
-      </div>
-    </section>
-    <section id="keyword" class="view">
-      <div class="card">
-        <h3>Keyword Intelligence</h3>
-        <div class="tool-row keyword-tools">
-          <input id="keywordSearch" placeholder="Cerca keyword o search term">
-          <select id="keywordFilter">
-            <option value="all">Tutte le keyword</option>
-            <option value="scale">Da spingere</option>
-            <option value="protect">Da proteggere</option>
-            <option value="optimize">Da ottimizzare</option>
-            <option value="cut">Da tagliare</option>
-            <option value="test">Da testare</option>
-          </select>
-          <input id="keywordMinClicks" type="number" min="0" value="0" title="Click minimi">
-          <select id="keywordSort">
-            <option value="priority">Priorità decisionale</option>
-            <option value="sales_desc">Vendite alte prima</option>
-            <option value="spend_desc">Spesa alta prima</option>
-            <option value="acos_desc">ACOS alto prima</option>
-            <option value="acos_asc">ACOS basso prima</option>
-            <option value="clicks_desc">Click alti prima</option>
-          </select>
-          <button id="keywordReset" class="secondaryBtn" type="button">Azzera filtri</button>
-        </div>
-        <div id="keywordBox"></div>
-      </div>
-    </section>
-    <section id="brandanalytics" class="view"><div class="card brand-analytics-card"><div class="page-section-head compact"><div><span class="eyebrow">Intelligence di mercato</span><h3>Brand Analytics</h3></div></div><div id="brandAnalyticsBox"></div></div></section>
-    <section id="catalogperformance" class="view">
-      <div class="card catalog-performance-card">
-        <div class="page-section-head">
-          <div>
-            <span class="eyebrow">Performance di ricerca per ASIN</span>
-            <h3>Catalog Search Performance</h3>
-            <p class="hint">Riepilogo, KPI e proposte operative basati sul report “Cerca performance catalogo”.</p>
+        <h3>ASIN da gestire in FBA</h3>
+        <div class="fba-toolbar">
+          <div class="filter-field">
+            <label for="fbaStatusFilter">Filtra per stato</label>
+            <select id="fbaStatusFilter"><option value="">Tutti gli stati</option></select>
           </div>
-          <span class="pill">Analisi automatica</span>
+          <div class="bulk-actions">
+            <span id="fbaSelectedCount" class="hint">Nessun ASIN selezionato</span>
+            <button id="fbaBulkSent" disabled>Segna come inviati</button>
+          </div>
         </div>
-        <div id="catalogPerformanceBox"></div>
+        <div id="fbaNotice" class="notice" role="status" aria-live="polite"></div>
+        <div id="fbaTable" class="table-scroll"></div>
       </div>
-    </section>
-    <section id="profit" class="view">
       <div class="card">
-        <h3>Profit Center</h3>
-        <div class="tool-row profit-tools">
-          <select id="profitYearFilter">
-            <option value="all">Tutti gli anni</option>
-          </select>
-          <select id="profitSort">
-            <option value="sales_desc">Vendite alte prima</option>
-            <option value="profit_desc">Profitto alto prima</option>
-            <option value="profit_asc">Perdite prima</option>
-            <option value="margin_desc">Margine alto prima</option>
-            <option value="margin_asc">Margine basso prima</option>
-          </select>
-          <button id="profitReset" class="secondaryBtn" type="button">Azzera filtri</button>
-        </div>
-        <div id="profitBox"></div>
+        <h3>Storico passaggi</h3>
+        <p class="hint">Seleziona “Storico” accanto a un ASIN per visualizzare i passaggi registrati.</p>
+        <div id="fbaHistory"><div class="empty-state">Nessun ASIN selezionato.</div></div>
       </div>
     </section>
-    <section id="costs" class="view">
-      <div class="card">
-        <h3>Costi prodotto</h3>
-        <p class="hint">Inserisci costi diversi per greche, adesivi, quadri e bundle. La dashboard li incrocia con ricavi, unità vendute, Ads e commissioni Amazon stimate.</p>
-        <div id="productCostBox"></div>
-      </div>
-    </section>
-    <section id="weekly" class="view">
-      <div class="card">
-        <h3>Weekly Action Plan</h3>
-        <p class="hint">La lista pratica di cosa fare questa settimana: prodotti, keyword, pagine Store, varianti e controlli economici.</p>
-        <div id="weeklyBox"></div>
-      </div>
-    </section>
-    <section id="trends" class="view">
-      <div class="card">
-        <h3>Trend & Idee Prodotto</h3>
-        <p class="hint">Idee per nuovi genitori, mamme, nonni e regalo nascita, incrociate con segnali reali dello store.</p>
-        <div id="trendsBox"></div>
-      </div>
-    </section>
+    <section id="keyword" class="view"><div class="card"><h3>Keyword Intelligence</h3><div id="keywordBox"></div></div></section>
+    <section id="brandanalytics" class="view"><div class="card"><h3>Brand Analytics – Performance query di ricerca</h3><div id="brandAnalyticsBox"></div></div></section>
+    <section id="profit" class="view"><div class="card"><h3>Profit Center</h3><div id="profitBox"></div></div></section>
     <section id="growth" class="view"><div class="card"><h3>Growth Plan operativo</h3><div id="growthBox"></div></div></section>
     <section id="decision" class="view"><div class="card"><h3>AI Decision Center</h3><div id="decisionBox"></div></div></section>
     <section id="alerts" class="view"><div class="card"><h3>Alert Center</h3><div id="alertsBox"></div></div></section>
@@ -341,36 +130,41 @@
           <div><label>TACOS massimo %</label><input id="ruleTacos" type="number" value="15"></div>
           <div><label>ACOS massimo %</label><input id="ruleAcos" type="number" value="35"></div>
           <div><label>Margine minimo %</label><input id="ruleMargin" type="number" value="25"></div>
-          <div><label>Canone mensile €</label><input id="ruleMonthlyFee" type="number" value="39"></div>
-          <div><label>Mesi canone</label><input id="ruleSubscriptionMonths" type="number" value="18"></div>
-          <div>
-            <label>Modello logistico</label>
-            <select id="ruleFulfillmentMode">
-              <option value="merchant">Produzione su ordine / spedisco io</option>
-              <option value="hybrid">Ibrido: stock solo top seller</option>
-              <option value="fba">FBA prevalente</option>
-            </select>
-          </div>
-          <div><label>Giorni preparazione</label><input id="ruleHandlingDays" type="number" value="2" min="0"></div>
-          <div><label>Capacità produzione/settimana</label><input id="ruleWeeklyProductionCapacity" type="number" value="30" min="0"></div>
-          <div><label>Produzione €/unità</label><input id="ruleProductionCost" type="number" value="0" step="0.01"></div>
-          <div><label>Spedizione €/unità</label><input id="ruleShippingCost" type="number" value="0" step="0.01"></div>
-          <div><label>Altri costi fissi €</label><input id="ruleExtraFixedCosts" type="number" value="0" step="0.01"></div>
         </div>
         <button id="saveRules">Salva regole</button>
       </div>
     </section>
   </main>
 
-  <script src="config.js?v=5.14"></script>
-  <script src="src/utils.js?v=5.30"></script>
-  <script src="src/parser.js?v=5.22"></script>
-  <script src="src/reconcile.js?v=5.22"></script>
-  <script src="src/storage.js?v=5.22"></script>
-  <script src="src/legacy.js?v=5.35"></script>
-  <script src="src/analytics.js?v=5.32"></script>
-  <script src="src/render.js?v=5.35"></script>
-  <script src="src/app.js?v=5.35"></script>
-  <script src="layout.js?v=5.35"></script>
+  <dialog id="fbaShipmentDialog" class="fba-dialog">
+    <form id="fbaShipmentForm" method="dialog">
+      <div class="dialog-heading">
+        <div><h3>Registra invio FBA</h3><p id="fbaShipmentSummary" class="hint"></p></div>
+        <button type="button" id="fbaShipmentClose" class="icon-btn" aria-label="Chiudi">×</button>
+      </div>
+      <div class="form-grid">
+        <div><label for="fbaSentAt">Data invio *</label><input id="fbaSentAt" name="sent_at" type="date" required></div>
+        <div><label for="fbaCarrier">Corriere *</label><input id="fbaCarrier" name="carrier" required placeholder="es. UPS"></div>
+        <div><label for="fbaTracking">Tracking *</label><input id="fbaTracking" name="tracking" required></div>
+        <div><label for="fbaShipmentId">Shipment ID *</label><input id="fbaShipmentId" name="shipment_id" required></div>
+        <div><label for="fbaPackages">Numero colli *</label><input id="fbaPackages" name="packages" type="number" min="1" step="1" required></div>
+        <div><label for="fbaWeight">Peso totale (kg) *</label><input id="fbaWeight" name="weight_kg" type="number" min="0.01" step="0.01" required></div>
+        <div><label for="fbaQuantity">Quantità inviata *</label><input id="fbaQuantity" name="quantity_sent" type="number" min="1" step="1" required></div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" id="fbaShipmentCancel" class="secondaryBtn">Annulla</button>
+        <button type="submit">Salva invio</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="config.js?v=1.0"></script>
+  <script src="src/utils.js?v=1.0"></script>
+  <script src="src/parser.js?v=1.0"></script>
+  <script src="src/storage.js?v=1.0"></script>
+  <script src="src/analytics.js?v=1.0"></script>
+  <script src="src/render.js?v=1.0"></script>
+  <script src="src/fba.js?v=1.1"></script>
+  <script src="src/app.js?v=1.1"></script>
 </body>
 </html>

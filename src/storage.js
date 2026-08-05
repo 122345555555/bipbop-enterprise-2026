@@ -9,17 +9,13 @@ window.BBStorage = {
     if(!cfg.url || !cfg.key || !window.supabase) return null;
     return window.supabase.createClient(cfg.url,cfg.key);
   },
-  async insertFile(reportType,fileName,headers,rows,fingerprint,source,delimiter,options={}){
+  async insertFile(reportType,fileName,headers,rows,fingerprint,source,delimiter){
     const db=this.client();
     if(!db) throw new Error("Supabase non configurato.");
 
-    const dup=await db.from("bb100_report_files").select("id,file_name,imported_at,row_count,column_count").eq("fingerprint",fingerprint).eq("report_type",reportType).limit(1);
+    const dup=await db.from("bb100_report_files").select("id").eq("fingerprint",fingerprint).limit(1);
     if(dup.error) throw new Error(dup.error.message);
-    const duplicateFound=(dup.data||[]).length>0;
-    // Un file con lo stesso hash è sempre uno storico duplicato. Non deve
-    // tornare attivo neppure durante un aggiornamento, altrimenti i valori
-    // vengono temporaneamente raddoppiati o sostituiscono campagne diverse.
-    const isDuplicate=duplicateFound;
+    const isDuplicate=(dup.data||[]).length>0;
 
     const filePayload={
       report_type:reportType,
@@ -57,17 +53,7 @@ window.BBStorage = {
       }
     }
 
-    return {isDuplicate,file:insFile.data,duplicateFile:(dup.data||[])[0]||null};
-  },
-  async deleteTypeExcept(reportType,keepFileIds=[]){
-    const db=this.client();
-    if(!db) throw new Error("Supabase non configurato.");
-    const keep=new Set((keepFileIds||[]).map(id=>String(id)));
-    const r=await db.from("bb100_report_files").select("id,file_name").eq("report_type",reportType);
-    if(r.error) throw new Error(r.error.message);
-    const oldFiles=(r.data||[]).filter(file=>!keep.has(String(file.id)));
-    for(const file of oldFiles) await this.deleteFile(file.id);
-    return oldFiles;
+    return {isDuplicate,file:insFile.data};
   },
   async listFiles(){
     const db=this.client();
@@ -83,30 +69,6 @@ window.BBStorage = {
     if(r.error) throw new Error(r.error.message);
     return r.count||0;
   },
-  async rawRows(type){
-    const db=this.client();
-    if(!db) throw new Error("Supabase non configurato.");
-    const pageSize=1000;
-    const rows=[];
-    for(let from=0;;from+=pageSize){
-      const to=from+pageSize-1;
-      const r=await db.from("bb100_raw_rows")
-        .select("file_id,report_type,file_name,row_index,row_data,fingerprint,source,imported_at")
-        .eq("report_type",type)
-        .order("imported_at",{ascending:true})
-        .order("row_index",{ascending:true})
-        .range(from,to);
-      if(r.error) throw new Error(r.error.message);
-      const page=r.data||[];
-      rows.push(...page);
-      if(page.length<pageSize) break;
-    }
-    return rows;
-  },
-  async resolved(type,files){
-    const records=await this.rawRows(type);
-    return BBReconcile.resolve(type,files||[],records);
-  },
   async sample(type){
     const db=this.client();
     if(!db) throw new Error("Supabase non configurato.");
@@ -114,14 +76,30 @@ window.BBStorage = {
     if(r.error) throw new Error(r.error.message);
     return (r.data||[]).map(x=>({...x.row_data,__file_name:x.file_name,__source:x.source}));
   },
-  async deleteFile(fileId){
+  async listFbaStatuses(){
     const db=this.client();
     if(!db) throw new Error("Supabase non configurato.");
-    const delRows=await db.from("bb100_raw_rows").delete().eq("file_id",fileId);
-    if(delRows.error) throw new Error(delRows.error.message);
-    const delLog=await db.from("bb100_import_log").delete().eq("file_id",fileId);
-    if(delLog.error) throw new Error(delLog.error.message);
-    const delFile=await db.from("bb100_report_files").delete().eq("id",fileId);
-    if(delFile.error) throw new Error(delFile.error.message);
+    const r=await db.from("bb100_fba_asin_status").select("*").order("updated_at",{ascending:false});
+    if(r.error) throw new Error(r.error.message);
+    return r.data||[];
+  },
+  async listFbaHistory(asin){
+    const db=this.client();
+    if(!db) throw new Error("Supabase non configurato.");
+    const r=await db.from("bb100_fba_status_history").select("*").eq("asin",asin).order("changed_at",{ascending:false}).limit(100);
+    if(r.error) throw new Error(r.error.message);
+    return r.data||[];
+  },
+  async setFbaStatus(asin,title,status,metadata){
+    const db=this.client();
+    if(!db) throw new Error("Supabase non configurato.");
+    const r=await db.rpc("bb100_set_fba_status",{
+      p_asin:asin,
+      p_title:title||"",
+      p_status:status,
+      p_metadata:metadata||{}
+    });
+    if(r.error) throw new Error(r.error.message);
+    return Array.isArray(r.data)?r.data[0]:r.data;
   }
 };

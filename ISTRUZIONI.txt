@@ -1,14 +1,30 @@
-ISTRUZIONI
+ISTRUZIONI — AGGIORNAMENTO v1.1 FBA MANAGER
 
-1. Carica tutti i file su GitHub nel repository bipbop-enterprise-2026.
-2. Esegui in Supabase:
+AGGIORNAMENTO DI UN'INSTALLAZIONE ESISTENTE
+
+1. In Supabase apri SQL Editor.
+2. Esegui soltanto:
+   sql/migration_bb100_fba_manager_v1_1.sql
+3. Carica su GitHub tutti i file contenuti in questo ZIP, mantenendo la stessa struttura.
+4. Attendi il deploy Vercel.
+5. Apri il sito e fai Cmd+Shift+R.
+6. Apri FBA Test e premi “Aggiorna dati”.
+
+NUOVA INSTALLAZIONE
+
+1. Esegui prima:
    sql/schema_bipbop_enterprise_2026_v1_0.sql
-3. Attendi il deploy Vercel.
-4. Apri il sito e fai Cmd+Shift+R.
-5. Vai in Setup e inserisci Supabase URL e Publishable Key.
-6. Vai in Diagnostica: deve comparire SOLO TABELLE BB100 GROWTH ENGINE.
-7. Importa i report Amazon.
+2. Esegui poi:
+   sql/migration_bb100_fba_manager_v1_1.sql
+3. Completa il setup Supabase già previsto dalla v1.0.
+
+VERIFICA RAPIDA
+
+- In FBA Test gli ASIN importati partono da “Da preparare”.
+- Cambia un ASIN in “In produzione” e ricarica la pagina: lo stato deve restare salvato.
+- Cambialo in “Inviato”: la scheda spedizione deve richiedere tutti i campi.
+- Apri “Storico” per verificare data e passaggi.
+- Seleziona più righe e usa “Segna come inviati”.
 
 Nota:
-questa versione usa un nuovo spazio dati bb100_.
-I dati delle vecchie release restano in Supabase ma non vengono letti da questa versione.
+la migrazione è additiva. Le tabelle bb100_ esistenti, gli import, i dati e i calcoli della v1.0 restano invariati.

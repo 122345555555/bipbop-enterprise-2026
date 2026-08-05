@@ -32,46 +32,12 @@ window.BBParser = {
     for(let i=0;i<line.length;i++){
       const c=line[i],nx=line[i+1];
       if(c=='"' && q && nx=='"'){cur+='"';i++;continue;}
-      if(c=='"'){
-        if(!q && cur===""){ q=true; continue; }
-        if(q && (nx===delim || nx===undefined)){ q=false; continue; }
-        cur+='"';
-        continue;
-      }
+      if(c=='"'){q=!q;continue;}
       if(c===delim && !q){out.push(cur);cur="";continue;}
       cur+=c;
     }
     out.push(cur);
     return out;
-  },
-
-  splitRecords(text,delim){
-    const records=[];let row=[],cur="",q=false;
-    const pushField=()=>{ row.push(cur); cur=""; };
-    const pushRow=()=>{
-      pushField();
-      if(row.some(v=>String(v||"").trim()!=="")) records.push(row);
-      row=[];
-    };
-    for(let i=0;i<text.length;i++){
-      const c=text[i],nx=text[i+1];
-      if(c=='"' && q && nx=='"'){ cur+='"'; i++; continue; }
-      if(c=='"'){
-        if(!q && cur===""){ q=true; continue; }
-        if(q && (nx===delim || nx==="\r" || nx==="\n" || nx===undefined)){ q=false; continue; }
-        cur+='"';
-        continue;
-      }
-      if(c===delim && !q){ pushField(); continue; }
-      if((c==="\r" || c==="\n") && !q){
-        if(c==="\r" && nx==="\n") i++;
-        pushRow();
-        continue;
-      }
-      cur+=c;
-    }
-    if(cur!=="" || row.length) pushRow();
-    return records;
   },
 
   isIntroLine(cells){
@@ -105,7 +71,8 @@ window.BBParser = {
 
   parse(text){
     const delimiter=this.detectDelimiter(text.slice(0,12000));
-    const parsed=this.splitRecords(text,delimiter);
+    const lines=text.split(/\r\n|\n|\r/).filter(l=>l.trim()!=="");
+    const parsed=lines.map(l=>this.splitLine(l,delimiter));
     if(!parsed.length) return {headers:[],rows:[],delimiter};
 
     let headerIndex=0,best=-999;
@@ -130,36 +97,16 @@ window.BBParser = {
     const h=headers.map(x=>BBUtils.low(x)).join(" | ");
     const fn=BBUtils.flat(fileName);
 
-    if(this.hasAny(h,["customer search term","termine di ricerca del cliente","termine di ricerca","search term"])) return "search_terms";
+    if(this.hasAny(h,["query di ricerca","cerca punteggio query","volume delle query di ricerca","impressioni: numero totale","clic: % quota del marchio","acquisti: % quota del marchio"])) return "brand_analytics";
 
-    if(fn.includes("brand analytics") || fn.includes("performance delle query") || fn.includes("performance query") || fn.includes("visualizzazione marchio")) return "brand_analytics";
-    if(fn.includes("sponsored brands") || fn.includes("sponsored brand") || fn.includes("marche sponsorizzate")) return "sponsored_brands";
-    if(fn.includes("sponsored products") || fn.includes("sponsored product") || fn.includes("prodotti sponsorizzati")) return "sponsored_products";
-    if(fn.includes("sponsored display") || fn.includes("display sponsorizzato")) return "sponsored_display";
-    if(fn.includes("business report") || fn.includes("report aziendale")) return "business_report";
-    if(fn.includes("source") && this.hasAny(h,["fonte","vendite","visualizzazioni","visite","frequenza media di rimbalzo"])) return "store_source";
-    if(fn.includes("notlivepage") && this.hasAny(h,["altre pagine","vendite","visualizzazioni","visite"])) return "store_not_live_page";
-    if(fn.includes("livepage") && this.hasAny(h,["pagine attive","vendite","visualizzazioni","visite"])) return "store_live_page";
-    if(fn.includes("date") && this.hasAny(h,["data","vendite","visualizzazioni","visitatori","nuovi visitatori dello store"])) return "store_date";
-    if(fn.includes("transaction") || fn.includes("transazioni") || fn.includes("pagamenti")) return "transactions";
-    if(fn.includes("invoice") || fn.includes("fattura") || fn.includes("statement")) return "ad_invoices";
-    if(fn.includes("inventory") || fn.includes("inventario") || fn.includes("tutte le offerte") || fn.includes("all listings")) return "inventory";
-    if(fn.includes("order") || fn.includes("ordini")) return "orders";
-
-    if(this.hasAny(h,["volume delle query di ricerca","impressioni: numero totale","clic: % quota del marchio","acquisti: % quota del marchio","search query volume"])) return "brand_analytics";
-
-    if(this.hasAny(h,["vendite nette","utile netto","asin parent","msku","tariffe di logistica di amazon","totale: commissione per segnalazione"]) && this.hasAny(h,["unità vendute","vendite","asin"])) return "profit_report";
     if(this.hasAny(h,["paese","tipo di account","nome account","fattura","data di emissione della fattura","importo pagato (convertito)","stato del pagamento"])) return "ad_invoices";
     if(this.hasAny(h,["stato della transazione","tipo di transazione","numero di ordine","commissioni amazon","totale (eur)","transaction type"])) return "transactions";
     if(this.hasAny(h,["ordered product sales","unit session percentage","sessions - total","unità ordinate","vendite prodotto ordinate","child asin","parent asin"])) return "business_report";
-    if(this.hasAny(h,["fonte","vendite","unità","ordini","visualizzazioni","visite","frequenza media di rimbalzo"])) return "store_source";
-    if(this.hasAny(h,["pagine attive","vendite","unità","ordini","visualizzazioni","visite"])) return "store_live_page";
-    if(this.hasAny(h,["altre pagine","vendite","unità","ordini","visualizzazioni","visite"])) return "store_not_live_page";
-    if(this.hasAny(h,["data","vendite","unità","ordini","visualizzazioni","visitatori","nuovi visitatori dello store"])) return "store_date";
     if(this.hasAny(h,["invoice","fattura","paid amount","importo pagato"]) && this.hasAny(h,["advertising","pubblicità","ads","statement","account"])) return "ad_invoices";
     if(this.hasAny(h,["order-id","purchase-date","quantity-purchased","item-price"])) return "orders";
     if(this.hasAny(h,["fulfillable","available","inventory","afn","mfn"]) && h.includes("sku")) return "inventory";
-    if(this.hasAny(h,["item-name","item-description","listing-id","seller-sku","asin1","product-id","fulfillment-channel","merchant-shipping-group","status"]) && this.hasAny(h,["quantity","price","seller-sku"])) return "inventory";
+    if(this.hasAny(h,["customer search term","termine di ricerca","search term"])) return "search_terms";
+
     const looksAds = this.hasAny(h,["impressions","impressioni","viewable impressions"]) && this.hasAny(h,["clicks","clic","click"]) && this.hasAny(h,["spend","spesa","cost","costo totale","vendite","sales","roas","acos"]);
     if(looksAds){
       if(fn.includes("sponsored brands") || fn.includes("sponsored brand") || fn.includes("brands")) return "sponsored_brands";
@@ -177,7 +124,6 @@ window.BBParser = {
     let level="file";
     if(fn.includes("campaign")) level="campaign";
     if(fn.includes("ad group")) level="ad_group";
-    if((fn.includes(" ads ") || fn.endsWith(" ads") || fn.startsWith("ads ")) && level==="file") level="ad";
     if(fn.includes("keyword")) level="keyword";
     if(fn.includes("search term")) level="search_term";
     if(fn.includes("target")) level="target";
