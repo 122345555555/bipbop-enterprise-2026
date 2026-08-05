@@ -1,4 +1,8 @@
-# BipBop Enterprise 2026 v1.3.1 Growth Engine — FBA Manager
+# BipBop Enterprise 2026 v1.3.2 Growth Engine — FBA Manager
+
+## Riepilogo storico v1.3.2
+
+Nell'Executive è disponibile il riepilogo **Totali dal 01/01/2025 a oggi**, con vendite, unità, ordini unici, valore medio ordine, prezzo medio e copertura temporale dei report. Il calcolo usa una sola fonte primaria per non sommare più volte gli stessi ricavi.
 
 Versione stabile del centro di comando Amazon per BipBop.
 

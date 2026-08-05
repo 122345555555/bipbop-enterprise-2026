@@ -704,6 +704,74 @@ window.BBAnalytics = {
       label:"Settimana "+short(start)+"–"+end.toLocaleDateString("it-IT")
     };
   },
+  historicalSalesSummary(samples,startValue="2025-01-01",manualSales=[]){
+    const start=this.parseReportDate(startValue)||new Date(2025,0,1);
+    start.setHours(0,0,0,0);
+    const orderData=this.orderAnalysis({orders:samples.orders||[]},{year:"all",month:"all"});
+    const normalizedOrders=orderData.normalizedItems||[];
+    const datedOrders=normalizedOrders.filter(r=>r.date);
+    const candidates=[
+      {type:"orders",label:"Report ordini",rows:datedOrders,sales:r=>r.sales,units:r=>r.qty},
+      {type:"business_report",label:"Business Report",rows:samples.business_report||[],sales:r=>this.rowSales(r),units:r=>this.rowUnits(r)},
+      {type:"profit_report",label:"Profit Report",rows:samples.profit_report||[],sales:r=>this.rowSales(r),units:r=>this.rowUnits(r)}
+    ];
+    let source=candidates.find(x=>x.rows.length&&x.rows.some(r=>(x.type==="orders"?r.date:this.rowDate(r))));
+    let undated=false;
+    if(!source){
+      source=candidates.find(x=>x.rows.length)||null;
+      undated=!!source;
+    }
+    const sourceRows=source?.rows||[];
+    const datedSourceRows=sourceRows.map(r=>({
+      row:r,
+      date:source.type==="orders"?r.date:this.rowDate(r)
+    })).filter(r=>r.date);
+    const officialRows=undated
+      ? sourceRows.map(r=>({row:r,date:null}))
+      : datedSourceRows.filter(r=>r.date>=start);
+    const manualStatus=this.manualSalesStatus(samples,manualSales||[]);
+    const pendingManual=(manualStatus.pending||[]).map(r=>({
+      row:r,
+      date:r._dateObj||this.parseReportDate(r.date)
+    })).filter(r=>r.date&&r.date>=start);
+    const officialSales=officialRows.reduce((a,x)=>a+(source?source.sales(x.row):0),0);
+    const officialUnits=officialRows.reduce((a,x)=>a+(source?source.units(x.row):0),0);
+    const manualTotal=pendingManual.reduce((a,x)=>a+BBUtils.num(x.row.amount),0);
+    const manualUnits=pendingManual.reduce((a,x)=>a+BBUtils.num(x.row.units),0);
+    const datedIncluded=[...officialRows.map(x=>x.date),...pendingManual.map(x=>x.date)].filter(Boolean).sort((a,b)=>a-b);
+    const allSourceDates=datedSourceRows.map(x=>x.date).sort((a,b)=>a-b);
+    const coverageStart=allSourceDates[0]||datedIncluded[0]||null;
+    const coverageEnd=datedIncluded[datedIncluded.length-1]||allSourceDates[allSourceDates.length-1]||null;
+    const orderIds=source?.type==="orders"
+      ? new Set(officialRows.map(x=>x.row.id).filter(Boolean))
+      : new Set();
+    const sales=officialSales+manualTotal;
+    const units=officialUnits+manualUnits;
+    const orders=orderIds.size;
+    const coverageStatus=undated?"unknown":(!coverageStart?"missing":(coverageStart<=start?"complete":"partial"));
+    return {
+      hasData:!!sourceRows.length||pendingManual.length>0,
+      start,
+      targetEnd:new Date(),
+      sourceType:source?.type||"manual",
+      sourceLabel:source?.label||"Vendite manuali",
+      sales,
+      units,
+      orders,
+      ordersAvailable:source?.type==="orders",
+      averageOrder:orders?officialSales/orders:NaN,
+      averageUnit:units?sales/units:NaN,
+      officialSales,
+      officialUnits,
+      manualSales:manualTotal,
+      manualUnits,
+      manualRows:pendingManual.length,
+      coverageStart,
+      coverageEnd,
+      coverageStatus,
+      undated
+    };
+  },
   orderAnalysis(samples,filters={}){
     const rawRows=(samples.orders||[]).slice();
     const value=(row,names)=>BBUtils.pick(row,names);

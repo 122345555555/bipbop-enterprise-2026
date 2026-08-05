@@ -199,6 +199,30 @@ window.BBRender = {
         '</div>'+
       '</div>';
   },
+  historicalSalesSummaryHtml(summary){
+    const h=BBUtils.html;
+    const startLabel="01/01/2025";
+    if(!summary?.hasData) return '<div class="overview-head"><div><span class="eyebrow">Storico attività</span><h3>Totali dal '+startLabel+' a oggi</h3><p class="hint">Importa il Report ordini storico a partire dal '+startLabel+' per costruire il totale complessivo.</p></div><span class="pill yellow">Dati storici mancanti</span></div>';
+    const date=d=>d?d.toLocaleDateString("it-IT"):"—";
+    const coverageClass=summary.coverageStatus==="complete"?"green":"yellow";
+    const coverageLabel=summary.coverageStatus==="complete"?"Copertura completa":(summary.coverageStatus==="partial"?"Copertura parziale":(summary.coverageStatus==="unknown"?"Periodo da verificare":"Copertura non disponibile"));
+    let coverageText="";
+    if(summary.coverageStatus==="complete") coverageText="I dati importati coprono il periodo richiesto dal "+startLabel+" fino al "+date(summary.coverageEnd)+".";
+    else if(summary.coverageStatus==="partial") coverageText="I dati disponibili iniziano il "+date(summary.coverageStart)+". Per ottenere il totale reale dal "+startLabel+", importa anche i report precedenti.";
+    else if(summary.coverageStatus==="unknown") coverageText="Il "+summary.sourceLabel+" non contiene date verificabili. Il totale è mostrato, ma occorre confermare che il report inizi dal "+startLabel+".";
+    else coverageText="Non è possibile verificare la copertura temporale dei dati importati.";
+    return '<div class="overview-head"><div><span class="eyebrow">Storico attività</span><h3>Totali dal '+startLabel+' a oggi</h3><p class="hint">Fonte primaria: '+h(summary.sourceLabel)+'. Le fonti alternative non vengono sommate, così si evitano duplicazioni.</p></div><span class="pill '+coverageClass+'">'+h(coverageLabel)+'</span></div>'+
+      '<div class="historical-sales-grid">'+[
+        ["Vendite totali",BBUtils.euro(summary.sales)],
+        ["Unità vendute",summary.units||"—"],
+        ["Ordini unici",summary.ordersAvailable?(summary.orders||"—"):"—"],
+        ["Valore medio ordine",summary.ordersAvailable&&Number.isFinite(summary.averageOrder)?BBUtils.euro(summary.averageOrder):"—"],
+        ["Prezzo medio unità",Number.isFinite(summary.averageUnit)?BBUtils.euro(summary.averageUnit):"—"],
+        ["Ultimo dato disponibile",date(summary.coverageEnd)]
+      ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      '<div class="historical-coverage '+coverageClass+'"><b>'+h(coverageLabel)+'</b><span>'+h(coverageText)+'</span></div>'+
+      (summary.manualSales>0?'<p class="hint historical-manual-note">Include vendite manuali non ancora coperte dai report: '+h(BBUtils.euro(summary.manualSales))+' e '+h(summary.manualUnits)+' unità.</p>':'');
+  },
   dataExplorerControls(){
     return {
       year:BBUtils.el("dataExplorerYear")?.value || "all",
@@ -319,6 +343,7 @@ window.BBRender = {
     const execCostSummary=BBAnalytics.productCostSummary ? BBAnalytics.productCostSummary(scopedSamples,c) : null;
     const execRules=BBUtils.rules();
     const manualStatus=BBAnalytics.manualSalesStatus ? BBAnalytics.manualSalesStatus(scopedSamples,execRules.manualSales||[]) : null;
+    const historicalSales=BBAnalytics.historicalSalesSummary ? BBAnalytics.historicalSalesSummary(scopedSamples,"2025-01-01",execRules.manualSales||[]) : null;
     const sortManual=(rows)=>(rows||[]).slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
     const manualPending=sortManual(manualStatus?.pending || execRules.manualSales || []);
     const manualCovered=sortManual(manualStatus?.covered || []);
@@ -392,6 +417,9 @@ window.BBRender = {
       ["Completezza dati",Math.round(dataScore)+"%",dataScore>=80?"green":(dataScore>=50?"yellow":"red"),"Obiettivo: almeno 80%"],
       ["Competitor monitorati",execCompetitor?.rows?.length||0,"","Obiettivo: 3-5 prodotti competitor"]
     ].map(x=>'<div class="kpi '+(x[2]==="red"?'recon-bad':(x[2]==="green"?'recon-good':(x[2]==="yellow"?'stock-warn':'')))+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong><span>'+h(x[3]||"")+'</span></div>').join("");
+
+    const historicalSalesEl=BBUtils.el("historicalSalesBox");
+    if(historicalSalesEl) historicalSalesEl.innerHTML=this.historicalSalesSummaryHtml(historicalSales);
 
     const dataExplorerEl=BBUtils.el("dataExplorerBox");
     if(dataExplorerEl) dataExplorerEl.innerHTML=this.dataExplorerHtml(dataExplorerOverview);
