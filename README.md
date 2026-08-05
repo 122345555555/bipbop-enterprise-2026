@@ -1,4 +1,8 @@
-# BipBop Enterprise 2026 v1.3.4 Growth Engine — FBA Manager
+# BipBop Enterprise 2026 v1.3.5 Growth Engine — FBA Manager
+
+## Riconciliazione Profit Report v1.3.5
+
+Le fee escludono ricavi netti e Ads. Profit Report, Ads e canone vengono confrontati soltanto sullo stesso periodo; quando le coperture non coincidono, il saldo è indicato come parziale e le Ads esterne non vengono sottratte.
 
 ## Profit Center allineato v1.3.4
 

@@ -686,20 +686,27 @@ window.BBRender = {
     const simulatedNet=profitCostSummary?.totals?.net;
     const simulatedMargin=profitCostSummary?.totals?.margin;
     const finalEstimatedNet=Number.isFinite(simulatedNet)?simulatedNet-c.subscriptionCost-c.extraFixedCosts:NaN;
+    const historicalAds=profitCostSummary?.adsContext;
+    const historicalAdsComparable=historicalAds?.comparable!==false;
+    const profitReconciliation=BBAnalytics.profitReconciliation?BBAnalytics.profitReconciliation(scopedSamples,c):null;
     BBUtils.el("profitBox").innerHTML='<div class="overview-head"><div><h3>Profit Center storico dal 01/01/2025</h3><p class="hint">Ricavi, ordini e unità provengono dal Report ordini valido. Costi Amazon del Profit Report restano separati per evitare periodi o fonti sovrapposte.</p></div><span class="pill green">Fonte: '+h(historicalSales?.sourceLabel||"Report disponibili")+'</span></div><div class="grid3">'+[
       ["Ricavi ordini validi",BBUtils.euro(profitRevenue)],["Ordini validi",profitOrders===null?"—":profitOrders],["Unità vendute",profitUnits||"—"],
-      ["Costi interni",profitCostSummary?BBUtils.euro(profitCostSummary.totals.internal):"—"],["Commissioni stimate",profitCostSummary?BBUtils.euro(profitCostSummary.totals.referral):"—"],["Ads allocati",profitCostSummary?BBUtils.euro(profitCostSummary.totals.adsAllocated):BBUtils.euro(c.ads)],
-      ["Netto simulato",Number.isFinite(simulatedNet)?BBUtils.euro(simulatedNet):"—"],["Margine simulato",Number.isFinite(simulatedMargin)?BBUtils.pct(simulatedMargin):"—"],["Netto dopo costi fissi",Number.isFinite(finalEstimatedNet)?BBUtils.euro(finalEstimatedNet):"—"],
+      ["Costi interni",profitCostSummary?BBUtils.euro(profitCostSummary.totals.internal):"—"],["Commissioni stimate",profitCostSummary?BBUtils.euro(profitCostSummary.totals.referral):"—"],[historicalAdsComparable?"Ads allocati":"Ads importate non allocate",historicalAds?BBUtils.euro(historicalAds.amount):(profitCostSummary?BBUtils.euro(profitCostSummary.totals.adsAllocated):BBUtils.euro(c.ads))],
+      [historicalAdsComparable?"Netto simulato":"Netto prima delle Ads",Number.isFinite(simulatedNet)?BBUtils.euro(simulatedNet):"—"],[historicalAdsComparable?"Margine simulato":"Margine prima delle Ads",Number.isFinite(simulatedMargin)?BBUtils.pct(simulatedMargin):"—"],[historicalAdsComparable?"Netto dopo costi fissi":"Saldo parziale dopo costi fissi",Number.isFinite(finalEstimatedNet)?BBUtils.euro(finalEstimatedNet):"—"],
       ["Profitto Amazon (report)",c.netProfitReport?BBUtils.euro(c.netProfitReport):"—"],["Ricavi Profit Report",c.salesProfit?BBUtils.euro(c.salesProfit):"—"],["Fee Profit Report",c.amazonFeesProfit?BBUtils.euro(c.amazonFeesProfit):"—"]
-    ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>';
-    BBUtils.el("profitBox").innerHTML += '<h3>Riconciliazione saldo</h3><div class="grid3">'+[
-      ["Profitto Amazon",BBUtils.euro(c.netProfitReport||c.profit)],
-      ["ADS fatturate",BBUtils.euro(c.ads)],
-      ["ADS già nel Profit Report",BBUtils.euro(c.adsProfitReport)],
-      ["ADS extra da sottrarre",BBUtils.euro(c.adsExtra)],
-      ["Canone stimato",BBUtils.euro(c.subscriptionCost)],
-      ["Saldo finale stimato",BBUtils.euro(c.reconciledProfit)]
-    ].map(x=>'<div class="kpi '+(x[0]==="Saldo finale stimato" ? ((c.reconciledProfit||0)<0?'recon-bad':'recon-good') : '')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Formula: Profitto Amazon - ADS extra non già incluse - canone stimato. Saldo prudente sottraendo tutte le ADS fatturate: <b>'+h(BBUtils.euro(c.conservativeProfit))+'</b>.</p>';
+    ].map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>'+
+      (!historicalAdsComparable?'<div class="action yellow"><b>Risultato storico parziale</b><br>Gli ordini coprono '+h(historicalAds?.orderPeriodLabel||"un periodo non disponibile")+', mentre le '+h(historicalAds?.sourceLabel||"spese Ads")+' coprono '+h(historicalAds?.coverageLabel||"un periodo non disponibile")+'. Le Ads importate restano visibili, ma non sono sottratte né distribuite sui prodotti perché i periodi non coincidono.</div>':'');
+    BBUtils.el("profitBox").innerHTML += '<div class="overview-head"><div><h3>Riconciliazione Profit Report</h3><p class="hint">Confronto limitato al periodo del Profit Report: '+h(profitReconciliation?.periodLabel||"—")+'.</p></div><span class="pill '+(profitReconciliation?.complete?'green':'yellow')+'">'+h(profitReconciliation?.complete?'Periodo allineato':'Riconciliazione parziale')+'</span></div><div class="grid3">'+[
+      ["Profitto Amazon",BBUtils.euro(profitReconciliation?.baseProfit||0)],
+      ["Fee Amazon rilevate",BBUtils.euro(profitReconciliation?.fees||0)],
+      ["Ads già nel Profit Report",BBUtils.euro(profitReconciliation?.includedAds||0)],
+      ["Ads esterne abbinate",profitReconciliation?.matchedExternalAds===null?"—":BBUtils.euro(profitReconciliation.matchedExternalAds)],
+      ["Canone del periodo",profitReconciliation?.periodSubscription===null?"—":BBUtils.euro(profitReconciliation.periodSubscription)],
+      [profitReconciliation?.complete?"Saldo comparabile":"Saldo parziale",BBUtils.euro(profitReconciliation?.comparableBalance||0)]
+    ].map(x=>'<div class="kpi '+((x[0]==="Saldo comparabile"||x[0]==="Saldo parziale") ? ((profitReconciliation?.comparableBalance||0)<0?'recon-bad':'recon-good') : '')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+      (profitReconciliation?.complete
+        ? '<div class="action green"><b>Periodi allineati</b><br>Il saldo sottrae soltanto Ads esterne e canone riferibili allo stesso periodo del Profit Report.</div>'
+        : '<div class="action yellow"><b>Saldo parziale, non definitivo</b><br>Le Ads esterne coprono '+h(profitReconciliation?.adPeriodLabel||"un periodo non disponibile")+' e non vengono sottratte perché non coincidono con il Profit Report. Il saldo mostrato considera soltanto il profitto Amazon e il canone proporzionato al periodo.</div>');
     BBUtils.el("profitBox").innerHTML += '<h3>Conto economico storico simulato</h3><div class="grid3">'+[
       ["Vendite totali",BBUtils.euro(profitRevenue)],
       ["Ordini validi",profitOrders===null?"—":profitOrders],
@@ -707,12 +714,12 @@ window.BBRender = {
       ["Prezzo medio",profitUnits?BBUtils.euro(profitRevenue/profitUnits):"—"],
       ["Canone Amazon",BBUtils.euro(c.subscriptionCost)],
       ["Commissioni stimate",profitCostSummary?BBUtils.euro(profitCostSummary.totals.referral):BBUtils.euro(c.referralFeesProfit)],
-      ["Spese ADS allocate",profitCostSummary?BBUtils.euro(profitCostSummary.totals.adsAllocated):BBUtils.euro(c.ads)],
+      [historicalAdsComparable?"Spese ADS allocate":"Spese ADS non allocate",historicalAds?BBUtils.euro(historicalAds.amount):(profitCostSummary?BBUtils.euro(profitCostSummary.totals.adsAllocated):BBUtils.euro(c.ads))],
       ["Produzione e imballo",profitCostSummary?BBUtils.euro(profitCostSummary.totals.adhesive+profitCostSummary.totals.ink+profitCostSummary.totals.packaging):BBUtils.euro(c.productionCost)],
       ["Spedizione",profitCostSummary?BBUtils.euro(profitCostSummary.totals.shipping):BBUtils.euro(c.shippingCost)],
       ["Altri costi fissi",BBUtils.euro(c.extraFixedCosts)],
-      ["Saldo simulato",Number.isFinite(finalEstimatedNet)?BBUtils.euro(finalEstimatedNet):"—"]
-    ].map(x=>'<div class="kpi '+(x[0]==="Saldo simulato"&&Number.isFinite(finalEstimatedNet) ? (finalEstimatedNet<0?'recon-bad':'recon-good') : '')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">Formula: ricavo simulato - costi unitari - commissioni stimate - Ads allocate - canone - altri costi fissi. Le quantità derivano dagli ordini validi deduplicati.</p>';
+      [historicalAdsComparable?"Saldo simulato":"Saldo parziale",Number.isFinite(finalEstimatedNet)?BBUtils.euro(finalEstimatedNet):"—"]
+    ].map(x=>'<div class="kpi '+((x[0]==="Saldo simulato"||x[0]==="Saldo parziale")&&Number.isFinite(finalEstimatedNet) ? (finalEstimatedNet<0?'recon-bad':'recon-good') : '')+'"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div><p class="hint">'+(historicalAdsComparable?'Formula: ricavo simulato - costi unitari - commissioni stimate - Ads allocate - canone - altri costi fissi.':'Formula parziale: ricavo simulato - costi unitari - commissioni stimate - canone - altri costi fissi. Le Ads non sono sottratte finché il loro periodo non copre tutto lo storico ordini.')+' Le quantità derivano dagli ordini validi deduplicati.</p>';
     if(profitFiles.length>1){
       BBUtils.el("profitBox").innerHTML += '<div class="action yellow"><b>Attenzione: più Profit Report attivi</b><br>Per evitare doppi conteggi sto usando solo l’ultimo Profit Report caricato: <b>'+h(activeProfitFile)+'</b>. Gli altri restano in archivio ma non vengono sommati nei KPI principali.</div>';
     }
@@ -728,7 +735,7 @@ window.BBRender = {
     if(costEl && costSummary){
       const profiles=costSummary.profiles;
       const profileRows=Object.keys(profiles).map(key=>({key,...profiles[key]}));
-      costEl.innerHTML='<div class="action green"><b>Dati quantità aggiornati</b><br>Ricavi e unità sono calcolati da '+h(costSummary.sourceLabel)+', con ordini annullati e righe non valide esclusi.</div><h3>Costi unitari per tipologia</h3><p class="hint">Valori per singolo ordine/unita. Inserisci ricavo/prezzo vendita, commissione Amazon, adesivo, inchiostro, imballo e spedizione. La commissione predefinita e 8%, ma puoi cambiarla per articoli sopra 20 euro.</p>'+
+      costEl.innerHTML='<div class="action green"><b>Dati quantità aggiornati</b><br>Ricavi e unità sono calcolati da '+h(costSummary.sourceLabel)+', con ordini annullati e righe non valide esclusi.</div>'+(!historicalAdsComparable?'<div class="action yellow"><b>Ads non distribuite sui prodotti</b><br>Le spese pubblicitarie coprono '+h(historicalAds?.coverageLabel||"un periodo non disponibile")+', non l’intero storico ordini '+h(historicalAds?.orderPeriodLabel||"")+'. Nei margini prodotto l’importo Ads è quindi 0 € per evitare un risultato ingannevole.</div>':'')+'<h3>Costi unitari per tipologia</h3><p class="hint">Valori per singolo ordine/unita. Inserisci ricavo/prezzo vendita, commissione Amazon, adesivo, inchiostro, imballo e spedizione. La commissione predefinita e 8%, ma puoi cambiarla per articoli sopra 20 euro.</p>'+
       '<table class="compact-table product-cost-table"><tr><th>Tipologia</th><th>Ricavo / prezzo vendita €</th><th>Commissione Amazon %</th><th>Adesivo €</th><th>Inchiostro €</th><th>Imballo €</th><th>Spedizione €</th><th>Totale costi €</th><th>Differenza ricavo-costi €</th></tr>'+
       profileRows.map(p=>{ const sale=BBUtils.num(p.salePrice); const commission=sale*BBUtils.num(p.amazonCommission)/100; const total=commission+BBUtils.num(p.adhesive)+BBUtils.num(p.ink)+BBUtils.num(p.packaging)+BBUtils.num(p.shipping); const diff=sale-total; return '<tr><td><b>'+h(p.label)+'</b></td><td>'+this.productCostInput(p.key,"salePrice",p.salePrice)+'</td><td>'+this.productCostInput(p.key,"amazonCommission",p.amazonCommission)+'</td><td>'+this.productCostInput(p.key,"adhesive",p.adhesive)+'</td><td>'+this.productCostInput(p.key,"ink",p.ink)+'</td><td>'+this.productCostInput(p.key,"packaging",p.packaging)+'</td><td>'+this.productCostInput(p.key,"shipping",p.shipping)+'</td><td><b>'+h(BBUtils.euro(total))+'</b><br><span class="small">Comm. '+h(BBUtils.euro(commission))+'</span></td><td class="'+(diff<0?'stock-bad':'status-ok')+'"><b>'+h(BBUtils.euro(diff))+'</b></td></tr>'; }).join("")+'</table>'+
       '<button id="saveProductCosts">Salva costi prodotto</button>'+
@@ -741,7 +748,7 @@ window.BBRender = {
         ["Imballo",BBUtils.euro(costSummary.totals.packaging)],
         ["Spedizione",BBUtils.euro(costSummary.totals.shipping)],
         ["Commissione Amazon",BBUtils.euro(costSummary.totals.referral)],
-        ["Ads allocati",BBUtils.euro(costSummary.totals.adsAllocated)],
+        [historicalAdsComparable?"Ads allocati":"Ads non allocate",historicalAdsComparable?BBUtils.euro(costSummary.totals.adsAllocated):BBUtils.euro(historicalAds?.amount||0)],
         ["Totale costi",BBUtils.euro(costSummary.totals.totalCost)],
         ["Costo vendita medio",BBUtils.euro(costSummary.totals.costPerSale)],
         ["Netto simulato",BBUtils.euro(costSummary.totals.net)],

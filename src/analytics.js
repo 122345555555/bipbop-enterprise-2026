@@ -81,8 +81,19 @@ window.BBAnalytics = {
     const amazonFeesTX=tx.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Commissioni Amazon","Amazon fees","commissioni"])),0);
     const referralFeesProfit=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Commissione per segnalazione: Totale","Referral fee: Total","Referral fees: Total"])),0);
     const amazonFeesProfit=profitRows.reduce((a,r)=>{
-      const cols=Object.keys(r||{}).filter(k=>BBUtils.low(k).startsWith("totale:"));
-      return a+cols.reduce((s,k)=>s+Math.abs(BBUtils.num(r[k])),0);
+      const cols=Object.keys(r||{}).filter(k=>{
+        const key=BBUtils.low(k);
+        if(!key.startsWith("totale:")) return false;
+        if(/ricavi netti|net revenue|vendite nette|net sales/.test(key)) return false;
+        if(/sponsored|pubblicitari|advertising/.test(key)) return false;
+        return true;
+      });
+      return a+cols.reduce((s,k)=>{
+        const key=BBUtils.low(k);
+        const amount=Math.abs(BBUtils.num(r[k]));
+        const isCredit=(/rimborsi delle commissioni|referral fee refund|rimborso inventario|inventory reimbursement/.test(key))&&!/trattenuta|retained/.test(key);
+        return s+(isCredit?-amount:amount);
+      },0);
     },0);
     const amazonFees=amazonFeesTX || -amazonFeesProfit;
     const adsInvoice=inv.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Importo pagato (convertito)","Paid Amount","Amount Paid","Totale","Total","Importo"])),0);
@@ -111,7 +122,7 @@ window.BBAnalytics = {
     const manualBalance=sales-referralFeesProfit-ads-subscriptionCost-productionCost-shippingCost-extraFixedCosts;
 
     return {
-      sales,reportedSales,salesBR,salesTX,salesOrders,salesProfit,units,reportedUnits,unitsBusiness,unitsOrders,unitsProfit,unitsSource,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
+      sales,reportedSales,salesBR,salesTX,salesOrders,salesProfit,units,reportedUnits,unitsBusiness,unitsOrders,unitsProfit,unitsSource,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsInvoice,adsSpend,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
       manualPendingSales:manualStatus.pendingTotal,
       manualPendingUnits:manualStatus.pendingUnits,
       manualCoveredSales:manualStatus.coveredTotal,
@@ -435,6 +446,7 @@ window.BBAnalytics = {
     const orderRows=this.orderProductRows(samples,"2025-01-01");
     const sourceRows=orderRows.length?orderRows:this.profitRows(samples);
     const salesTotal=sourceRows.reduce((a,r)=>a+(r.sales||0),0) || c.sales || 0;
+    const adsContext=this.historicalAdsContext(samples,c,"2025-01-01");
     return sourceRows.map(r=>{
       const text=[r.title,r.sku,r.asin,this.categoryForText(r.title||r.sku||"")].join(" ");
       const key=this.costProfileKey(text);
@@ -448,7 +460,7 @@ window.BBAnalytics = {
       const shipping=units*BBUtils.num(profile.shipping);
       const referralRate=BBUtils.num(profile.amazonCommission) || this.amazonReferralRate(r);
       const referral=simulatedRevenue*referralRate/100;
-      const adsAllocated=salesTotal&&c.ads?(r.sales||0)/salesTotal*c.ads:0;
+      const adsAllocated=salesTotal&&adsContext.allocatedAmount?(r.sales||0)/salesTotal*adsContext.allocatedAmount:0;
       const internal=adhesive+ink+packaging+shipping;
       const totalCost=internal+referral+adsAllocated;
       const costPerSale=units?totalCost/units:0;
@@ -459,6 +471,7 @@ window.BBAnalytics = {
   },
   productCostSummary(samples,c){
     const rows=this.productCostRows(samples,c);
+    const adsContext=this.historicalAdsContext(samples,c,"2025-01-01");
     const sum=(field)=>rows.reduce((a,r)=>a+(r[field]||0),0);
     const byProfile=new Map();
     rows.forEach(r=>{
@@ -475,6 +488,7 @@ window.BBAnalytics = {
       rows,
       profiles:this.costProfiles(),
       sourceLabel:rows[0]?.dataSource||"Nessun dato",
+      adsContext,
       totals:{
         sales:totalSales,
         simulatedRevenue:sum("simulatedRevenue"),
@@ -678,6 +692,103 @@ window.BBAnalytics = {
       "Visualizzazioni","Views","Page Views","Page views","Sessions","Sessioni",
       "Visite","Visitatori","Visits","Visitors"
     ]));
+  },
+  parsePeriodDate(value,preferMDY=false){
+    const s=String(value||"").trim();
+    if(!s) return null;
+    const m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+    if(m){
+      const a=Number(m[1]),b=Number(m[2]),year=Number(m[3]);
+      const month=preferMDY||b>12?a:b;
+      const day=preferMDY||b>12?b:a;
+      if(month>=1&&month<=12&&day>=1&&day<=31){
+        const date=new Date(year,month-1,day);
+        if(date.getFullYear()===year&&date.getMonth()===month-1&&date.getDate()===day) return date;
+      }
+    }
+    return this.parseReportDate(value);
+  },
+  reportPeriod(rows,preferMDY=false){
+    const starts=[],ends=[];
+    (rows||[]).forEach(r=>{
+      const englishDates=Object.prototype.hasOwnProperty.call(r,"Start Date")||Object.prototype.hasOwnProperty.call(r,"End Date");
+      const start=this.parsePeriodDate(BBUtils.pick(r,["Data di inizio","Start Date","date-start","start-date","Data inizio"]),preferMDY||englishDates);
+      const end=this.parsePeriodDate(BBUtils.pick(r,["Data di fine","End Date","date-end","end-date","Data fine"]),preferMDY||englishDates);
+      if(start) starts.push(start);
+      if(end) ends.push(end);
+    });
+    if(!starts.length&&!ends.length) return null;
+    const start=starts.length?new Date(Math.min(...starts.map(d=>d.getTime()))):new Date(Math.min(...ends.map(d=>d.getTime())));
+    const end=ends.length?new Date(Math.max(...ends.map(d=>d.getTime()))):new Date(Math.max(...starts.map(d=>d.getTime())));
+    return {start,end,days:Math.max(1,Math.round((end-start)/86400000)+1)};
+  },
+  filePeriodFromRows(rows){
+    const dates=[];
+    const names=new Set((rows||[]).map(r=>String(r.__file_name||"")).filter(Boolean));
+    names.forEach(name=>{
+      const compact=name.match(/(?:19|20)\d{6}/g)||[];
+      compact.forEach(s=>{
+        const d=new Date(Number(s.slice(0,4)),Number(s.slice(4,6))-1,Number(s.slice(6,8)));
+        if(!Number.isNaN(d.getTime())) dates.push(d);
+      });
+      const iso=name.match(/(?:19|20)\d{2}[-_.](?:0[1-9]|1[0-2])[-_.](?:0[1-9]|[12]\d|3[01])/g)||[];
+      iso.forEach(s=>{
+        const parts=s.split(/[-_.]/).map(Number);
+        const d=new Date(parts[0],parts[1]-1,parts[2]);
+        if(!Number.isNaN(d.getTime())) dates.push(d);
+      });
+    });
+    if(dates.length<2) return null;
+    const start=new Date(Math.min(...dates.map(d=>d.getTime())));
+    const end=new Date(Math.max(...dates.map(d=>d.getTime())));
+    return {start,end,days:Math.max(1,Math.round((end-start)/86400000)+1)};
+  },
+  historicalAdsContext(samples,c,startValue="2025-01-01"){
+    const start=this.parseReportDate(startValue)||new Date(2025,0,1);
+    const orderItems=this.orderAnalysis(samples).validItems.filter(item=>item.date&&item.date>=start);
+    const latestOrder=orderItems.length?new Date(Math.max(...orderItems.map(item=>item.date.getTime()))):null;
+    const sponsored=[...(samples.sponsored_products||[]),...(samples.sponsored_brands||[]),...(samples.sponsored_display||[])];
+    const coverage=c.adsInvoice>0?this.filePeriodFromRows(samples.ad_invoices||[]):this.reportPeriod(sponsored,false);
+    const tolerance=2*86400000;
+    const comparable=!!(coverage&&latestOrder&&coverage.start.getTime()<=start.getTime()+tolerance&&coverage.end.getTime()>=latestOrder.getTime()-tolerance);
+    const date=d=>d?d.toLocaleDateString("it-IT"):"—";
+    return {
+      amount:c.ads||0,
+      allocatedAmount:comparable?(c.ads||0):0,
+      comparable,
+      sourceLabel:c.adsInvoice>0?"Fatture Ads":"Report campagne Ads",
+      coverage,
+      coverageLabel:coverage?date(coverage.start)+" – "+date(coverage.end):"Periodo Ads non disponibile",
+      orderPeriodLabel:latestOrder?date(start)+" – "+date(latestOrder):"Periodo ordini non disponibile"
+    };
+  },
+  profitReconciliation(samples,c){
+    const profitRows=samples.profit_report||[];
+    const period=this.reportPeriod(profitRows,true);
+    const adRows=[...(samples.sponsored_products||[]),...(samples.sponsored_brands||[]),...(samples.sponsored_display||[])];
+    const adPeriod=this.reportPeriod(adRows,false);
+    const samePeriod=!!(period&&adPeriod&&Math.abs(period.start-adPeriod.start)<=86400000&&Math.abs(period.end-adPeriod.end)<=86400000);
+    const matchedExternalAds=samePeriod?adRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"])),0):null;
+    const includedAds=Math.abs(c.adsProfitReport||0);
+    const extraAds=matchedExternalAds===null?null:Math.max(matchedExternalAds-includedAds,0);
+    const rules=BBUtils.rules();
+    const periodSubscription=period?BBUtils.num(rules.monthlyFee)*(period.days/30.4375):null;
+    const baseProfit=profitRows.length?(c.netProfitReport||0):(c.profit||0);
+    const comparableBalance=baseProfit-(extraAds||0)-(periodSubscription||0);
+    const date=d=>d?d.toLocaleDateString("it-IT"):"—";
+    return {
+      period,
+      periodLabel:period?date(period.start)+" – "+date(period.end):"Periodo non disponibile",
+      baseProfit,
+      fees:c.amazonFeesProfit||0,
+      includedAds,
+      matchedExternalAds,
+      extraAds,
+      periodSubscription,
+      comparableBalance,
+      complete:extraAds!==null,
+      adPeriodLabel:adPeriod?date(adPeriod.start)+" – "+date(adPeriod.end):"Periodo Ads non disponibile"
+    };
   },
   salesTimelineRows(samples){
     const sources=[
