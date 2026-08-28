@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop Enterprise 2026 v1.3.5 — FBA Manager</title>
+  <title>BipBop Enterprise 2026 v1.3.6 — Cloud Sync</title>
   <link rel="stylesheet" href="style.css?v=5.27">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -11,7 +11,7 @@
   <aside>
     <div class="brand">
       <div class="logo">B</div>
-      <div><b>BipBop</b><small>Enterprise 2026 v1.3.5</small></div>
+      <div><b>BipBop</b><small>Enterprise 2026 v1.3.6</small></div>
     </div>
     <button class="nav active" data-view="executive">📊 Executive</button>
     <button class="nav" data-view="import">📥 Import Amazon</button>
@@ -294,6 +294,7 @@
     <section id="archive" class="view"><div class="card"><h3>Archivio import</h3><div id="archiveTable"></div></div></section>
 
     <section id="diagnostic" class="view">
+      <div class="card"><h3>Diagnostica Cloud dati operativi</h3><div id="cloudDiagnosticBox"></div></div>
       <div class="card"><h3>Diagnostica 7.0</h3><div id="diagnosticBox"></div></div>
       <div class="card"><h3>Errori</h3><pre id="errorBox">Nessun errore.</pre></div>
     </section>
@@ -306,6 +307,16 @@
         <label>Publishable / Anon Key</label>
         <textarea id="supabaseKey" placeholder="sb_publishable... oppure anon key"></textarea>
         <button id="saveSetup">Salva configurazione</button>
+      </div>
+      <div class="card cloud-migration-card">
+        <h3>Migrazione una tantum dal Mac</h3>
+        <p class="hint">Esegui questa procedura sul Mac dell'ufficio. Prima viene mostrata un'anteprima; nulla viene scritto finché non confermi. I report Amazon non sono coinvolti.</p>
+        <div class="migration-actions">
+          <button id="previewMigrationBtn" type="button">1. Genera anteprima</button>
+          <button id="downloadLocalBackupBtn" class="secondaryBtn" type="button">Scarica backup locale</button>
+        </div>
+        <div id="migrationPreviewBox" class="migration-preview"><div class="action">Anteprima non ancora generata.</div></div>
+        <button id="confirmMigrationBtn" class="dangerBtn" type="button" hidden>2. Conferma migrazione cloud</button>
       </div>
       <div class="card">
         <h3>Regole economiche BipBop</h3>
@@ -364,6 +375,7 @@
   <script src="src/parser.js?v=5.27"></script>
   <script src="src/reconcile.js?v=5.27"></script>
   <script src="src/storage.js?v=5.27"></script>
+  <script src="src/cloud-rules.js?v=6.0"></script>
   <script src="src/analytics.js?v=5.27"></script>
   <script src="src/fba-manager.js?v=5.27"></script>
   <script src="src/render.js?v=5.27"></script>

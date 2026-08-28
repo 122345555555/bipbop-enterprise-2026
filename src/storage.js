@@ -131,5 +131,37 @@ window.BBStorage = {
     if(delLog.error) throw new Error(delLog.error.message);
     const delFile=await db.from("bb100_report_files").delete().eq("id",fileId);
     if(delFile.error) throw new Error(delFile.error.message);
+  },
+  async operationalRows(){
+    const db=this.client();
+    if(!db) throw new Error("Supabase non configurato.");
+    const r=await db.from("bb100_operational_data")
+      .select("dataset,record_key,payload,source,created_at,updated_at")
+      .is("deleted_at",null)
+      .order("dataset",{ascending:true})
+      .order("record_key",{ascending:true});
+    if(r.error){
+      if(r.error.code==="42P01" || /bb100_operational_data/i.test(r.error.message||"")) throw new Error("Schema Cloud Operativo non installato. Esegui sql/schema_v1_3_6_cloud_operational_data.sql in Supabase.");
+      throw new Error(r.error.message);
+    }
+    return r.data||[];
+  },
+  async replaceOperationalDataset(dataset,records){
+    const db=this.client();
+    if(!db) throw new Error("Supabase non configurato.");
+    const r=await db.rpc("bb100_replace_operational_dataset",{p_dataset:dataset,p_records:records||[]});
+    if(r.error) throw new Error(r.error.message);
+    return r.data;
+  },
+  async migrateOperationalSnapshot(snapshot,fingerprint){
+    const db=this.client();
+    if(!db) throw new Error("Supabase non configurato.");
+    const r=await db.rpc("bb100_migrate_operational_snapshot",{
+      p_snapshot:snapshot,
+      p_fingerprint:fingerprint,
+      p_source:"Mac ufficio / localStorage bb100_rules"
+    });
+    if(r.error) throw new Error(r.error.message);
+    return r.data;
   }
 };

@@ -1,4 +1,44 @@
-# BipBop Enterprise 2026 v1.3.5 Growth Engine — FBA Manager
+# BipBop Enterprise 2026 v1.3.6 — Cloud Sync
+
+## Novità v1.3.6
+
+Supabase è ora la fonte autorevole anche per:
+
+- regole economiche;
+- costi prodotto;
+- competitor;
+- vendite manuali;
+- FBA Test, inclusi stato, tracking, Shipment ID e `statusHistory`.
+
+`bb100_rules` viene letto soltanto come fallback iniziale e come sorgente della migrazione. Dopo una migrazione verificata viene rimosso; in localStorage restano solo configurazione Supabase e ricevuta tecnica della migrazione.
+
+Le tabelle e i calcoli dei report Amazon non sono stati modificati.
+
+## Installazione / deploy
+
+1. Aprire Supabase → SQL Editor.
+2. Eseguire integralmente `sql/schema_v1_3_6_cloud_operational_data.sql`.
+3. Pubblicare l'intera cartella su GitHub/Vercel (configurazione `vercel.json` già inclusa).
+4. Aprire la nuova app sul Mac dell'ufficio, verificare URL e chiave Supabase in **Setup** e premere **Aggiorna dati**.
+5. In **Setup → Migrazione una tantum dal Mac**, premere **Genera anteprima**.
+6. Controllare i numeri dei cinque dataset e scaricare il backup locale.
+7. Premere **Conferma migrazione cloud** soltanto sul Mac di riferimento.
+8. Aprire **Diagnostica** e verificare che ogni riga riporti origine Supabase e stato `OK`.
+9. Aprire l'app su un secondo computer e verificare nuovamente conteggi, costi e stati FBA.
+
+La migrazione usa una fingerprint univoca: ripetere la stessa operazione non crea duplicati. Prima di ogni migrazione/scrittura viene salvata una copia in `bb100_operational_backups`; lo snapshot originale completo è anche registrato in `bb100_operational_migrations`.
+
+## Nuove tabelle
+
+- `bb100_operational_data`: record attivi, univoci per dataset e chiave;
+- `bb100_operational_backups`: snapshot prima di migrazioni e scritture;
+- `bb100_operational_migrations`: ricevuta, fingerprint e sorgente completa della migrazione.
+
+## Ripristino
+
+Il file JSON scaricato prima della conferma è il fallback esterno. I backup cloud non vengono applicati automaticamente: in caso di necessità, recuperarli da `bb100_operational_backups` e verificare l'`operation_id` prima di ripristinare. Non cancellare né modificare le tabelle dei report Amazon.
+
+---
 
 ## Riconciliazione Profit Report v1.3.5
 

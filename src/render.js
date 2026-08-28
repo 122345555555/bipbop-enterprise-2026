@@ -912,6 +912,13 @@ window.BBRender = {
     const resolutions=Object.entries(s.resolution||{}).filter(([,r])=>r&&r.rows?.length);
     const excludedRows=resolutions.reduce((sum,[,r])=>sum+(r.deduplicatedRows||0),0);
     const historicalFiles=s.files.filter(file=>!file.is_duplicate && this.fileUsage(file).label==="Storico sostituito").length;
+    const cloudInfo=window.BBCloudRules?BBCloudRules.info():null;
+    const cloudBox=BBUtils.el("cloudDiagnosticBox");
+    if(cloudBox && cloudInfo){
+      const rows=Object.values(cloudInfo.diagnostics||{});
+      cloudBox.innerHTML='<div class="action '+(cloudInfo.status==="synced"?'green':'')+'"><b>'+h(cloudInfo.status==="synced"?'DATI OPERATIVI SINCRONIZZATI':'ATTENZIONE CLOUD OPERATIVO')+'</b><br>Stato: '+h({synced:"Sincronizzato",migration_required:"Migrazione dal Mac richiesta",cloud_empty:"Cloud vuoto",not_loaded:"Non ancora verificato"}[cloudInfo.status]||cloudInfo.status)+'<br>Origine attiva: '+h(cloudInfo.origin)+'</div>'+ 
+        (rows.length?'<div class="table-scroll"><table><tr><th>Dataset</th><th>Origine</th><th>Record</th><th>Ultimo aggiornamento</th><th>Sincronizzazione</th></tr>'+rows.map(r=>'<tr><td><b>'+h(r.label)+'</b></td><td>'+h(r.origin)+'</td><td>'+h(r.count)+'</td><td>'+h(BBUtils.dateTimeIT(r.updatedAt))+'</td><td><span class="pill '+(r.status==="synced"?'green':'')+'">'+h(r.status==="synced"?'OK':r.status)+'</span></td></tr>').join('')+'</table></div>':'<div class="action">Collega Supabase e aggiorna i dati per completare la diagnostica.</div>');
+    }
     BBUtils.el("diagnosticBox").innerHTML=
       '<div class="action green"><b>RICONCILIAZIONE DATI ATTIVA</b><br>'+
       'Report nello storico: '+s.files.length+

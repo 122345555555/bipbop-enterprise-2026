@@ -77,17 +77,22 @@ function daysBetween(from,to){
   if(!start||!end) return null;
   return Math.max(0,Math.round((end-start)/86400000));
 }
-function saveItems(items){
-  const rules=BBUtils.rules();
-  localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,fbaItems:items}));
+async function saveItems(items){
+  await BBCloudRules.replace("fba_items",items);
 }
-function applyStatus(ids,status,metadata={}){
+async function applyStatus(ids,status,metadata={}){
   const wanted=new Set((ids||[]).map(String));
   const rules=BBUtils.rules();
   const items=(rules.fbaItems||[]).map(item=>wanted.has(String(item.id))?transitionItem(item,status,metadata):item);
-  saveItems(items);
+  try{
+    await saveItems(items);
+  }catch(error){
+    alert("Aggiornamento FBA cloud non riuscito: "+String(error.message||error));
+    return false;
+  }
   wanted.forEach(id=>selected.delete(id));
   if(window.BBRender) BBRender.renderAll();
+  return true;
 }
 function updateSelectionUi(){
   const count=selected.size;
@@ -126,7 +131,7 @@ function shipmentMetadata(){
   };
 }
 function bind(){
-  document.addEventListener("change",event=>{
+  document.addEventListener("change",async event=>{
     const target=event.target;
     if(target?.id==="fbaStatusFilter"){
       filter=target.value||"";
@@ -145,7 +150,7 @@ function bind(){
         target.value=target.dataset.currentStatus||"da_preparare";
         openShipment([id]);
       }else{
-        applyStatus([id],status);
+        await applyStatus([id],status);
       }
     }
   });
@@ -153,10 +158,10 @@ function bind(){
     if(event.target.closest("#fbaBulkSentBtn")) openShipment(Array.from(selected));
     if(event.target.closest("#fbaShipmentCancelBtn,#fbaShipmentCloseBtn")) BBUtils.el("fbaShipmentDialog")?.close();
   });
-  document.addEventListener("submit",event=>{
+  document.addEventListener("submit",async event=>{
     if(event.target?.id!=="fbaShipmentForm") return;
     event.preventDefault();
-    applyStatus(pendingIds,"inviato",shipmentMetadata());
+    if(!await applyStatus(pendingIds,"inviato",shipmentMetadata())) return;
     BBUtils.el("fbaShipmentDialog")?.close();
     pendingIds=[];
   });

@@ -217,6 +217,9 @@ textarea{min-height:110px}
 .status-missing{color:#be123c;font-weight:900}
 .status-warn{color:#b45309;font-weight:900}
 table{width:100%;border-collapse:collapse}
+.migration-actions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.migration-preview{margin:12px 0}
+.cloud-migration-card .dangerBtn{background:#b91c1c}
 td,th{border-bottom:1px solid #e6edf5;padding:10px;text-align:left;vertical-align:top}
 table.compact-table{font-size:13px;table-layout:fixed}
 table.compact-table th:nth-child(1),table.compact-table td:nth-child(1){width:105px}

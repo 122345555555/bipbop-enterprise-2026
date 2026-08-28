@@ -2,7 +2,22 @@
 "use strict";
 
 const state={files:[],counts:{},samples:{},resolution:{},errors:[]};
+let pendingMigrationPreview=null;
 BBRender.setState(state);
+
+async function persistOperational(dataset,value,successMessage=""){
+  try{
+    await BBCloudRules.replace(dataset,value);
+    if(successMessage) alert(successMessage);
+    BBRender.renderAll();
+    return true;
+  }catch(error){
+    state.errors.push(String(error.message||error));
+    alert("Salvataggio cloud non riuscito: "+String(error.message||error));
+    BBRender.renderAll();
+    return false;
+  }
+}
 
 function show(view){
   document.querySelectorAll(".nav").forEach(b=>b.classList.toggle("active",b.dataset.view===view));
@@ -77,6 +92,10 @@ async function refresh(){
     BBUtils.el("cloudBadge").className="badge "+(cfg.url&&cfg.key?"ok":"bad");
     if(!cfg.url||!cfg.key){ BBRender.renderAll(); return; }
 
+    await BBCloudRules.load();
+    const cloud=BBCloudRules.info();
+    BBUtils.el("cloudBadge").textContent=cloud.status==="synced"?"Cloud sincronizzato":(cloud.status==="migration_required"?"Migrazione richiesta":"Cloud operativo vuoto");
+    BBUtils.el("cloudBadge").className="badge "+(cloud.status==="synced"?"ok":"bad");
     state.files=await BBStorage.listFiles();
     state.counts={}; state.samples={}; state.resolution={};
     for(const def of BBAnalytics.reportDefs){
@@ -98,7 +117,7 @@ function bind(){
   document.addEventListener("change",e=>{
     if(e.target && (e.target.id==="dataExplorerYear" || e.target.id==="dataExplorerMonth")) BBRender.renderAll();
   });
-  document.addEventListener("click",e=>{
+  document.addEventListener("click",async e=>{
     const orderMonth=e.target.closest(".openOrderMonthBtn,.order-month-row");
     if(orderMonth){
       const y=BBUtils.el("dataExplorerYear"), m=BBUtils.el("dataExplorerMonth");
@@ -162,7 +181,7 @@ function bind(){
       }
     }
   });
-  document.addEventListener("click",e=>{
+  document.addEventListener("click",async e=>{
     const saveFba=e.target.closest("#saveFbaBtn");
     const clearFba=e.target.closest("#clearFbaFormBtn");
     const deleteFba=e.target.closest(".deleteFbaBtn");
@@ -216,8 +235,7 @@ function bind(){
       const rules=BBUtils.rules();
       const id=deleteFba.dataset.fbaId;
       const fbaItems=(rules.fbaItems||[]).filter(x=>String(x.id)!==String(id));
-      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,fbaItems}));
-      BBRender.renderAll();
+      await persistOperational("fba_items",fbaItems);
       return;
     }
     if(saveFba){
@@ -256,12 +274,11 @@ function bind(){
       const nextItems=existingIndex>=0
         ? fbaItems.map((x,index)=>index===existingIndex?item:x)
         : [item,...fbaItems].slice(0,100);
-      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,fbaItems:nextItems}));
+      if(!await persistOperational("fba_items",nextItems)) return;
       fbaFormIds.forEach(id=>{ const el=BBUtils.el(id); if(el) el.value=""; });
       if(BBUtils.el("fbaQty")) BBUtils.el("fbaQty").value="10";
       if(BBUtils.el("fbaStatus")) BBUtils.el("fbaStatus").value="da_preparare";
       if(BBUtils.el("saveFbaBtn")) BBUtils.el("saveFbaBtn").textContent="Salva ASIN FBA";
-      BBRender.renderAll();
       if(requestedStatus==="inviato" && window.BBFbaManager) BBFbaManager.openShipment([item.id]);
       return;
     }
@@ -285,16 +302,14 @@ function bind(){
       const rules=BBUtils.rules();
       const manualSales=(rules.manualSales||[]).slice();
       manualSales.unshift({id:"sale-"+Date.now().toString(36),date,asin,description,units,amount,createdAt:new Date().toISOString()});
-      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,manualSales:manualSales.slice(0,200)}));
-      BBRender.renderAll();
+      await persistOperational("manual_sales",manualSales.slice(0,200));
       return;
     }
     if(deleteManualSale){
       const rules=BBUtils.rules();
       const id=deleteManualSale.dataset.saleId;
       const manualSales=(rules.manualSales||[]).filter(r=>String(r.id)!==String(id));
-      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,manualSales}));
-      BBRender.renderAll();
+      await persistOperational("manual_sales",manualSales);
       return;
     }
 
@@ -308,11 +323,9 @@ function bind(){
       productCosts[profile]=productCosts[profile]||{};
       productCosts[profile][field]=BBUtils.num(input.value);
     });
-    localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,productCosts}));
-    alert("Costi prodotto salvati");
-    BBRender.renderAll();
+    await persistOperational("product_costs",productCosts,"Costi prodotto salvati nel cloud");
   });
-  document.addEventListener("click",e=>{
+  document.addEventListener("click",async e=>{
     const saveBtn=e.target.closest("#saveCompetitorBtn");
     const clearBtn=e.target.closest("#clearCompetitorFormBtn");
     const deleteBtn=e.target.closest(".deleteCompetitorBtn");
@@ -327,8 +340,7 @@ function bind(){
       const rules=BBUtils.rules();
       const id=deleteBtn.dataset.competitorId;
       const competitors=(rules.competitors||[]).filter(c=>String(c.id)!==String(id));
-      localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,competitors}));
-      BBRender.renderAll();
+      await persistOperational("competitors",competitors);
       return;
     }
     if(!saveBtn) return;
@@ -359,7 +371,7 @@ function bind(){
       notes:BBUtils.el("competitorNotes")?.value.trim() || "",
       updatedAt:new Date().toISOString()
     };
-    localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({...rules,competitors:[entry,...competitors].slice(0,100)}));
+    if(!await persistOperational("competitors",[entry,...competitors].slice(0,100))) return;
     formIds.forEach(id=>{ const el=BBUtils.el(id); if(el) el.value=""; });
     const type=BBUtils.el("competitorType");
     if(type) type.value="site";
@@ -426,6 +438,46 @@ function bind(){
     refresh();
   });
 
+  BBUtils.el("downloadLocalBackupBtn")?.addEventListener("click",()=>{
+    try{ BBCloudRules.downloadLocalBackup(); }
+    catch(error){ alert(String(error.message||error)); }
+  });
+  BBUtils.el("previewMigrationBtn")?.addEventListener("click",async ()=>{
+    const box=BBUtils.el("migrationPreviewBox"),confirmBtn=BBUtils.el("confirmMigrationBtn");
+    box.innerHTML='<div class="action">Analisi locale/cloud in corso…</div>';
+    confirmBtn.hidden=true;
+    try{
+      pendingMigrationPreview=await BBCloudRules.previewMigration();
+      const labels={economic_rules:"Regole economiche",product_costs:"Costi prodotto",competitors:"Competitor",manual_sales:"Vendite manuali",fba_items:"FBA Test"};
+      box.innerHTML='<div class="action green"><b>Anteprima pronta — nessuna modifica eseguita</b><br>Impronta backup: '+BBUtils.html(pendingMigrationPreview.fingerprint.slice(0,16))+'…</div>'+ 
+        '<div class="table-scroll"><table><tr><th>Dataset</th><th>Record Mac</th><th>Nuovi</th><th>Aggiornati</th><th>Invariati</th><th>Solo cloud*</th></tr>'+Object.entries(pendingMigrationPreview.datasets).map(([name,d])=>
+          '<tr><td><b>'+BBUtils.html(labels[name])+'</b></td><td>'+d.count+'</td><td>'+d.create+'</td><td>'+d.update+'</td><td>'+d.unchanged+'</td><td>'+d.cloudOnly+'</td></tr>'
+        ).join('')+'</table></div><p class="hint">* I record presenti solo nel cloud vengono archiviati nel backup cloud e rimossi dalla vista attiva, perché il Mac è la fonte autorevole.</p>';
+      confirmBtn.hidden=false;
+    }catch(error){
+      pendingMigrationPreview=null;
+      box.innerHTML='<div class="action red"><b>Anteprima non disponibile</b><br>'+BBUtils.html(error.message||error)+'</div>';
+    }
+  });
+  BBUtils.el("confirmMigrationBtn")?.addEventListener("click",async ()=>{
+    if(!pendingMigrationPreview) return;
+    if(!confirm("Confermi che questo è il Mac dell'ufficio e che bb100_rules è la fonte autorevole? Verranno creati backup locale e cloud prima della scrittura.")) return;
+    const button=BBUtils.el("confirmMigrationBtn"),box=BBUtils.el("migrationPreviewBox");
+    button.disabled=true;
+    try{
+      BBCloudRules.downloadLocalBackup();
+      const result=await BBCloudRules.migrate(pendingMigrationPreview);
+      box.innerHTML='<div class="action green"><b>Migrazione completata e verificata</b><br>Tutti i record del Mac coincidono con Supabase. bb100_rules è stato rimosso da localStorage; il file scaricato e il backup cloud restano disponibili.<br>ID: '+BBUtils.html(result.migrationId||"migrazione già applicata")+'</div>';
+      button.hidden=true; pendingMigrationPreview=null;
+      await refresh();
+    }catch(error){
+      state.errors.push(String(error.message||error));
+      box.innerHTML='<div class="action red"><b>Migrazione interrotta</b><br>'+BBUtils.html(error.message||error)+'<br>Il bb100_rules locale è stato conservato.</div>';
+      button.disabled=false;
+      BBRender.renderAll();
+    }
+  });
+
   const ru=BBUtils.rules();
   BBUtils.el("ruleTacos").value=ru.tacos;
   BBUtils.el("ruleAcos").value=ru.acos;
@@ -438,9 +490,9 @@ function bind(){
   BBUtils.el("ruleProductionCost").value=ru.productionCostPerUnit;
   BBUtils.el("ruleShippingCost").value=ru.shippingCostPerUnit;
   BBUtils.el("ruleExtraFixedCosts").value=ru.extraFixedCosts;
-  BBUtils.el("saveRules").addEventListener("click",()=>{
+  BBUtils.el("saveRules").addEventListener("click",async ()=>{
     const currentRules=BBUtils.rules();
-    localStorage.setItem(window.BIPBOP_CONFIG.rulesKey,JSON.stringify({
+    const nextRules={
       ...currentRules,
       tacos:BBUtils.num(BBUtils.el("ruleTacos").value),
       acos:BBUtils.num(BBUtils.el("ruleAcos").value),
@@ -453,9 +505,16 @@ function bind(){
       productionCostPerUnit:BBUtils.num(BBUtils.el("ruleProductionCost").value),
       shippingCostPerUnit:BBUtils.num(BBUtils.el("ruleShippingCost").value),
       extraFixedCosts:BBUtils.num(BBUtils.el("ruleExtraFixedCosts").value)
-    }));
-    alert("Regole salvate");
-    BBRender.renderAll();
+    };
+    try{
+      await BBCloudRules.saveRules(nextRules);
+      alert("Regole salvate nel cloud");
+      BBRender.renderAll();
+    }catch(error){
+      state.errors.push(String(error.message||error));
+      alert("Salvataggio cloud non riuscito: "+String(error.message||error));
+      BBRender.renderAll();
+    }
   });
 }
 
