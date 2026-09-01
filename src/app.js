@@ -2,7 +2,6 @@
 "use strict";
 
 const state={files:[],counts:{},samples:{},resolution:{},errors:[]};
-let pendingMigrationPreview=null;
 BBRender.setState(state);
 
 async function persistOperational(dataset,value,successMessage=""){
@@ -94,7 +93,7 @@ async function refresh(){
 
     await BBCloudRules.load();
     const cloud=BBCloudRules.info();
-    BBUtils.el("cloudBadge").textContent=cloud.status==="synced"?"Cloud sincronizzato":(cloud.status==="migration_required"?"Migrazione richiesta":"Cloud operativo vuoto");
+    BBUtils.el("cloudBadge").textContent=cloud.status==="synced"?"Cloud sincronizzato":"Cloud operativo vuoto";
     BBUtils.el("cloudBadge").className="badge "+(cloud.status==="synced"?"ok":"bad");
     state.files=await BBStorage.listFiles();
     state.counts={}; state.samples={}; state.resolution={};
@@ -438,45 +437,7 @@ function bind(){
     refresh();
   });
 
-  BBUtils.el("downloadLocalBackupBtn")?.addEventListener("click",()=>{
-    try{ BBCloudRules.downloadLocalBackup(); }
-    catch(error){ alert(String(error.message||error)); }
-  });
-  BBUtils.el("previewMigrationBtn")?.addEventListener("click",async ()=>{
-    const box=BBUtils.el("migrationPreviewBox"),confirmBtn=BBUtils.el("confirmMigrationBtn");
-    box.innerHTML='<div class="action">Analisi locale/cloud in corso…</div>';
-    confirmBtn.hidden=true;
-    try{
-      pendingMigrationPreview=await BBCloudRules.previewMigration();
-      const labels={economic_rules:"Regole economiche",product_costs:"Costi prodotto",competitors:"Competitor",manual_sales:"Vendite manuali",fba_items:"FBA Test"};
-      box.innerHTML='<div class="action green"><b>Anteprima pronta — nessuna modifica eseguita</b><br>Impronta backup: '+BBUtils.html(pendingMigrationPreview.fingerprint.slice(0,16))+'…</div>'+ 
-        '<div class="table-scroll"><table><tr><th>Dataset</th><th>Record Mac</th><th>Nuovi</th><th>Aggiornati</th><th>Invariati</th><th>Solo cloud*</th></tr>'+Object.entries(pendingMigrationPreview.datasets).map(([name,d])=>
-          '<tr><td><b>'+BBUtils.html(labels[name])+'</b></td><td>'+d.count+'</td><td>'+d.create+'</td><td>'+d.update+'</td><td>'+d.unchanged+'</td><td>'+d.cloudOnly+'</td></tr>'
-        ).join('')+'</table></div><p class="hint">* I record presenti solo nel cloud vengono archiviati nel backup cloud e rimossi dalla vista attiva, perché il Mac è la fonte autorevole.</p>';
-      confirmBtn.hidden=false;
-    }catch(error){
-      pendingMigrationPreview=null;
-      box.innerHTML='<div class="action red"><b>Anteprima non disponibile</b><br>'+BBUtils.html(error.message||error)+'</div>';
-    }
-  });
-  BBUtils.el("confirmMigrationBtn")?.addEventListener("click",async ()=>{
-    if(!pendingMigrationPreview) return;
-    if(!confirm("Confermi che questo è il Mac dell'ufficio e che bb100_rules è la fonte autorevole? Verranno creati backup locale e cloud prima della scrittura.")) return;
-    const button=BBUtils.el("confirmMigrationBtn"),box=BBUtils.el("migrationPreviewBox");
-    button.disabled=true;
-    try{
-      BBCloudRules.downloadLocalBackup();
-      const result=await BBCloudRules.migrate(pendingMigrationPreview);
-      box.innerHTML='<div class="action green"><b>Migrazione completata e verificata</b><br>Tutti i record del Mac coincidono con Supabase. bb100_rules è stato rimosso da localStorage; il file scaricato e il backup cloud restano disponibili.<br>ID: '+BBUtils.html(result.migrationId||"migrazione già applicata")+'</div>';
-      button.hidden=true; pendingMigrationPreview=null;
-      await refresh();
-    }catch(error){
-      state.errors.push(String(error.message||error));
-      box.innerHTML='<div class="action red"><b>Migrazione interrotta</b><br>'+BBUtils.html(error.message||error)+'<br>Il bb100_rules locale è stato conservato.</div>';
-      button.disabled=false;
-      BBRender.renderAll();
-    }
-  });
+  // v1.4.0: nessuna migrazione/fallback locale. Supabase è l’unica fonte dati.
 
   const ru=BBUtils.rules();
   BBUtils.el("ruleTacos").value=ru.tacos;

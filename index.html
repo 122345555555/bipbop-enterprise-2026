@@ -308,15 +308,9 @@
         <textarea id="supabaseKey" placeholder="sb_publishable... oppure anon key"></textarea>
         <button id="saveSetup">Salva configurazione</button>
       </div>
-      <div class="card cloud-migration-card">
-        <h3>Migrazione una tantum dal Mac</h3>
-        <p class="hint">Esegui questa procedura sul Mac dell'ufficio. Prima viene mostrata un'anteprima; nulla viene scritto finché non confermi. I report Amazon non sono coinvolti.</p>
-        <div class="migration-actions">
-          <button id="previewMigrationBtn" type="button">1. Genera anteprima</button>
-          <button id="downloadLocalBackupBtn" class="secondaryBtn" type="button">Scarica backup locale</button>
-        </div>
-        <div id="migrationPreviewBox" class="migration-preview"><div class="action">Anteprima non ancora generata.</div></div>
-        <button id="confirmMigrationBtn" class="dangerBtn" type="button" hidden>2. Conferma migrazione cloud</button>
+      <div class="card">
+        <h3>Archiviazione dati</h3>
+        <div class="action green"><b>SUPABASE È L’UNICA FONTE DATI</b><br>Report Amazon, FBA Test, vendite manuali, costi prodotto, competitor e regole economiche vengono letti e scritti solo nel cloud. Nel browser restano esclusivamente URL e chiave tecnica di collegamento a Supabase.</div>
       </div>
       <div class="card">
         <h3>Regole economiche BipBop</h3>
@@ -370,16 +364,16 @@
     </form>
   </dialog>
 
-  <script src="config.js?v=5.15"></script>
-  <script src="src/utils.js?v=5.27"></script>
+  <script src="config.js?v=5.16"></script>
+  <script src="src/utils.js?v=5.28"></script>
   <script src="src/parser.js?v=5.27"></script>
   <script src="src/reconcile.js?v=5.27"></script>
   <script src="src/storage.js?v=5.27"></script>
-  <script src="src/cloud-rules.js?v=6.0"></script>
+  <script src="src/cloud-rules.js?v=6.1"></script>
   <script src="src/analytics.js?v=5.27"></script>
   <script src="src/fba-manager.js?v=5.27"></script>
-  <script src="src/render.js?v=5.28"></script>
-  <script src="src/app.js?v=5.27"></script>
+  <script src="src/render.js?v=5.29"></script>
+  <script src="src/app.js?v=5.28"></script>
   <script src="layout.js?v=5.16"></script>
 </body>
 </html>

@@ -110,3 +110,7 @@ sql/schema_bipbop_enterprise_2026_v1_0.sql
 Deve comparire:
 
 SOLO TABELLE BB100 GROWTH ENGINE
+
+
+## v1.4.0 — Supabase Only
+Dalla v1.4.0 tutti i dati applicativi persistenti (report Amazon e dati operativi) sono salvati esclusivamente su Supabase. Il browser conserva soltanto `bb100_config`, cioè URL e chiave tecnica necessari per collegarsi a Supabase. I vecchi `bb100_rules` / `bb100_cloud_migration` vengono rimossi all'avvio e non sono più letti.

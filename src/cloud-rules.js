@@ -9,8 +9,8 @@ const KEYS={
   fba_items:"fbaItems"
 };
 const state={
-  rules:BBUtils.localRulesFallback(),
-  origin:localStorage.getItem(window.BIPBOP_CONFIG.rulesKey)?"Fallback locale (sola lettura)":"Valori predefiniti",
+  rules:BBUtils.defaultRules(),
+  origin:"Supabase / bb100_operational_data",
   status:"not_loaded",
   updatedAt:null,
   diagnostics:{},
@@ -63,9 +63,8 @@ function join(rows){
   return result;
 }
 function rawLocal(){
-  const raw=localStorage.getItem(window.BIPBOP_CONFIG.rulesKey);
-  if(!raw) return null;
-  try { return JSON.parse(raw); } catch(e){ throw new Error("Il backup locale bb100_rules non contiene JSON valido."); }
+  // Compatibilità API: dalla v1.4.0 i dati locali non sono più una fonte.
+  return null;
 }
 function setDiagnostics(rows){
   state.diagnostics={};
@@ -82,16 +81,22 @@ function setDiagnostics(rows){
   }
 }
 async function load(){
+  // Pulisce definitivamente eventuali vecchie copie operative del browser.
+  try{
+    localStorage.removeItem(window.BIPBOP_CONFIG.rulesKey);
+    localStorage.removeItem("bb100_cloud_migration");
+  }catch(e){}
   const rows=await BBStorage.operationalRows();
   if(rows.length){
     state.rules=join(rows);
-    state.origin="Supabase / bb100_operational_data";
     state.status="synced";
     state.updatedAt=rows.map(r=>r.updated_at).filter(Boolean).sort().pop()||null;
   }else{
-    state.status=rawLocal()?"migration_required":"cloud_empty";
-    state.origin=rawLocal()?"Fallback locale (migrazione richiesta)":"Supabase (vuoto)";
+    state.rules=BBUtils.defaultRules();
+    state.status="cloud_empty";
+    state.updatedAt=null;
   }
+  state.origin="Supabase / bb100_operational_data";
   state.error=null;
   setDiagnostics(rows);
   return current();
@@ -99,7 +104,7 @@ async function load(){
 function current(){ return clone(state.rules); }
 function info(){ return clone(state); }
 async function replace(dataset,value){
-  if(state.status!=="synced" && state.status!=="cloud_empty") throw new Error("Completa prima la migrazione cloud dei dati locali.");
+  if(state.status!=="synced" && state.status!=="cloud_empty") throw new Error("Supabase non è ancora disponibile. Aggiorna i dati e riprova.");
   const next={...state.rules,[KEYS[dataset]]:clone(value)};
   let records;
   if(dataset==="economic_rules"){
@@ -122,54 +127,13 @@ async function saveRules(rules){
   return current();
 }
 function downloadLocalBackup(){
-  const snapshot=rawLocal();
-  if(!snapshot) throw new Error("Nessun bb100_rules locale da salvare.");
-  const blob=new Blob([JSON.stringify(snapshot,null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=url; a.download="bb100_rules_backup_pre_cloud_"+new Date().toISOString().replace(/[:.]/g,"-")+".json";
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  throw new Error("Disattivato: dalla v1.4.0 i dati operativi sono salvati esclusivamente su Supabase.");
 }
 async function previewMigration(){
-  const localSnapshot=rawLocal();
-  if(!localSnapshot) throw new Error("Su questo dispositivo non è presente bb100_rules. Avvia la migrazione dal Mac dell'ufficio.");
-  const snapshot={...BBUtils.defaultRules(),...localSnapshot};
-  const local=split(snapshot);
-  const cloudRows=await BBStorage.operationalRows();
-  const cloud={};
-  cloudRows.forEach(r=>{ cloud[r.dataset+"\u0000"+r.record_key]=r.payload; });
-  const datasets={};
-  for(const [dataset,records] of Object.entries(local)){
-    const recordKeys=records.map(r=>r.record_key);
-    if(new Set(recordKeys).size!==recordKeys.length) throw new Error("Sono presenti chiavi duplicate in "+dataset+". Correggi il backup prima di migrare: nessun record è stato scritto.");
-    let create=0,update=0,unchanged=0;
-    records.forEach(r=>{
-      const found=cloud[dataset+"\u0000"+r.record_key];
-      if(found===undefined) create++;
-      else if(JSON.stringify(stable(found))===JSON.stringify(stable(r.payload))) unchanged++;
-      else update++;
-    });
-    const localKeys=new Set(records.map(r=>r.record_key));
-    const cloudOnly=cloudRows.filter(r=>r.dataset===dataset&&!localKeys.has(r.record_key)).length;
-    datasets[dataset]={count:records.length,create,update,unchanged,cloudOnly};
-  }
-  const canonical=JSON.stringify(stable(snapshot));
-  return {snapshot,datasets,fingerprint:await BBUtils.sha256(canonical),cloudCount:cloudRows.length};
+  throw new Error("Migrazione locale disattivata: Supabase è l’unica fonte dati.");
 }
-async function migrate(preview){
-  const result=await BBStorage.migrateOperationalSnapshot(preview.snapshot,preview.fingerprint);
-  await load();
-  const expected=split({...BBUtils.defaultRules(),...preview.snapshot});
-  const actual=split(state.rules);
-  for(const dataset of Object.keys(expected)){
-    const payloadSet=records=>(records||[]).map(r=>JSON.stringify(stable(r.payload))).sort();
-    const wanted=JSON.stringify(payloadSet(expected[dataset]));
-    const found=JSON.stringify(payloadSet(actual[dataset]));
-    if(wanted!==found) throw new Error("Controllo post-migrazione fallito per "+dataset+". bb100_rules è stato conservato.");
-  }
-  localStorage.setItem("bb100_cloud_migration",JSON.stringify({fingerprint:preview.fingerprint,completedAt:new Date().toISOString(),result}));
-  localStorage.removeItem(window.BIPBOP_CONFIG.rulesKey);
-  state.status="synced"; setDiagnostics((await BBStorage.operationalRows()));
-  return result;
+async function migrate(){
+  throw new Error("Migrazione locale disattivata: Supabase è l’unica fonte dati.");
 }
 
 window.BBCloudRules={KEYS,current,info,load,replace,saveRules,rawLocal,split,join,downloadLocalBackup,previewMigration,migrate};

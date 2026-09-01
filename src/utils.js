@@ -131,11 +131,11 @@ window.BBUtils = {
     return {tacos:15,acos:35,margin:25,monthlyFee:39,subscriptionMonths:18,productionCostPerUnit:0,shippingCostPerUnit:0,extraFixedCosts:0,fulfillmentMode:"merchant",handlingDays:2,weeklyProductionCapacity:30,productCosts:defaultProductCosts,competitors:defaultCompetitors,manualSales:[],fbaItems:[]};
   },
   localRulesFallback(){
-    const defaults=this.defaultRules();
-    try { return {...defaults,...JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.rulesKey) || "{}")}; }
-    catch(e){ return defaults; }
+    // v1.4.0: nessun dato operativo viene più letto dal browser.
+    // I valori predefiniti esistono solo in memoria finché Supabase non viene caricato.
+    return this.defaultRules();
   },
   rules(){
-    return window.BBCloudRules ? window.BBCloudRules.current() : this.localRulesFallback();
+    return window.BBCloudRules ? window.BBCloudRules.current() : this.defaultRules();
   }
 };

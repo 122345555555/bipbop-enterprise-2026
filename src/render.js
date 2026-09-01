@@ -940,7 +940,7 @@ window.BBRender = {
     const cloudBox=BBUtils.el("cloudDiagnosticBox");
     if(cloudBox && cloudInfo){
       const rows=Object.values(cloudInfo.diagnostics||{});
-      cloudBox.innerHTML='<div class="action '+(cloudInfo.status==="synced"?'green':'')+'"><b>'+h(cloudInfo.status==="synced"?'DATI OPERATIVI SINCRONIZZATI':'ATTENZIONE CLOUD OPERATIVO')+'</b><br>Stato: '+h({synced:"Sincronizzato",migration_required:"Migrazione dal Mac richiesta",cloud_empty:"Cloud vuoto",not_loaded:"Non ancora verificato"}[cloudInfo.status]||cloudInfo.status)+'<br>Origine attiva: '+h(cloudInfo.origin)+'</div>'+ 
+      cloudBox.innerHTML='<div class="action '+(cloudInfo.status==="synced"?'green':'')+'"><b>'+h(cloudInfo.status==="synced"?'DATI OPERATIVI SINCRONIZZATI':'ATTENZIONE CLOUD OPERATIVO')+'</b><br>Stato: '+h({synced:"Sincronizzato",cloud_empty:"Cloud vuoto",not_loaded:"Non ancora verificato"}[cloudInfo.status]||cloudInfo.status)+'<br>Origine attiva: '+h(cloudInfo.origin)+'</div>'+ 
         (rows.length?'<div class="table-scroll"><table><tr><th>Dataset</th><th>Origine</th><th>Record</th><th>Ultimo aggiornamento</th><th>Sincronizzazione</th></tr>'+rows.map(r=>'<tr><td><b>'+h(r.label)+'</b></td><td>'+h(r.origin)+'</td><td>'+h(r.count)+'</td><td>'+h(BBUtils.dateTimeIT(r.updatedAt))+'</td><td><span class="pill '+(r.status==="synced"?'green':'')+'">'+h(r.status==="synced"?'OK':r.status)+'</span></td></tr>').join('')+'</table></div>':'<div class="action">Collega Supabase e aggiorna i dati per completare la diagnostica.</div>');
     }
     BBUtils.el("diagnosticBox").innerHTML=
@@ -950,7 +950,10 @@ window.BBRender = {
       '<br>Righe sovrapposte neutralizzate: '+excludedRows+
       '<br>File storici non sommati: '+historicalFiles+
       '<br>Report configurati: '+BBAnalytics.reportDefs.length+
-      '<br>Storage: '+h(window.BIPBOP_CONFIG.storageKey)+'</div>'+
+      '<br><b>Archivio report:</b> Supabase / bb100_report_files + bb100_raw_rows + bb100_import_log'+
+      '<br><b>Ultima importazione cloud:</b> '+h(BBUtils.dateTimeIT((s.files||[]).map(f=>f.imported_at).filter(Boolean).sort().pop()||null))+
+      '<br><b>Dati persistenti:</b> solo Supabase'+
+      '<br><b>Configurazione browser:</b> '+h(window.BIPBOP_CONFIG.storageKey)+' (solo URL/chiave tecnica; nessun dato operativo)</div>'+
       (resolutions.length?'<table class="compact-table"><tr><th>Report</th><th>Regola attiva</th><th>File nei KPI</th><th>Righe finali</th><th>Sovrapposte escluse</th></tr>'+
         resolutions.map(([type,r])=>'<tr><td>'+h(BBAnalytics.label(type))+'</td><td>'+h({
           latest_snapshot:"Ultimo snapshot cumulativo",

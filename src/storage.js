@@ -153,15 +153,4 @@ window.BBStorage = {
     if(r.error) throw new Error(r.error.message);
     return r.data;
   },
-  async migrateOperationalSnapshot(snapshot,fingerprint){
-    const db=this.client();
-    if(!db) throw new Error("Supabase non configurato.");
-    const r=await db.rpc("bb100_migrate_operational_snapshot",{
-      p_snapshot:snapshot,
-      p_fingerprint:fingerprint,
-      p_source:"Mac ufficio / localStorage bb100_rules"
-    });
-    if(r.error) throw new Error(r.error.message);
-    return r.data;
-  }
 };
