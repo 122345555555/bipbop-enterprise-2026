@@ -540,6 +540,95 @@ window.BBAnalytics = {
       source:"Report ordini"
     };
   },
+  fbaReconciliationForItem(samples,item){
+    const actual=this.fbaTestForItem(samples,item);
+    const target=String(item?.asin||"").trim().toUpperCase();
+    const start=this.parseReportDate(item?.activeAt || item?.receivedAt || item?.sentAt || item?.sendDate || "");
+    if(start) start.setHours(0,0,0,0);
+    const adSources=[
+      ["sponsored_products","Sponsored Products"],
+      ["sponsored_brands","Sponsored Brands"],
+      ["sponsored_display","Sponsored Display"]
+    ];
+    const asinFields=[
+      "Advertised ASIN","ASIN pubblicizzato","ASIN pubblicizzata","ASIN",
+      "Purchased ASIN","ASIN acquistato","ASIN acquistata","Child ASIN","ASIN figlio"
+    ];
+    const spendFields=["Spend","Spesa","Cost","Costo","Costo totale"];
+    const salesFields=["Sales","Vendite","7 Day Total Sales","14 Day Total Sales","7 Day Total Sales (€)","14 Day Total Sales (€)"];
+    const orderFields=["Orders","Ordini","7 Day Total Orders","14 Day Total Orders","Purchases","Acquisti"];
+    const clickFields=["Clicks","Clic","Click"];
+    const impressionFields=["Impressions","Impressioni","Viewable impressions","Impressioni visualizzabili"];
+    let adSpend=0,adSales=0,adOrders=0,clicks=0,impressions=0,matchedRows=0,undatedRows=0;
+    const sources=new Set();
+    adSources.forEach(([key,label])=>{
+      (samples[key]||[]).forEach(row=>{
+        const explicitAsins=asinFields.map(field=>String(row?.[field]||"").trim().toUpperCase()).filter(Boolean);
+        // Usiamo solo righe con un collegamento ASIN esplicito: campagne aggregate non vengono attribuite arbitrariamente.
+        if(!target || !explicitAsins.includes(target)) return;
+        const d=this.rowDate(row);
+        if(start && d && d<start) return;
+        if(start && !d) undatedRows+=1;
+        matchedRows+=1;
+        sources.add(label);
+        adSpend+=BBUtils.num(BBUtils.pick(row,spendFields));
+        adSales+=BBUtils.num(BBUtils.pick(row,salesFields));
+        adOrders+=BBUtils.num(BBUtils.pick(row,orderFields));
+        clicks+=BBUtils.num(BBUtils.pick(row,clickFields));
+        impressions+=BBUtils.num(BBUtils.pick(row,impressionFields));
+      });
+    });
+    const matchedAttributedSales=Math.min(Math.max(adSales,0),Math.max(actual.sales,0));
+    const notAttributedSales=Math.max(actual.sales-matchedAttributedSales,0);
+    const excessAttributedSales=Math.max(adSales-actual.sales,0);
+    const tacos=actual.sales>0?adSpend/actual.sales*100:NaN;
+    const acos=adSales>0?adSpend/adSales*100:NaN;
+    let status="nessuna_vendita",label="Nessuna vendita rilevata",confidence="alta";
+    if(actual.sales>0 && !matchedRows){
+      status="non_riconciliabile";
+      label="Vendite reali senza dato Ads per ASIN";
+      confidence="bassa";
+    }else if(excessAttributedSales>0.01){
+      status="periodi_non_allineati";
+      label="Attribuzione Ads e ordini non allineati";
+      confidence="bassa";
+    }else if(actual.sales>0 && adSales>0 && notAttributedSales>0.01){
+      status="mista";
+      label="Parte Ads + parte non attribuita";
+      confidence=undatedRows?"media":"alta";
+    }else if(actual.sales>0 && adSales>0){
+      status="attribuita_ads";
+      label="Vendite coperte dall'attribuzione Ads";
+      confidence=undatedRows?"media":"alta";
+    }else if(actual.sales>0){
+      status="non_attribuita_ads";
+      label="Non attribuita nei report Ads";
+      confidence=matchedRows?"media":"bassa";
+    }
+
+    const storeRows=[...(samples.store_date||[]),...(samples.store_live_page||[]),...(samples.store_not_live_page||[]),...(samples.store_source||[])];
+    const title=String(item?.title||"").trim().toLowerCase();
+    let storeMatches=0,storeViews=0,storeOrders=0,storeSales=0;
+    storeRows.forEach(row=>{
+      const haystack=Object.values(row||{}).join(" ").toLowerCase();
+      const direct=target && haystack.includes(target.toLowerCase());
+      const byTitle=title.length>=8 && haystack.includes(title);
+      if(!direct && !byTitle) return;
+      storeMatches+=1;
+      storeViews+=BBUtils.num(BBUtils.pick(row,["Views","Visualizzazioni","Page views","Visite"]));
+      storeOrders+=BBUtils.num(BBUtils.pick(row,["Orders","Ordini","Purchases","Acquisti"]));
+      storeSales+=BBUtils.num(BBUtils.pick(row,["Sales","Vendite","Attributed Sales","Vendite attribuite"]));
+    });
+
+    return {
+      ...actual,
+      adSpend,adSales,adOrders,clicks,impressions,matchedRows,undatedRows,
+      matchedAttributedSales,notAttributedSales,excessAttributedSales,tacos,acos,
+      status,label,confidence,adSources:Array.from(sources),
+      storeMatches,storeViews,storeOrders,storeSales,
+      note:"Le vendite non attribuite non sono automaticamente organiche: possono derivare da ritorni successivi, ricerca diretta o finestre di attribuzione diverse."
+    };
+  },
   fbaSuggestionForAsin(samples,asin){
     const target=String(asin||"").trim().toUpperCase();
     if(!target) return null;
