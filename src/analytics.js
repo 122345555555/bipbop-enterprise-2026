@@ -508,6 +508,38 @@ window.BBAnalytics = {
       byProfile:Array.from(byProfile.values()).sort((a,b)=>a.net-b.net)
     };
   },
+  fbaTestForItem(samples,item){
+    const target=String(item?.asin||"").trim().toUpperCase();
+    if(!target) return {units:0,sales:0,orders:0,firstSale:null,lastSale:null,rows:0,source:"Report ordini"};
+    const start=this.parseReportDate(item?.activeAt || item?.receivedAt || item?.sentAt || item?.sendDate || "");
+    if(start) start.setHours(0,0,0,0);
+    const analysis=this.orderAnalysis({orders:samples.orders||[]},{year:"all",month:"all"});
+    const valid=(analysis.validItems||analysis.normalizedItems||[]).filter(row=>{
+      if(String(row.asin||"").trim().toUpperCase()!==target) return false;
+      if(start && row.date && row.date<start) return false;
+      if(start && !row.date) return false;
+      const raw=row.row||{};
+      const channel=String(BBUtils.pick(raw,["fulfillment-channel","Fulfillment Channel","fulfillment_channel","Canale gestione","Canale di gestione","Canale"])||"").trim().toLowerCase();
+      // Se il report espone il canale, nel Test FBA consideriamo solo ordini gestiti da Amazon.
+      if(channel && !/(amazon|afn|fba)/i.test(channel)) return false;
+      return true;
+    });
+    const orderIds=new Set();
+    let units=0,sales=0,firstSale=null,lastSale=null;
+    valid.forEach(row=>{
+      units+=BBUtils.num(row.qty);
+      sales+=BBUtils.num(row.sales);
+      if(row.id) orderIds.add(row.id);
+      if(row.date && (!firstSale || row.date<firstSale)) firstSale=row.date;
+      if(row.date && (!lastSale || row.date>lastSale)) lastSale=row.date;
+    });
+    const sent=BBUtils.num(item?.quantitySent)||BBUtils.num(item?.qty);
+    return {
+      units,sales,orders:orderIds.size,firstSale,lastSale,rows:valid.length,
+      remaining:Math.max(sent-units,0),sellThrough:sent?units/sent*100:NaN,
+      source:"Report ordini"
+    };
+  },
   fbaSuggestionForAsin(samples,asin){
     const target=String(asin||"").trim().toUpperCase();
     if(!target) return null;
