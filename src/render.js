@@ -906,7 +906,7 @@ window.BBRender = {
     const strategy=BBAnalytics.productStrategyRows ? BBAnalytics.productStrategyRows(scopedSamples) : [];
     const weekly=BBAnalytics.weeklyActionPlan ? BBAnalytics.weeklyActionPlan(scopedSamples,c,s.counts) : null;
     const weeklyEl=BBUtils.el("weeklyBox");
-    if(brandWeeklyEl){
+    if(weeklyEl){
       weeklyEl.innerHTML=weekly?'<div class="grid3">'+[
         ["Focus periodo",weekly.season.season],
         ["Obiettivo",weekly.season.focus],
