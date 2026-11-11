@@ -636,6 +636,34 @@ window.BBRender = {
       '<p class="hint">Aggiornamenti Search Terms acquisiti: '+h(keywordCoverage.periods)+', dal '+h(keywordCoverage.first||"—")+' al '+h(keywordCoverage.last||"—")+'. Risultati mostrati: '+kf.length+' su '+kr.length+'. Un nuovo periodo viene aggiunto; il reimport dello stesso periodo sostituisce solo quel periodo.</p><table class="decision-table"><tr><th>Decisione</th><th>Keyword / Search Term</th><th>Azione</th><th>Spesa</th><th>Vendite</th><th>Click</th><th>CTR</th><th>CPC</th><th>ACOS</th><th>ROAS</th><th>Fonte</th></tr>'+kf.map(r=>'<tr><td><span class="pill decision-'+h(r.decision)+'">'+h(this.keywordDecisionLabel(r.decision))+'</span></td><td>'+h(r.term)+'</td><td>'+h(r.action)+'</td><td>'+h(BBUtils.euro(r.spend))+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.clicks)+'</td><td>'+h(BBUtils.pct(r.ctr))+'</td><td>'+h(Number.isFinite(r.cpc)?BBUtils.euro(r.cpc):"—")+'</td><td>'+h(BBUtils.pct(r.acos))+'</td><td>'+h(Number.isFinite(r.roas)?r.roas.toFixed(2):"—")+'</td><td class="small">'+h(r.source)+'</td></tr>').join("")+'</table>':'<div class="action">Importa Search Terms o report Sponsored Products per capire keyword decisive, sprechi e opportunità di investimento.</div>';
 
     
+    const brandWeeklyEl=BBUtils.el("brandWeeklyBox");
+    if(brandWeeklyEl){
+      const rows=(s.samples.brand_weekly||[]).map(r=>({
+        date:String(r.Data||r.Date||""),
+        sales:BBUtils.num(r["Vendite totali"]||r["Total sales"]),
+        orders:BBUtils.num(r["Ordini totali"]||r["Total orders"]),
+        customers:BBUtils.num(r["Clienti totali"]||r["Total customers"]),
+        newCustomers:BBUtils.num(r["Novità per i clienti del marchio"]||r["New-to-brand customers"]),
+        repeatCustomers:BBUtils.num(r["Clienti abituali"]||r["Repeat customers"])
+      }));
+      const sum=(key,items)=>items.reduce((n,r)=>n+(r[key]||0),0);
+      const recent=rows.slice(-4), earlier=rows.slice(-8,-4);
+      const recentSales=sum("sales",recent), earlierSales=sum("sales",earlier);
+      const change=earlierSales>0?(recentSales/earlierSales-1)*100:null;
+      brandWeeklyEl.innerHTML=rows.length?
+        '<div class="kpis">'+[
+          ["Settimane",rows.length],["Vendite rilevate",BBUtils.euro(sum("sales",rows))],
+          ["Ordini",sum("orders",rows)],["Clienti nuovi",sum("newCustomers",rows)],
+          ["Ultime 4 settimane",BBUtils.euro(recentSales)],
+          ["Variazione 4 settimane",change===null?"—":change.toFixed(1)+"%"]
+        ].map(x=>'<div class="kpi"><small>'+h(x[0])+'</small><strong>'+h(x[1])+'</strong></div>').join("")+'</div>'+
+        (change!==null && change<-25?'<div class="action yellow"><b>Attenzione: calo vendite del marchio</b><br>Confronta Business Report e campagne Ads prima di modificare il budget.</div>':'')+
+        '<p class="hint">Le vendite Brand Analytics sono indicative e non vengono aggiunte ai ricavi contabili. I periodi sovrapposti sono deduplicati per data.</p>'+
+        '<table class="decision-table"><tr><th>Settimana</th><th>Vendite</th><th>Ordini</th><th>Clienti</th><th>Nuovi</th><th>Abituali</th></tr>'+
+        rows.map(r=>'<tr><td>'+h(r.date)+'</td><td>'+h(BBUtils.euro(r.sales))+'</td><td>'+h(r.orders)+'</td><td>'+h(r.customers)+'</td><td>'+h(r.newCustomers)+'</td><td>'+h(r.repeatCustomers)+'</td></tr>').join("")+'</table>'
+        :'<div class="action">Importa il report Amazon Tendenze Italia settimanale. I report già caricati come Store – fonti traffico vengono recuperati automaticamente in sola lettura.</div>';
+    }
+
     const ba=BBAnalytics.brandAnalyticsRows ? BBAnalytics.brandAnalyticsRows(s.samples) : [];
     const baEl=BBUtils.el("brandAnalyticsBox");
     if(baEl){
@@ -878,7 +906,7 @@ window.BBRender = {
     const strategy=BBAnalytics.productStrategyRows ? BBAnalytics.productStrategyRows(scopedSamples) : [];
     const weekly=BBAnalytics.weeklyActionPlan ? BBAnalytics.weeklyActionPlan(scopedSamples,c,s.counts) : null;
     const weeklyEl=BBUtils.el("weeklyBox");
-    if(weeklyEl){
+    if(brandWeeklyEl){
       weeklyEl.innerHTML=weekly?'<div class="grid3">'+[
         ["Focus periodo",weekly.season.season],
         ["Obiettivo",weekly.season.focus],
