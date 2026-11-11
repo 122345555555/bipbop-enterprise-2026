@@ -115,6 +115,26 @@ window.BBStorage = {
     const records=await this.rawRows(type);
     return BBReconcile.resolve(type,files||[],records);
   },
+
+  isBrandWeeklyFile(file){
+    const n=String(file?.file_name||"").toLowerCase();
+    return n.includes("tendenze") && n.includes("settimanale");
+  },
+  async resolvedBrandWeekly(files){
+    const current=await this.rawRows("brand_weekly");
+    const legacyFiles=(files||[]).filter(f=>f.report_type==="store_source" && this.isBrandWeeklyFile(f));
+    const legacyIds=new Set(legacyFiles.map(f=>String(f.id)));
+    const old=legacyIds.size?(await this.rawRows("store_source")).filter(r=>legacyIds.has(String(r.file_id))):[];
+    const byWeek=new Map();
+    [...old,...current].sort((a,b)=>String(a.imported_at||"").localeCompare(String(b.imported_at||""))).forEach(r=>{
+      const row=r.row_data||{};
+      if(!Object.prototype.hasOwnProperty.call(row,"Clienti totali") || !Object.prototype.hasOwnProperty.call(row,"Ordini totali")) return;
+      const date=String(row.Data||row.Date||"").trim().toLowerCase();
+      if(date) byWeek.set(date,{...row,__file_id:r.file_id,__file_name:r.file_name,__imported_at:r.imported_at});
+    });
+    const rows=Array.from(byWeek.values());
+    return {rows,policy:"weekly_date_latest",rawRows:old.length+current.length,deduplicatedRows:old.length+current.length-rows.length,activeFileIds:[...new Set(rows.map(r=>r.__file_id))]};
+  },
   async sample(type){
     const db=this.client();
     if(!db) throw new Error("Supabase non configurato.");

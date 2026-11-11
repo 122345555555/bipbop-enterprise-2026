@@ -130,6 +130,12 @@ window.BBParser = {
     const h=headers.map(x=>BBUtils.low(x)).join(" | ");
     const fn=BBUtils.flat(fileName);
 
+    if((fn.includes("tendenze") && fn.includes("settimanale")) ||
+       (this.hasAny(h,["clienti totali","total customers"]) &&
+        this.hasAny(h,["vendite totali","total sales"]) &&
+        this.hasAny(h,["ordini totali","total orders"]) &&
+        this.hasAny(h,["clienti abituali","repeat customers","novità per i clienti del marchio"]))) return "brand_weekly";
+
     if(this.hasAny(h,["customer search term","termine di ricerca del cliente","termine di ricerca","search term"])) return "search_terms";
 
     if(fn.includes("brand analytics") || fn.includes("performance delle query") || fn.includes("performance query") || fn.includes("visualizzazione marchio")) return "brand_analytics";

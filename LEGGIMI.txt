@@ -1,0 +1,10 @@
+BipBop Enterprise v1.3.7 - aggiornamento tendenze settimanali
+
+1. Esegui backup del repository prima di sostituire i file.
+2. Sostituisci index.html nella root e i 6 file nella cartella src/ mantenendo i percorsi.
+3. Pubblica tramite GitHub/Vercel. Nessuna modifica SQL richiesta.
+4. Apri Tendenze settimanali: il vecchio CSV importato come store_source viene letto in sola lettura e NON spostato o cancellato dal database.
+5. Per i nuovi CSV il parser usa il tipo brand_weekly; se una settimana compare in più file, vince il caricamento più recente.
+6. Controlla Store Intelligence, Archivio, Import e Tendenze dopo il deploy.
+
+IMPORTANTE: aggiornamento preparato su file forniti; non testato contro il Supabase di produzione. Se una schermata mostra errori, ripristina il commit precedente.

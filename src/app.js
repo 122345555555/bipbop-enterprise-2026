@@ -99,7 +99,14 @@ async function refresh(){
     state.counts={}; state.samples={}; state.resolution={};
     for(const def of BBAnalytics.reportDefs){
       const type=def[0];
-      const resolution=await BBStorage.resolved(type,state.files);
+      let resolution;
+      if(type==="brand_weekly") resolution=await BBStorage.resolvedBrandWeekly(state.files);
+      else if(type==="store_source"){
+        const storeFiles=state.files.filter(f=>f.report_type==="store_source" && !BBStorage.isBrandWeeklyFile(f));
+        const storeIds=new Set(storeFiles.map(f=>String(f.id)));
+        const storeRows=(await BBStorage.rawRows("store_source")).filter(r=>storeIds.has(String(r.file_id)));
+        resolution=BBReconcile.resolve("store_source",storeFiles,storeRows);
+      }else resolution=await BBStorage.resolved(type,state.files);
       state.resolution[type]=resolution;
       state.samples[type]=resolution.rows;
       state.counts[type]=resolution.rows.length;

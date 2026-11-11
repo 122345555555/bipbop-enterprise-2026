@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>BipBop Enterprise 2026 v1.3.6 — Cloud Sync</title>
+  <title>BipBop Enterprise 2026 v1.3.7 — Cloud Sync</title>
   <link rel="stylesheet" href="style.css?v=5.27">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -11,7 +11,7 @@
   <aside>
     <div class="brand">
       <div class="logo">B</div>
-      <div><b>BipBop</b><small>Enterprise 2026 v1.3.6</small></div>
+      <div><b>BipBop</b><small>Enterprise 2026 v1.3.7</small></div>
     </div>
     <button class="nav active" data-view="executive">📊 Executive</button>
     <button class="nav" data-view="import">📥 Import Amazon</button>
@@ -26,6 +26,7 @@
     <button class="nav" data-view="competitors">🕵️ Competitor</button>
     <button class="nav" data-view="keyword">🔎 Keyword</button>
     <button class="nav" data-view="brandanalytics">🏷️ Brand Analytics</button>
+    <button class="nav" data-view="brandweekly">📆 Tendenze settimanali</button>
     <button class="nav" data-view="profit">💰 Profit Center</button>
     <button class="nav" data-view="costs">🧾 Costi prodotto</button>
     <button class="nav" data-view="weekly">🗓️ Weekly Action Plan</button>
@@ -105,6 +106,7 @@
               <option value="store_not_live_page">Store Amazon - pagine non attive</option>
               <option value="store_source">Store Amazon - fonti traffico</option>
               <option value="brand_analytics">Brand Analytics</option>
+              <option value="brand_weekly">Tendenze settimanali marchio</option>
               <option value="profit_report">Profit Report</option>
             </select>
             <p class="hint import-help">Usa la selezione manuale solo se il riconoscimento automatico assegna il report alla sezione sbagliata.</p>
@@ -247,6 +249,7 @@
         <div id="keywordBox"></div>
       </div>
     </section>
+    <section id="brandweekly" class="view"><div class="card"><h3>Tendenze settimanali del marchio</h3><p class="hint">Dati Amazon Brand Analytics, indipendenti dai ricavi contabili.</p><div id="brandWeeklyBox"></div></div></section>
     <section id="brandanalytics" class="view"><div class="card brand-analytics-card"><div class="page-section-head compact"><div><span class="eyebrow">Intelligence di mercato</span><h3>Brand Analytics</h3></div></div><div id="brandAnalyticsBox"></div></div></section>
     <section id="profit" class="view">
       <div class="card">
@@ -366,14 +369,14 @@
 
   <script src="config.js?v=5.16"></script>
   <script src="src/utils.js?v=5.28"></script>
-  <script src="src/parser.js?v=5.27"></script>
-  <script src="src/reconcile.js?v=5.27"></script>
-  <script src="src/storage.js?v=5.27"></script>
+  <script src="src/parser.js?v=5.37"></script>
+  <script src="src/reconcile.js?v=5.37"></script>
+  <script src="src/storage.js?v=5.37"></script>
   <script src="src/cloud-rules.js?v=6.1"></script>
-  <script src="src/analytics.js?v=5.27"></script>
+  <script src="src/analytics.js?v=5.37"></script>
   <script src="src/fba-manager.js?v=5.27"></script>
-  <script src="src/render.js?v=5.29"></script>
-  <script src="src/app.js?v=5.28"></script>
+  <script src="src/render.js?v=5.37"></script>
+  <script src="src/app.js?v=5.37"></script>
   <script src="layout.js?v=5.16"></script>
 </body>
 </html>

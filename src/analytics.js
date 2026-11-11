@@ -14,6 +14,7 @@ window.BBAnalytics = {
     ["store_not_live_page","Store - pagine non attive","opzionale"],
     ["store_source","Store - fonti traffico","consigliato"],
     ["brand_analytics","Brand Analytics","consigliato"],
+    ["brand_weekly","Tendenze settimanali marchio","opzionale"],
     ["profit_report","Profit Report","consigliato"]
   ],
   label(type){ const r=this.reportDefs.find(x=>x[0]===type); return r?r[1]:type; },
