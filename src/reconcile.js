@@ -297,7 +297,7 @@ window.BBReconcile = {
       for(const record of ordered){
         const file=activeFileMap.get(String(record.file_id));
         const row={...(record.row_data||{})};
-        const source={...(file?.source||{}),...(record.source||{})};
+        const source={...(record.source||{}),...(file?.source||{})};
         const key=this.identity(type,row,source);
         if(!groups.has(key)) groups.set(key,[]);
         groups.get(key).push({record,file,row,source});
