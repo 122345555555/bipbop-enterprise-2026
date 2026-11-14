@@ -32,6 +32,19 @@ window.BBStorage = {
     const repairDuplicate=duplicateFound&&options.repairDuplicate===true;
     const isDuplicate=duplicateFound&&!repairDuplicate;
 
+    // Riimportando un CSV Ads già presente, aggiorniamo il periodo del file
+    // originale senza creare nuove righe attive o duplicare le metriche.
+    if(duplicateFound && ["sponsored_brands","sponsored_products","sponsored_display"].includes(reportType)){
+      const existing=(dup.data||[]).find(f=>!f.is_duplicate);
+      if(existing){
+        const previous=await db.from("bb100_report_files").select("source").eq("id",existing.id).single();
+        if(previous.error) throw new Error(previous.error.message);
+        const merged={...(previous.data?.source||{}),period_start:source.period_start,period_end:source.period_end};
+        const updated=await db.from("bb100_report_files").update({source:merged}).eq("id",existing.id);
+        if(updated.error) throw new Error(updated.error.message);
+        return {isDuplicate:true,repaired:false,file:existing,duplicateFile:existing,periodUpdated:true};
+      }
+    }
     const filePayload={
       report_type:reportType,
       file_name:fileName,
