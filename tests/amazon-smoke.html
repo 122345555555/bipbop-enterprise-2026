@@ -43,6 +43,24 @@
   ]});
   check('Periodo cumulativo sovrapposto rilevato',overlap.adPeriodMismatch===true);
   check('ACOS bloccato con report cumulativo sovrapposto',Number.isNaN(overlap.acos));
+  // Test del motore di riconciliazione, non solo delle formule.
+  const baseDate='2026-11-14T10:00:00Z';
+  const adFiles=[
+    {id:'f1',report_type:'sponsored_brands',file_name:'Sponsored_Brands_AdGroup_Nov_11_2026.csv',imported_at:baseDate,row_count:1,source:{level:'ad_group'}},
+    {id:'f2',report_type:'sponsored_brands',file_name:'Sponsored_Brands_AdGroup_Nov_14_2026.csv',imported_at:'2026-11-14T11:00:00Z',row_count:1,source:{level:'ad_group'}}
+  ];
+  const adRow={ 'Campaign ID':'C1','Ad Group ID':'G1','Start Date':'11/01/2026','End Date':'11/14/2026','Spend':'20','Sales':'40'};
+  const duplicate=BBReconcile.resolve('sponsored_brands',adFiles,[
+    {file_id:'f1',row_index:0,row_data:adRow},
+    {file_id:'f2',row_index:0,row_data:adRow}
+  ]);
+  check('Reimport stessa riga: una sola riga attiva',duplicate.rows.length===1);
+  check('Reimport stessa riga: duplicato conteggiato',duplicate.deduplicatedRows===1);
+  const levels=BBReconcile.activeFiles('sponsored_brands',[
+    ...adFiles,
+    {id:'f3',report_type:'sponsored_brands',file_name:'Sponsored_Brands_Campaign_Nov_14_2026.csv',source:{level:'campaign'}}
+  ]);
+  check('Livelli pubblicitari non sommati',levels.files.length===1&&levels.selectedLevel==='campaign');
   const asin='B012345678';
   const data={business_report:[{'Child ASIN':asin,'Ordered Product Sales':'100','Units Ordered':'5','Sessions':'100'}],orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],profit_report:[{'ASIN':asin,'Vendite nette':'100','Unità nette vendute':'5','Totale: Ricavi netti':'30'}]};
   const rows=BBAnalytics.asinRows(data);
