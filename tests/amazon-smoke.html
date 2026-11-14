@@ -66,6 +66,13 @@
   const rows=BBAnalytics.asinRows(data);
   check('ASIN: vendite non triplicate',rows.length===1&&Math.abs(rows[0].sales-100)<0.001,JSON.stringify(rows));
   check('ASIN: conversione 5%',rows.length===1&&Math.abs(rows[0].cr-5)<0.001);
+  const missingProfit=BBAnalytics.asinDecisionRows({orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}]});
+  check('Margine mancante non diventa zero',missingProfit.length===1&&Number.isNaN(missingProfit[0].margin));
+  check('Profitto mancante: solo monitoraggio',missingProfit.length===1&&missingProfit[0].decision==='watch');
+  const loss=BBAnalytics.asinDecisionRows({orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],profit_report:[{'ASIN':asin,'Totale: Ricavi netti':'-10'}]});
+  check('Profitto negativo: segnalazione correzione',loss.length===1&&loss[0].decision==='fix');
+  const noStock=BBAnalytics.asinDecisionRows({orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],inventory:[{'ASIN':asin,'quantity':'0'}]});
+  check('Stock zero: priorità disponibilità',noStock.length===1&&noStock[0].decision==='stock');
   const decisions=BBAnalytics.asinDecisionRows(data);
   check('Decisioni: vendite non duplicate',decisions.length===1&&Math.abs(decisions[0].sales-100)<0.001);
  }catch(e){results.push('ERRORE — '+(e.stack||e.message||e));}
