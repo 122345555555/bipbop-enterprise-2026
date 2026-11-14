@@ -62,8 +62,8 @@ async function importFiles(files){
         const sum=names=>parsed.rows.reduce((total,row)=>total+BBUtils.num(BBUtils.pick(row,names)),0);
         const isAds=["sponsored_brands","sponsored_products","sponsored_display"].includes(reportType);
         const metrics=isAds
-          ? " | Spesa: "+BBUtils.euro(sum(["Spend","Spesa","Cost","Costo","Costo totale"]))+
-            " | Vendite attribuite: "+BBUtils.euro(sum(["Sales","Vendite","7 Day Total Sales","14 Day Total Sales"]))
+          ? " | Spesa: "+BBUtils.euro(sum(["Spend","Spesa","Cost","Costo","Costo totale","Costo totale (EUR)"]))+
+            " | Vendite attribuite: "+BBUtils.euro(sum(["Sales","Vendite","Vendite (EUR)","7 Day Total Sales","14 Day Total Sales"]))
           : "";
         lines.push("🔎 "+safeFileName+": anteprima senza salvataggio — "+BBUtils.html(BBAnalytics.label(reportType))+
           " | Livello: "+BBUtils.html(source.level)+" | Righe: "+parsed.rows.length+
