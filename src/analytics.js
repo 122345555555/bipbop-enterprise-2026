@@ -109,6 +109,22 @@ window.BBAnalytics = {
     const adsSales=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sales","Vendite","Vendite (EUR)","7 Day Total Sales","14 Day Total Sales"])),0);
     const clicks=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Clicks","Clic","Click"])),0);
     const impressions=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Impressions","Impressioni","Viewable impressions","Impressioni visualizzabili"])),0);
+    // Non presentare ACOS/ROAS aggregati quando i report campagne coprono
+    // intervalli differenti: il confronto non sarebbe omogeneo.
+    const adFamilies=["sponsored_products","sponsored_brands","sponsored_display"];
+    const adPeriods=adFamilies.map(type=>{
+      const rows=samples[type]||[];
+      if(!rows.length) return null;
+      const byFile=new Map();
+      rows.forEach(row=>{
+        const key=String(row.__file_id||row.__file_name||type);
+        if(!byFile.has(key)) byFile.set(key,[]);
+        byFile.get(key).push(row);
+      });
+      return [...byFile.values()].map(group=>this.reportPeriod(group,false));
+    }).flat().filter(Boolean);
+    const adPeriodKeys=new Set(adPeriods.map(p=>this.dateKey(p.start)+"|"+this.dateKey(p.end)));
+    const adPeriodMismatch=adPeriodKeys.size>1;
     const ads=adsInvoice||adsSpend;
     const netProfitReport=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"])),0);
     const profit=netProfitReport || (sales+amazonFees-ads);
@@ -123,7 +139,7 @@ window.BBAnalytics = {
     const manualBalance=sales-referralFeesProfit-ads-subscriptionCost-productionCost-shippingCost-extraFixedCosts;
 
     return {
-      sales,reportedSales,salesBR,salesTX,salesOrders,salesProfit,units,reportedUnits,unitsBusiness,unitsOrders,unitsProfit,unitsSource,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsInvoice,adsSpend,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
+      adPeriodMismatch,adPeriodKeys:Array.from(adPeriodKeys),sales,reportedSales,salesBR,salesTX,salesOrders,salesProfit,units,reportedUnits,unitsBusiness,unitsOrders,unitsProfit,unitsSource,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsInvoice,adsSpend,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
       manualPendingSales:manualStatus.pendingTotal,
       manualPendingUnits:manualStatus.pendingUnits,
       manualCoveredSales:manualStatus.coveredTotal,
@@ -142,10 +158,10 @@ window.BBAnalytics = {
       storeSalesPerVisitor:storeVisitors?storeSales/storeVisitors:NaN,
       tacos:sales?ads/sales*100:NaN,
       // ACOS usa soltanto spesa e vendite degli stessi report campagne; le fatture Ads possono coprire periodi diversi.
-      acos:adsSales?adsSpend/adsSales*100:NaN,
-      roas:adsSpend?adsSales/adsSpend:NaN,
+      acos:!adPeriodMismatch&&adsSales?adsSpend/adsSales*100:NaN,
+      roas:!adPeriodMismatch&&adsSpend?adsSales/adsSpend:NaN,
       ctr:impressions?clicks/impressions*100:NaN,
-      cpc:clicks?adsSpend/clicks:NaN,
+      cpc:!adPeriodMismatch&&clicks?adsSpend/clicks:NaN,
       margin:sales?profit/sales*100:NaN,
       conversion:sessions?units/sessions*100:NaN
     };
