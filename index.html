@@ -306,14 +306,14 @@
       <div class="card">
         <h3>Setup Supabase</h3>
         <label>Project URL Supabase</label>
-        <input id="supabaseUrl" readonly>
+        <input id="supabaseUrl" type="url" placeholder="https://nome-progetto.supabase.co">
         <label>Publishable / Anon Key</label>
         <textarea id="supabaseKey" placeholder="sb_publishable... oppure anon key"></textarea>
         <button id="saveSetup">Salva configurazione</button>
         <form id="testLogin">
-          <label for="testEmail">Email di test</label>
+          <label for="testEmail">Email utente Supabase</label>
           <input id="testEmail" type="email" autocomplete="username" required>
-          <label for="testPassword">Password Supabase di test</label>
+          <label for="testPassword">Password utente Supabase</label>
           <input id="testPassword" type="password" autocomplete="current-password" required>
           <button type="submit">Accedi</button>
           <p id="testLoginStatus" role="status"></p>

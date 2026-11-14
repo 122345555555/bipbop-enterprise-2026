@@ -4,11 +4,19 @@ window.BBStorage = {
   config(){
     try {
       const cfg = JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.storageKey) || "{}");
-      return {url: this.testUrl, key: cfg?.url === this.testUrl ? cfg.key : ""};
+      return {url: cfg?.url || "", key: cfg?.key || ""};
     }
     catch(e){ return {}; }
   },
-  saveConfig(cfg){ localStorage.setItem(window.BIPBOP_CONFIG.storageKey, JSON.stringify(cfg || {})); },
+  saveConfig(cfg){
+    const url=String(cfg?.url||"").trim().replace(/\/$/,"");
+    const key=String(cfg?.key||"").trim();
+    if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)) throw new Error("URL Supabase non valido.");
+    if(!key || key.startsWith("sb_secret_")) throw new Error("Inserisci soltanto la chiave pubblica o anon.");
+    if(location.hostname.includes("-git-main-") && url===this.testUrl) throw new Error("Il database di test non può essere collegato alla produzione.");
+    localStorage.setItem(window.BIPBOP_CONFIG.storageKey,JSON.stringify({url,key}));
+    this.db=null;
+  },
   client(){
     const cfg=this.config();
     if(!cfg.url || !cfg.key || !window.supabase) return null;
