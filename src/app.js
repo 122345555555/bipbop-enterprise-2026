@@ -56,6 +56,21 @@ async function importFiles(files){
         forced_type:forcedType || null,
         header_index:parsed.headerIndex
       };
+      // Anteprima sicura: senza Supabase configurato, analizza il CSV senza salvarlo.
+      const cloud=BBStorage.config();
+      if(!cloud.url || !cloud.key){
+        const sum=names=>parsed.rows.reduce((total,row)=>total+BBUtils.num(BBUtils.pick(row,names)),0);
+        const isAds=["sponsored_brands","sponsored_products","sponsored_display"].includes(reportType);
+        const metrics=isAds
+          ? " | Spesa: "+BBUtils.eur(sum(["Spend","Spesa","Cost","Costo","Costo totale"]))+
+            " | Vendite attribuite: "+BBUtils.eur(sum(["Sales","Vendite","7 Day Total Sales","14 Day Total Sales"]))
+          : "";
+        lines.push("🔎 "+safeFileName+": anteprima senza salvataggio — "+BBUtils.html(BBAnalytics.label(reportType))+
+          " | Livello: "+BBUtils.html(source.level)+" | Righe: "+parsed.rows.length+
+          " | Colonne: "+parsed.headers.length+metrics+
+          ". Nessun dato inviato a Supabase. Il periodo non è verificabile dal solo nome del file.");
+        continue;
+      }
       const result=await BBStorage.insertFile(
         reportType,file.name,parsed.headers,parsed.rows,fingerprint,source,parsed.delimiter,
         {smartReconciliation:true,repairDuplicate:reportType==="orders"}
