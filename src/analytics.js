@@ -112,6 +112,7 @@ window.BBAnalytics = {
     // Non presentare ACOS/ROAS aggregati quando i report campagne coprono
     // intervalli differenti: il confronto non sarebbe omogeneo.
     const adFamilies=["sponsored_products","sponsored_brands","sponsored_display"];
+    let adFileCount=0;
     const adPeriods=adFamilies.map(type=>{
       const rows=samples[type]||[];
       if(!rows.length) return null;
@@ -121,10 +122,12 @@ window.BBAnalytics = {
         if(!byFile.has(key)) byFile.set(key,[]);
         byFile.get(key).push(row);
       });
+      adFileCount+=byFile.size;
       return [...byFile.values()].map(group=>this.reportPeriod(group,false));
     }).flat().filter(Boolean);
     const adPeriodKeys=new Set(adPeriods.map(p=>this.dateKey(p.start)+"|"+this.dateKey(p.end)));
-    const adPeriodMismatch=adPeriodKeys.size>1;
+    // Anche un file senza date rende non verificabile il confronto con altri file.
+    const adPeriodMismatch=adPeriodKeys.size>1 || (adFileCount>1 && adPeriods.length!==adFileCount);
     const ads=adsInvoice||adsSpend;
     const netProfitReport=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"])),0);
     const profit=netProfitReport || (sales+amazonFees-ads);
