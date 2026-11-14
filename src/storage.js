@@ -14,7 +14,7 @@ window.BBStorage = {
     if(!cfg.url || !cfg.key || !window.supabase) return null;
     if (!this.db) {
       this.db = window.supabase.createClient(cfg.url, cfg.key, {
-        auth: {persistSession: false, detectSessionInUrl: false}
+        auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: false}
       });
     }
     return this.db;
