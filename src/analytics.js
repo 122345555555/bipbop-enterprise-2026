@@ -98,7 +98,7 @@ window.BBAnalytics = {
     },0);
     const amazonFees=amazonFeesTX || -amazonFeesProfit;
     const adsInvoice=inv.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Importo pagato (convertito)","Paid Amount","Amount Paid","Totale","Total","Importo"])),0);
-    const adsSpend=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"])),0);
+    const adsSpend=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale","Costo totale (EUR)"])),0);
     const adsProfitReport=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,[
       "Costo pubblicitario delle vendite: Totale",
       "Addebiti Sponsored Products: Totale",
@@ -106,9 +106,28 @@ window.BBAnalytics = {
       "Sponsored Products charges: Total",
       "Sponsored Products charges"
     ])),0);
-    const adsSales=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sales","Vendite","7 Day Total Sales","14 Day Total Sales"])),0);
+    const adsSales=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sales","Vendite","Vendite (EUR)","7 Day Total Sales","14 Day Total Sales"])),0);
     const clicks=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Clicks","Clic","Click"])),0);
     const impressions=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Impressions","Impressioni","Viewable impressions","Impressioni visualizzabili"])),0);
+    // Non presentare ACOS/ROAS aggregati quando i report campagne coprono
+    // intervalli differenti: il confronto non sarebbe omogeneo.
+    const adFamilies=["sponsored_products","sponsored_brands","sponsored_display"];
+    let adFileCount=0;
+    const adPeriods=adFamilies.map(type=>{
+      const rows=samples[type]||[];
+      if(!rows.length) return null;
+      const byFile=new Map();
+      rows.forEach(row=>{
+        const key=String(row.__file_id||row.__file_name||type);
+        if(!byFile.has(key)) byFile.set(key,[]);
+        byFile.get(key).push(row);
+      });
+      adFileCount+=byFile.size;
+      return [...byFile.values()].map(group=>this.reportPeriod(group,false));
+    }).flat().filter(Boolean);
+    const adPeriodKeys=new Set(adPeriods.map(p=>this.dateKey(p.start)+"|"+this.dateKey(p.end)));
+    // Anche un file senza date rende non verificabile il confronto con altri file.
+    const adPeriodMismatch=adPeriodKeys.size>1 || (adFileCount>1 && adPeriods.length!==adFileCount);
     const ads=adsInvoice||adsSpend;
     const netProfitReport=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"])),0);
     const profit=netProfitReport || (sales+amazonFees-ads);
@@ -123,7 +142,7 @@ window.BBAnalytics = {
     const manualBalance=sales-referralFeesProfit-ads-subscriptionCost-productionCost-shippingCost-extraFixedCosts;
 
     return {
-      sales,reportedSales,salesBR,salesTX,salesOrders,salesProfit,units,reportedUnits,unitsBusiness,unitsOrders,unitsProfit,unitsSource,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsInvoice,adsSpend,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
+      adPeriodMismatch,adPeriodKeys:Array.from(adPeriodKeys),sales,reportedSales,salesBR,salesTX,salesOrders,salesProfit,units,reportedUnits,unitsBusiness,unitsOrders,unitsProfit,unitsSource,avgPrice,sessions,storeSales,storeUnits,storeOrders,storeViews,storeVisitors,storeNewVisitors,amazonFees,amazonFeesTX,amazonFeesProfit,referralFeesProfit,ads,adsInvoice,adsSpend,adsProfitReport,adsExtra,adsSales,clicks,impressions,profit,netProfitReport,subscriptionCost,productionCost,shippingCost,extraFixedCosts,reconciledProfit,conservativeProfit,manualBalance,
       manualPendingSales:manualStatus.pendingTotal,
       manualPendingUnits:manualStatus.pendingUnits,
       manualCoveredSales:manualStatus.coveredTotal,
@@ -141,10 +160,11 @@ window.BBAnalytics = {
       storeConversion:storeVisitors&&storeOrders?storeOrders/storeVisitors*100:NaN,
       storeSalesPerVisitor:storeVisitors?storeSales/storeVisitors:NaN,
       tacos:sales?ads/sales*100:NaN,
-      acos:adsSales?ads/adsSales*100:NaN,
-      roas:ads?adsSales/ads:NaN,
+      // ACOS usa soltanto spesa e vendite degli stessi report campagne; le fatture Ads possono coprire periodi diversi.
+      acos:!adPeriodMismatch&&adsSales?adsSpend/adsSales*100:NaN,
+      roas:!adPeriodMismatch&&adsSpend?adsSales/adsSpend:NaN,
       ctr:impressions?clicks/impressions*100:NaN,
-      cpc:clicks?ads/clicks:NaN,
+      cpc:!adPeriodMismatch&&clicks?adsSpend/clicks:NaN,
       margin:sales?profit/sales*100:NaN,
       conversion:sessions?units/sessions*100:NaN
     };
@@ -163,52 +183,35 @@ window.BBAnalytics = {
     return out;
   },
   asinRows(samples){
-    const br=samples.business_report||[], tx=samples.transactions||[], orders=samples.orders||[], profitRows=samples.profit_report||[], map=new Map();
-    br.forEach(r=>{
-      const asin=BBUtils.pick(r,["ASIN","Parent ASIN","Child ASIN"])||"N/D";
-      const title=BBUtils.pick(r,["Title","Titolo","Product Name","Nome prodotto"])||"";
-      const o=map.get(asin)||{asin,title,sales:0,units:0,sessions:0,cr:0};
-      o.sales+=BBUtils.num(BBUtils.pick(r,[
-        "Ordered Product Sales","Vendite di prodotti ordinati","Sales","Vendite prodotto ordinate","Vendite"
-      ]));
-      o.units+=BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"]));
-      o.sessions+=BBUtils.num(BBUtils.pick(r,["Sessions","Sessioni"]));
-      o.cr=Math.max(o.cr,BBUtils.num(BBUtils.pick(r,["Unit Session Percentage","Conversion Rate","Tasso conversione"])));
-      map.set(asin,o);
-    });
-    tx.forEach(r=>{
-      const d=BBUtils.pick(r,["Dettagli prodotto","Product Details","Title"])||"";
-      const m=String(d).match(/B0[A-Z0-9]{8}/);
-      const asin=m?m[0]:"N/D";
-      const o=map.get(asin)||{asin,title:d,sales:0,units:0,sessions:0,cr:0};
-      o.sales+=Math.max(BBUtils.num(BBUtils.pick(r,[
-        "Totale costo prodotti","Product charges","(totale) (EUR)","Totale (EUR)","Total (EUR)","Totale"
-      ])),0);
-      map.set(asin,o);
-    });
-    orders.forEach(r=>{
-      const asin=BBUtils.pick(r,["asin","ASIN","product-id","Product ID"])||"N/D";
-      const title=BBUtils.pick(r,["product-name","Product Name","item-name","Titolo","Title"])||"";
-      const o=map.get(asin)||{asin,title,sales:0,units:0,sessions:0,cr:0};
-      o.title=o.title||title;
-      o.sales+=BBUtils.num(BBUtils.pick(r,[
-        "item-price","Item Price","Prezzo articolo","Prezzo dell'articolo",
-        "product-sales","Product Sales","Vendite prodotto","order-item-value"
-      ]));
-      o.units+=BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità","quantity"]));
-      map.set(asin,o);
-    });
-    profitRows.forEach(r=>{
-      const asin=BBUtils.pick(r,["ASIN","asin"])||"N/D";
-      const title=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
-      const o=map.get(asin)||{asin,title,sales:0,units:0,sessions:0,cr:0};
-      o.title=o.title||title;
-      o.sales+=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
-      o.units+=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
-      o.netProfit=(o.netProfit||0)+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
-      map.set(asin,o);
-    });
-    return Array.from(map.values()).sort((a,b)=>b.sales-a.sales).slice(0,100);
+    // Le fonti coprono spesso lo stesso periodo: mai sommare Business Report,
+    // ordini, transazioni e Profit Report per lo stesso ASIN.
+    const map=new Map();
+    const sources=[
+      {key:"business_report",priority:4,rows:samples.business_report||[],asin:["Child ASIN","ASIN","Parent ASIN"],title:["Title","Titolo","Product Name","Nome prodotto"],sales:["Ordered Product Sales","Vendite di prodotti ordinati","Vendite prodotto ordinate","Vendite"],units:["Units Ordered","Unità ordinate","Units","Quantità"],sessions:["Sessions","Sessioni"]},
+      {key:"orders",priority:3,rows:samples.orders||[],asin:["asin","ASIN","product-id","Product ID"],title:["product-name","Product Name","item-name","Titolo","Title"],sales:["item-price","Item Price","Prezzo articolo","Prezzo dell'articolo","product-sales","Product Sales"],units:["quantity-purchased","Quantity","Quantità","quantity"]},
+      {key:"profit_report",priority:2,rows:samples.profit_report||[],asin:["ASIN","asin"],title:["MSKU","sku","SKU"],sales:["Vendite nette","Net sales","Sales","Vendite"],units:["Unità nette vendute","Unità vendute","Units sold","Net units sold"]}
+    ];
+    sources.forEach(src=>src.rows.forEach(r=>{
+      const asin=String(BBUtils.pick(r,src.asin)||"").trim();
+      if(!/^B0[A-Z0-9]{8}$/i.test(asin)) return;
+      const key=asin.toUpperCase();
+      const current=map.get(key);
+      if(current && current.priority>src.priority) return;
+      const o=current && current.priority===src.priority?current:{asin:key,title:"",sales:0,units:0,sessions:0,cr:NaN,source:src.key,priority:src.priority};
+      o.title=o.title||String(BBUtils.pick(r,src.title)||"");
+      o.sales+=BBUtils.num(BBUtils.pick(r,src.sales));
+      o.units+=BBUtils.num(BBUtils.pick(r,src.units));
+      if(src.sessions) o.sessions+=BBUtils.num(BBUtils.pick(r,src.sessions));
+      if(src.key==="profit_report") o.netProfit=(o.netProfit||0)+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
+      map.set(key,o);
+    }));
+    return Array.from(map.values()).map(o=>{
+      // Calcolare la conversione sulle sessioni totali evita il massimo
+      // artificiale delle percentuali delle singole righe.
+      o.cr=o.sessions>0?o.units/o.sessions*100:NaN;
+      delete o.priority;
+      return o;
+    }).sort((a,b)=>b.sales-a.sales).slice(0,100);
   },
   productTitleMap(samples){
     const map=new Map();
@@ -283,7 +286,7 @@ window.BBAnalytics = {
       };
       o.source.add(item.source);
       if(r.__period_key) o.periods.add(r.__period_key);
-      o.spend+=BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"]));
+      o.spend+=BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale","Costo totale (EUR)"]));
       o.sales+=BBUtils.num(BBUtils.pick(r,["Sales","Vendite","7 Day Total Sales","14 Day Total Sales","7 Day Total Sales (€)"]));
       o.clicks+=BBUtils.num(BBUtils.pick(r,["Clicks","Clic","Click"]));
       o.impressions+=BBUtils.num(BBUtils.pick(r,["Impressions","Impressioni","Viewable impressions","Impressioni visualizzabili"]));
@@ -555,7 +558,7 @@ window.BBAnalytics = {
       "Advertised ASIN","ASIN pubblicizzato","ASIN pubblicizzata","ASIN",
       "Purchased ASIN","ASIN acquistato","ASIN acquistata","Child ASIN","ASIN figlio"
     ];
-    const spendFields=["Spend","Spesa","Cost","Costo","Costo totale"];
+    const spendFields=["Spend","Spesa","Cost","Costo","Costo totale","Costo totale (EUR)"];
     const salesFields=["Sales","Vendite","7 Day Total Sales","14 Day Total Sales","7 Day Total Sales (€)","14 Day Total Sales (€)"];
     const orderFields=["Orders","Ordini","7 Day Total Orders","14 Day Total Orders","Purchases","Acquisti"];
     const clickFields=["Clicks","Clic","Click"];
@@ -890,7 +893,7 @@ window.BBAnalytics = {
     const adRows=[...(samples.sponsored_products||[]),...(samples.sponsored_brands||[]),...(samples.sponsored_display||[])];
     const adPeriod=this.reportPeriod(adRows,false);
     const samePeriod=!!(period&&adPeriod&&Math.abs(period.start-adPeriod.start)<=86400000&&Math.abs(period.end-adPeriod.end)<=86400000);
-    const matchedExternalAds=samePeriod?adRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"])),0):null;
+    const matchedExternalAds=samePeriod?adRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale","Costo totale (EUR)"])),0):null;
     const includedAds=Math.abs(c.adsProfitReport||0);
     const extraAds=matchedExternalAds===null?null:Math.max(matchedExternalAds-includedAds,0);
     const rules=BBUtils.rules();
@@ -1662,7 +1665,7 @@ window.BBAnalytics = {
     const ensure=(asin,sku="",title="")=>{
       title=title||titles.get(asin)||"";
       const key=asin||sku||title||"N/D";
-      const o=map.get(key)||{asin:asin||"N/D",sku,title,sales:0,units:0,profit:0,margin:NaN,stock:null,status:"",source:new Set()};
+      const o=map.get(key)||{asin:asin||"N/D",sku,title,sales:0,units:0,profit:0,hasProfit:false,margin:NaN,stock:null,status:"",source:new Set()};
       if(sku && !o.sku) o.sku=sku;
       if(title && !o.title) o.title=title;
       map.set(key,o);
@@ -1683,9 +1686,18 @@ window.BBAnalytics = {
       const asin=BBUtils.pick(r,["ASIN","asin"])||"N/D";
       const sku=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
       const o=ensure(asin,sku,titles.get(asin)||"");
-      o.sales+=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
-      o.units+=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
-      o.profit+=BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
+      // Se esistono ordini per questo ASIN, le vendite del Profit Report
+      // sono un riepilogo alternativo e non devono essere sommate.
+      if(!o.source.has("Ordini")){
+        o.sales+=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
+        o.units+=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
+      }
+      const profitFields=["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"];
+      const profitRaw=BBUtils.pick(r,profitFields);
+      if(profitRaw!==undefined && profitRaw!==null && String(profitRaw).trim()!==""){
+        o.profit+=BBUtils.num(profitRaw);
+        o.hasProfit=true;
+      }
       o.source.add("Profit Report");
     });
 
@@ -1700,11 +1712,11 @@ window.BBAnalytics = {
     });
 
     return Array.from(map.values()).map(o=>{
-      o.margin=o.sales?o.profit/o.sales*100:NaN;
+      o.margin=o.hasProfit&&o.sales?o.profit/o.sales*100:NaN;
       let decision="watch", action="Monitora";
       if((o.stock!==null && o.stock<=0) && (o.sales>0 || o.units>0)){
         decision="stock"; action="Controlla stock prima di spingere";
-      }else if(o.profit<0){
+      }else if(o.hasProfit&&o.profit<0){
         decision="fix"; action="Correggi costi/prezzo/ads";
       }else if(o.sales>=100 && Number.isFinite(o.margin) && o.margin>=40 && (o.stock===null || o.stock>10)){
         decision="scale"; action="Spingi con keyword e budget";
@@ -1712,6 +1724,8 @@ window.BBAnalytics = {
         decision="protect"; action="Proteggi ranking e stock";
       }else if(o.sales>0 && Number.isFinite(o.margin) && o.margin<25){
         decision="fix"; action="Migliora margine o prezzo";
+      }else if(o.sales>0 && !o.hasProfit){
+        decision="watch"; action="Margine non disponibile: importa Profit Report";
       }
       o.decision=decision;
       o.action=action;

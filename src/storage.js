@@ -1,13 +1,23 @@
 window.BBStorage = {
+  testUrl: "https://oqiaenaaxozxkjatsxdr.supabase.co",
+  db: null,
   config(){
-    try { return JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.storageKey) || "{}"); }
+    try {
+      const cfg = JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.storageKey) || "{}");
+      return {url: this.testUrl, key: cfg?.url === this.testUrl ? cfg.key : ""};
+    }
     catch(e){ return {}; }
   },
   saveConfig(cfg){ localStorage.setItem(window.BIPBOP_CONFIG.storageKey, JSON.stringify(cfg || {})); },
   client(){
     const cfg=this.config();
     if(!cfg.url || !cfg.key || !window.supabase) return null;
-    return window.supabase.createClient(cfg.url,cfg.key);
+    if (!this.db) {
+      this.db = window.supabase.createClient(cfg.url, cfg.key, {
+        auth: {persistSession: true, autoRefreshToken: true, detectSessionInUrl: false}
+      });
+    }
+    return this.db;
   },
   async insertFile(reportType,fileName,headers,rows,fingerprint,source,delimiter,options={}){
     const db=this.client();
@@ -22,6 +32,19 @@ window.BBStorage = {
     const repairDuplicate=duplicateFound&&options.repairDuplicate===true;
     const isDuplicate=duplicateFound&&!repairDuplicate;
 
+    // Riimportando un CSV Ads già presente, aggiorniamo il periodo del file
+    // originale senza creare nuove righe attive o duplicare le metriche.
+    if(duplicateFound && ["sponsored_brands","sponsored_products","sponsored_display"].includes(reportType)){
+      const existing=(dup.data||[]).find(f=>!f.is_duplicate);
+      if(existing){
+        const previous=await db.from("bb100_report_files").select("source").eq("id",existing.id).single();
+        if(previous.error) throw new Error(previous.error.message);
+        const merged={...(previous.data?.source||{}),period_start:source.period_start,period_end:source.period_end};
+        const updated=await db.from("bb100_report_files").update({source:merged}).eq("id",existing.id);
+        if(updated.error) throw new Error(updated.error.message);
+        return {isDuplicate:true,repaired:false,file:existing,duplicateFile:existing,periodUpdated:true};
+      }
+    }
     const filePayload={
       report_type:reportType,
       file_name:fileName,

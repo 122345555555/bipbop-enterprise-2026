@@ -1,0 +1,123 @@
+<!doctype html><html lang="it"><meta charset="utf-8"><title>Test import Amazon — ramo di prova</title><style>body{font:16px system-ui;max-width:850px;margin:40px auto;padding:0 16px}pre{white-space:pre-wrap;background:#f4f6f8;padding:16px;border-radius:8px}</style><h1>Test automatici Amazon (dati sintetici)</h1><p>Nessuna connessione al database. Nessun dato reale.</p><pre id="results">Esecuzione...</pre><script src="../src/utils.js"></script><script src="../src/parser.js"></script><script src="../src/reconcile.js"></script><script src="../src/analytics.js"></script><script>
+(function(){
+ const results=[];const check=(name,condition,details='')=>results.push((condition?'PASS':'FAIL')+' — '+name+(details?' ('+details+')':''));
+ try {
+  const filename='Sponsored_Brands_AdGroup_Nov_11_2026.csv';
+  const csv='Nome campagna;Nome del gruppo di annunci;Impressioni;Clic;Costo totale (EUR);Vendite (EUR)\nCampagna prova;Gruppo A;1000;20;12,50;25,00\nCampagna prova;Gruppo B;2000;30;17,50;35,00';
+  const parsed=BBParser.parse(csv);
+  check('Due righe CSV',parsed.rows.length===2,String(parsed.rows.length));
+  check('Separatore punto e virgola',parsed.delimiter===';');
+  check('Riconoscimento Sponsored Brands',BBParser.detectReport(parsed.headers,filename)==='sponsored_brands');
+  check('Riconoscimento AdGroup',BBParser.sourceFrom('sponsored_brands',filename,parsed.headers).level==='ad_group');
+  const source=BBParser.sourceFrom('sponsored_brands',filename,parsed.headers);
+  check('Identità distinte per gruppi',BBReconcile.identity('sponsored_brands',parsed.rows[0],source)!==BBReconcile.identity('sponsored_brands',parsed.rows[1],source));
+  const c=BBAnalytics.calc({sponsored_brands:parsed.rows});
+  check('Spesa totale 30 EUR',Math.abs(c.adsSpend-30)<0.001,String(c.adsSpend));
+  check('Vendite attribuite 60 EUR',Math.abs(c.adsSales-60)<0.001,String(c.adsSales));
+  check('ACOS 50%',Math.abs(c.acos-50)<0.001,String(c.acos));
+  check('ROAS 2',Math.abs(c.roas-2)<0.001,String(c.roas));
+  const periods={sponsored_brands:[
+    {'Start Date':'11/01/2026','End Date':'11/07/2026','Spend':'10','Sales':'20','__file_name':'SB-week-1.csv'},
+    {'Start Date':'11/08/2026','End Date':'11/14/2026','Spend':'20','Sales':'40','__file_name':'SB-week-2.csv'}
+  ]};
+  const mismatched=BBAnalytics.calc(periods);
+  check('Periodi differenti rilevati',mismatched.adPeriodMismatch===true);
+  check('ACOS aggregato bloccato su periodi differenti',Number.isNaN(mismatched.acos));
+  check('ROAS aggregato bloccato su periodi differenti',Number.isNaN(mismatched.roas));
+  const samePeriod=BBAnalytics.calc({sponsored_brands:[
+    {'Start Date':'11/01/2026','End Date':'11/07/2026','Spend':'10','Sales':'20','__file_name':'SB-a.csv'},
+    {'Start Date':'11/01/2026','End Date':'11/07/2026','Spend':'20','Sales':'40','__file_name':'SB-b.csv'}
+  ]});
+  check('Periodi uguali compatibili',samePeriod.adPeriodMismatch===false);
+  check('ACOS calcolato su periodi uguali',Math.abs(samePeriod.acos-50)<0.001);
+  const unknownPeriod=BBAnalytics.calc({sponsored_brands:[
+    {'Start Date':'11/01/2026','End Date':'11/07/2026','Spend':'10','Sales':'20','__file_name':'SB-known.csv'},
+    {'Spend':'20','Sales':'40','__file_name':'SB-unknown.csv'}
+  ]});
+  check('Periodo sconosciuto rilevato',unknownPeriod.adPeriodMismatch===true);
+  check('ACOS bloccato con periodo sconosciuto',Number.isNaN(unknownPeriod.acos));
+  check('ROAS bloccato con periodo sconosciuto',Number.isNaN(unknownPeriod.roas));
+  const overlap=BBAnalytics.calc({sponsored_brands:[
+    {'Start Date':'11/01/2026','End Date':'11/07/2026','Spend':'10','Sales':'20','__file_name':'SB-week.csv'},
+    {'Start Date':'11/01/2026','End Date':'11/14/2026','Spend':'20','Sales':'40','__file_name':'SB-cumulative.csv'}
+  ]});
+  check('Periodo cumulativo sovrapposto rilevato',overlap.adPeriodMismatch===true);
+  check('ACOS bloccato con report cumulativo sovrapposto',Number.isNaN(overlap.acos));
+  // Test del motore di riconciliazione, non solo delle formule.
+  const baseDate='2026-11-14T10:00:00Z';
+  const adFiles=[
+    {id:'f1',report_type:'sponsored_brands',file_name:'Sponsored_Brands_AdGroup_Nov_11_2026.csv',imported_at:baseDate,row_count:1,source:{level:'ad_group'}},
+    {id:'f2',report_type:'sponsored_brands',file_name:'Sponsored_Brands_AdGroup_Nov_14_2026.csv',imported_at:'2026-11-14T11:00:00Z',row_count:1,source:{level:'ad_group'}}
+  ];
+  const adRow={ 'Campaign ID':'C1','Ad Group ID':'G1','Start Date':'11/01/2026','End Date':'11/14/2026','Spend':'20','Sales':'40'};
+  const duplicate=BBReconcile.resolve('sponsored_brands',adFiles,[
+    {file_id:'f1',row_index:0,row_data:adRow},
+    {file_id:'f2',row_index:0,row_data:adRow}
+  ]);
+  check('Reimport stessa riga: una sola riga attiva',duplicate.rows.length===1);
+  check('Reimport stessa riga: duplicato conteggiato',duplicate.deduplicatedRows===1);
+  const levels=BBReconcile.activeFiles('sponsored_brands',[
+    ...adFiles,
+    {id:'f3',report_type:'sponsored_brands',file_name:'Sponsored_Brands_Campaign_Nov_14_2026.csv',source:{level:'campaign'}}
+  ]);
+  check('Livelli pubblicitari non sommati',levels.files.length===1&&levels.selectedLevel==='campaign');
+  // Regressioni dei periodi cumulativi reali (luglio-novembre e settembre-novembre).
+  const cumulativeFiles=[
+    {id:'jul',report_type:'sponsored_brands',file_name:'SB-Jul-Nov.csv',imported_at:'2026-11-14T10:00:00Z',source:{level:'ad_group',period_start:'2026-07-01',period_end:'2026-11-14'}},
+    {id:'sep',report_type:'sponsored_brands',file_name:'SB-Sep-Nov.csv',imported_at:'2026-11-14T11:00:00Z',source:{level:'ad_group',period_start:'2026-09-01',period_end:'2026-11-14'}}
+  ];
+  const cumulativeRows=[
+    {file_id:'jul',row_index:1,row_data:{'Campaign ID':'C1','Ad Group ID':'G1','Spend':'454.57','Sales':'234.80'}},
+    {file_id:'sep',row_index:1,row_data:{'Campaign ID':'C1','Ad Group ID':'G1','Spend':'310.34','Sales':'195.80'}}
+  ];
+  const cumulative=BBReconcile.resolve('sponsored_brands',cumulativeFiles,cumulativeRows);
+  check('Cumulati annidati: un solo intervallo attivo',cumulative.rows.length===1);
+  check('Cumulati annidati: spesa non sommata',cumulative.rows.length===1&&Math.abs(Number(cumulative.rows[0].Spend)-454.57)<0.001);
+  check('Cumulati annidati: vendite non sommate',cumulative.rows.length===1&&Math.abs(Number(cumulative.rows[0].Sales)-234.80)<0.001);
+  const disjointFiles=[cumulativeFiles[0],{...cumulativeFiles[1],source:{...cumulativeFiles[1].source,period_start:'2026-12-01',period_end:'2026-12-31'}}];
+  const disjoint=BBReconcile.resolve('sponsored_brands',disjointFiles,cumulativeRows);
+  check('Periodi disgiunti conservati entrambi',disjoint.rows.length===2);
+  const partialFiles=[cumulativeFiles[0],{...cumulativeFiles[1],source:{...cumulativeFiles[1].source,period_start:'2026-10-01',period_end:'2026-12-01'}}];
+  let partialBlocked=false;
+  try{BBReconcile.resolve('sponsored_brands',partialFiles,cumulativeRows);}catch(e){partialBlocked=/sovrappost/.test(String(e.message));}
+  check('Sovrapposizione parziale bloccata',partialBlocked);
+  const asin='B012345678';
+  const data={business_report:[{'Child ASIN':asin,'Ordered Product Sales':'100','Units Ordered':'5','Sessions':'100'}],orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],profit_report:[{'ASIN':asin,'Vendite nette':'100','Unità nette vendute':'5','Totale: Ricavi netti':'30'}]};
+  const rows=BBAnalytics.asinRows(data);
+  check('ASIN: vendite non triplicate',rows.length===1&&Math.abs(rows[0].sales-100)<0.001,JSON.stringify(rows));
+  check('ASIN: conversione 5%',rows.length===1&&Math.abs(rows[0].cr-5)<0.001);
+  const missingProfit=BBAnalytics.asinDecisionRows({orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}]});
+  check('Margine mancante non diventa zero',missingProfit.length===1&&Number.isNaN(missingProfit[0].margin));
+  check('Profitto mancante: solo monitoraggio',missingProfit.length===1&&missingProfit[0].decision==='watch');
+  const loss=BBAnalytics.asinDecisionRows({orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],profit_report:[{'ASIN':asin,'Totale: Ricavi netti':'-10'}]});
+  check('Profitto negativo: segnalazione correzione',loss.length===1&&loss[0].decision==='fix');
+  const noStock=BBAnalytics.asinDecisionRows({orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],inventory:[{'ASIN':asin,'quantity':'0'}]});
+  check('Stock zero: priorità disponibilità',noStock.length===1&&noStock[0].decision==='stock');
+  // Ulteriori casi limite in un unico collaudo completo.
+  const comma=BBParser.parse('Nome campagna;Costo totale (EUR);Vendite (EUR)\nProva;1.234,56;2.469,12');
+  check('Importi italiani con migliaia e decimali',comma.rows.length===1&&Math.abs(BBUtils.num(comma.rows[0]['Costo totale (EUR)'])-1234.56)<0.001);
+  const quoted=BBParser.parse('Nome campagna;Costo totale (EUR)\n"Campagna; speciale";12,50');
+  check('CSV con separatore dentro virgolette',quoted.rows.length===1&&quoted.rows[0]['Nome campagna']==='Campagna; speciale');
+  const empty=BBParser.parse('Nome campagna;Costo totale (EUR)');
+  check('CSV con sole intestazioni non crea righe',empty.rows.length===0);
+  const zeroSpend=BBAnalytics.calc({sponsored_brands:[{'Spend':'0','Sales':'0','Clicks':'0'}]});
+  check('Spesa zero non produce ACOS fittizio',Number.isNaN(zeroSpend.acos));
+  check('Spesa zero non produce ROAS fittizio',Number.isNaN(zeroSpend.roas));
+  const multiAsin=BBAnalytics.asinRows({business_report:[
+    {'Child ASIN':'B012345678','Ordered Product Sales':'100','Units Ordered':'5','Sessions':'100'},
+    {'Child ASIN':'B087654321','Ordered Product Sales':'50','Units Ordered':'2','Sessions':'80'}
+  ]});
+  check('Due ASIN distinti restano separati',multiAsin.length===2&&multiAsin[0].asin!==multiAsin[1].asin);
+  const noProfitZero=BBAnalytics.asinDecisionRows({orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],profit_report:[{'ASIN':asin,'Totale: Ricavi netti':'0'}]});
+  check('Profitto zero esplicito riconosciuto',noProfitZero.length===1&&noProfitZero[0].hasProfit===true);
+  const oneFile=BBAnalytics.calc({sponsored_brands:[{'Spend':'10','Sales':'20','__file_name':'single.csv'}]});
+  check('Singolo report senza periodo: ACOS calcolabile',Math.abs(oneFile.acos-50)<0.001);
+  const twoUnknown=BBAnalytics.calc({sponsored_brands:[{'Spend':'10','Sales':'20','__file_name':'a.csv'},{'Spend':'20','Sales':'40','__file_name':'b.csv'}]});
+  check('Due report senza periodo: ACOS bloccato',Number.isNaN(twoUnknown.acos));
+  const decisions=BBAnalytics.asinDecisionRows(data);
+  check('Decisioni: vendite non duplicate',decisions.length===1&&Math.abs(decisions[0].sales-100)<0.001);
+ }catch(e){results.push('ERRORE — '+(e.stack||e.message||e));}
+ const passed=results.filter(x=>x.startsWith('PASS')).length;
+ document.getElementById('results').textContent=passed+'/'+results.length+' test superati\n\n'+results.join('\n');
+})();
+</script></html>

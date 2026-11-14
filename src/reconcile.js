@@ -59,13 +59,13 @@ window.BBReconcile = {
       dic:12,dicembre:12,dec:12,december:12
     };
     const monthName="(gen(?:naio)?|feb(?:braio|ruary)?|mar(?:zo|ch)?|apr(?:ile)?|mag(?:gio)?|may|giu(?:gno)?|jun(?:e)?|lug(?:lio)?|jul(?:y)?|ago(?:sto)?|aug(?:ust)?|set(?:tembre)?|sep(?:tember)?|ott(?:obre)?|oct(?:ober)?|nov(?:embre|ember)?|dic(?:embre)?|dec(?:ember)?)";
-    const namedMonthFirst=new RegExp(monthName+"[-_. ]+(\\d{1,2})[-_. ]+(20\\d{2})","gi");
+    const namedMonthFirst=new RegExp(monthName+"[-_. ]+(\d{1,2})[-_. ]+(20\d{2})","gi");
     while((match=namedMonthFirst.exec(name))){
       const month=monthNumbers[String(match[1]).toLowerCase()]||monthNumbers[String(match[1]).toLowerCase().slice(0,3)];
       const d=new Date(Date.UTC(Number(match[3]),month-1,Number(match[2])));
       if(month && !Number.isNaN(d.getTime())) dates.push(d);
     }
-    const namedDayFirst=new RegExp("(\\d{1,2})[-_. ]+"+monthName+"[-_. ]+(20\\d{2})","gi");
+    const namedDayFirst=new RegExp("(\d{1,2})[-_. ]+"+monthName+"[-_. ]+(20\d{2})","gi");
     while((match=namedDayFirst.exec(name))){
       const month=monthNumbers[String(match[2]).toLowerCase()]||monthNumbers[String(match[2]).toLowerCase().slice(0,3)];
       const d=new Date(Date.UTC(Number(match[3]),month-1,Number(match[1])));
@@ -190,7 +190,7 @@ window.BBReconcile = {
       return "ads|"+[
         source.level||"file",
         v(["Campaign ID","ID campagna"]),
-        v(["Campaign Name","Nome campagna"]),
+        v(["Campaign Name","Nome campagna","Nome della campagna"]),
         v(["Ad Group ID","ID gruppo di annunci"]),
         v(["Ad Group Name","Nome del gruppo di annunci"]),
         v(["Ad ID","ID annuncio"]),
@@ -289,6 +289,62 @@ window.BBReconcile = {
         const byDate=this.compareFiles(activeFileMap.get(String(a.file_id)),activeFileMap.get(String(b.file_id)));
         return byDate || Number(a.row_index||0)-Number(b.row_index||0);
       });
+    // Ads aggregati: scegliere un unico cumulato per identità, senza sommare
+    // periodi sovrapposti. Intervalli parzialmente sovrapposti non sono
+    // ricostruibili da CSV aggregati: segnaliamo il conflitto anziché inventare dati.
+    if(this.adTypes.has(type)){
+      const groups=new Map();
+      for(const record of ordered){
+        const file=activeFileMap.get(String(record.file_id));
+        const row={...(record.row_data||{})};
+        const source={...(record.source||{}),...(file?.source||{})};
+        const key=this.identity(type,row,source);
+        if(!groups.has(key)) groups.set(key,[]);
+        groups.get(key).push({record,file,row,source});
+      }
+      const resultRows=[];
+      const conflicts=[];
+      for(const [key,items] of groups){
+        const valid=items.every(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_start||"")&&/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_end||""));
+        // File importati prima dell'introduzione delle date: non sommarli.
+        // Conserviamo il più recente come anteprima prudenziale.
+        if(!valid){
+          const latest=items.slice().sort((a,b)=>this.compareFiles(b.file,a.file))[0];
+          resultRows.push({...latest.row,__file_id:latest.record.file_id,__file_name:latest.record.file_name,
+            __period_key:"non-verificato",__source:latest.source,__imported_at:latest.record.imported_at,__identity:key});
+          continue;
+        }
+        const sorted=items.slice().sort((a,b)=>{
+          const days=x=>(Date.parse(x.source.period_end)-Date.parse(x.source.period_start));
+          return days(b)-days(a)||this.compareFiles(b.file,a.file);
+        });
+        const selected=[];
+        for(const item of sorted){
+          const a=item.source;
+          if(a.period_start>a.period_end){conflicts.push("Intervallo invertito per "+key);continue;}
+          let covered=false,partial=false;
+          for(const existing of selected){
+            const b=existing.source;
+            if(a.period_start>=b.period_start&&a.period_end<=b.period_end){covered=true;break;}
+            if(!(a.period_end<b.period_start||a.period_start>b.period_end)){partial=true;break;}
+          }
+          if(partial){conflicts.push("Periodi parzialmente sovrapposti per "+key);continue;}
+          if(!covered) selected.push(item);
+        }
+        for(const item of selected){
+          const a=item.source;
+          resultRows.push({...item.row,__file_id:item.record.file_id,__file_name:item.record.file_name,
+            __period_key:a.period_start+"_"+a.period_end,__source:a,
+            __imported_at:item.record.imported_at,__identity:key+"|"+a.period_start+"|"+a.period_end});
+        }
+      }
+      if(conflicts.length) throw new Error("Report Ads con periodi sovrapposti non ricostruibili: "+conflicts.slice(0,3).join("; ")+". Importa report giornalieri/mensili non sovrapposti.");
+      const contributingIds=new Set(resultRows.map(x=>String(x.__file_id)));
+      return {rows:resultRows,policy:"ads_period_safe",selectedLevel:active.selectedLevel,
+        activeFileIds:Array.from(contributingIds),consideredFileIds:Array.from(activeIds),
+        supersededFileIds:(files||[]).filter(f=>f.report_type===type&&!f.is_duplicate&&!contributingIds.has(String(f.id))).map(f=>String(f.id)),
+        rawRows:ordered.length,deduplicatedRows:Math.max(ordered.length-resultRows.length,0)};
+    }
     const byIdentity=new Map();
     ordered.forEach(record=>{
       const row={...(record.row_data||{})};

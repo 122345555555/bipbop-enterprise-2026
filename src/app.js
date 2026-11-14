@@ -56,6 +56,44 @@ async function importFiles(files){
         forced_type:forcedType || null,
         header_index:parsed.headerIndex
       };
+      // I report Ads aggregati non contengono necessariamente il periodo nelle righe.
+      // Senza date non possiamo distinguere cumulati sovrapposti da periodi disgiunti.
+      if(["sponsored_brands","sponsored_products","sponsored_display"].includes(reportType)){
+        const from=window.prompt("Periodo del report "+file.name+"\\nData INIZIO (AAAA-MM-GG). Annulla per non importare:");
+        if(from===null) throw new Error("Importazione annullata: periodo iniziale obbligatorio.");
+        const to=window.prompt("Periodo del report "+file.name+"\\nData FINE (AAAA-MM-GG). Annulla per non importare:");
+        if(to===null) throw new Error("Importazione annullata: periodo finale obbligatorio.");
+        const normalizeDate=input=>{
+          const v=String(input||"").trim();
+          let m=v.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+          if(!m){
+            const it=v.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+            if(it) m=[v,it[3],it[2],it[1]];
+          }
+          if(!m) return "";
+          const date=m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");
+          return !Number.isNaN(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date?date:"";
+        };
+        const start=normalizeDate(from),end=normalizeDate(to);
+        if(!start||!end||start>end) throw new Error("Periodo non valido: usa 2026-07-01 oppure 01/07/2026 e verifica l'ordine delle date.");
+        source.period_start=start;
+        source.period_end=end;
+      }
+      // Anteprima sicura: senza Supabase configurato, analizza il CSV senza salvarlo.
+      const cloud=BBStorage.config();
+      if(!(await BBStorage.client()?.auth.getSession())?.data?.session){
+        const sum=names=>parsed.rows.reduce((total,row)=>total+BBUtils.num(BBUtils.pick(row,names)),0);
+        const isAds=["sponsored_brands","sponsored_products","sponsored_display"].includes(reportType);
+        const metrics=isAds
+          ? " | Spesa: "+BBUtils.euro(sum(["Spend","Spesa","Cost","Costo","Costo totale","Costo totale (EUR)"]))+
+            " | Vendite attribuite: "+BBUtils.euro(sum(["Sales","Vendite","Vendite (EUR)","7 Day Total Sales","14 Day Total Sales"]))
+          : "";
+        lines.push("🔎 "+safeFileName+": anteprima senza salvataggio — "+BBUtils.html(BBAnalytics.label(reportType))+
+          " | Livello: "+BBUtils.html(source.level)+" | Righe: "+parsed.rows.length+
+          " | Colonne: "+parsed.headers.length+metrics+
+          ". Nessun dato inviato a Supabase. Il periodo non è verificabile dal solo nome del file.");
+        continue;
+      }
       const result=await BBStorage.insertFile(
         reportType,file.name,parsed.headers,parsed.rows,fingerprint,source,parsed.delimiter,
         {smartReconciliation:true,repairDuplicate:reportType==="orders"}
@@ -90,6 +128,15 @@ async function refresh(){
     BBUtils.el("cloudBadge").textContent=cfg.url&&cfg.key?"Cloud configurato":"Cloud non collegato";
     BBUtils.el("cloudBadge").className="badge "+(cfg.url&&cfg.key?"ok":"bad");
     if(!cfg.url||!cfg.key){ BBRender.renderAll(); return; }
+
+    const {data, error} = await BBStorage.client().auth.getSession();
+    if(error) throw error;
+    if(!data.session){
+      BBUtils.el("cloudBadge").textContent="Accedi al database di test";
+      BBUtils.el("cloudBadge").className="badge bad";
+      BBRender.renderAll();
+      return;
+    }
 
     await BBCloudRules.load();
     const cloud=BBCloudRules.info();
@@ -439,9 +486,39 @@ function bind(){
   BBUtils.el("supabaseUrl").value=cfg.url||"";
   BBUtils.el("supabaseKey").value=cfg.key||"";
   BBUtils.el("saveSetup").addEventListener("click",()=>{
-    BBStorage.saveConfig({url:BBUtils.el("supabaseUrl").value.trim(),key:BBUtils.el("supabaseKey").value.trim()});
-    alert("Configurazione salvata");
-    refresh();
+    const key = BBUtils.el("supabaseKey").value.trim();
+    if (!key.startsWith("sb_publishable_")) {
+      BBUtils.el("testLoginStatus").textContent = "Inserisci la chiave pubblica del progetto di test.";
+      return;
+    }
+    BBStorage.saveConfig({url: BBStorage.testUrl, key});
+    window.location.reload();
+  });
+
+  BBUtils.el("testLogin").addEventListener("submit", async event => {
+    event.preventDefault();
+    const status = BBUtils.el("testLoginStatus");
+    const db = BBStorage.client();
+    if (!db) {
+      status.textContent = "Salva prima la chiave pubblica del progetto di test.";
+      return;
+    }
+    const password = BBUtils.el("testPassword");
+    try {
+      const {error} = await db.auth.signInWithPassword({
+        email: BBUtils.el("testEmail").value.trim(),
+        password: password.value
+      });
+      if (error) throw error;
+      const check = await db.from("bb100_report_files").select("id").limit(1);
+      if (check.error) throw check.error;
+      status.textContent = "Collegato al database di test.";
+      await refresh();
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      password.value = "";
+    }
   });
 
   // v1.4.0: nessuna migrazione/fallback locale. Supabase è l’unica fonte dati.
