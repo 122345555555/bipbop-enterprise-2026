@@ -61,6 +61,26 @@
     {id:'f3',report_type:'sponsored_brands',file_name:'Sponsored_Brands_Campaign_Nov_14_2026.csv',source:{level:'campaign'}}
   ]);
   check('Livelli pubblicitari non sommati',levels.files.length===1&&levels.selectedLevel==='campaign');
+  // Regressioni dei periodi cumulativi reali (luglio-novembre e settembre-novembre).
+  const cumulativeFiles=[
+    {id:'jul',report_type:'sponsored_brands',file_name:'SB-Jul-Nov.csv',imported_at:'2026-11-14T10:00:00Z',source:{level:'ad_group',period_start:'2026-07-01',period_end:'2026-11-14'}},
+    {id:'sep',report_type:'sponsored_brands',file_name:'SB-Sep-Nov.csv',imported_at:'2026-11-14T11:00:00Z',source:{level:'ad_group',period_start:'2026-09-01',period_end:'2026-11-14'}}
+  ];
+  const cumulativeRows=[
+    {file_id:'jul',row_index:1,row_data:{'Campaign ID':'C1','Ad Group ID':'G1','Spend':'454.57','Sales':'234.80'}},
+    {file_id:'sep',row_index:1,row_data:{'Campaign ID':'C1','Ad Group ID':'G1','Spend':'310.34','Sales':'195.80'}}
+  ];
+  const cumulative=BBReconcile.resolve('sponsored_brands',cumulativeFiles,cumulativeRows);
+  check('Cumulati annidati: un solo intervallo attivo',cumulative.rows.length===1);
+  check('Cumulati annidati: spesa non sommata',cumulative.rows.length===1&&Math.abs(Number(cumulative.rows[0].Spend)-454.57)<0.001);
+  check('Cumulati annidati: vendite non sommate',cumulative.rows.length===1&&Math.abs(Number(cumulative.rows[0].Sales)-234.80)<0.001);
+  const disjointFiles=[cumulativeFiles[0],{...cumulativeFiles[1],source:{...cumulativeFiles[1].source,period_start:'2026-12-01',period_end:'2026-12-31'}}];
+  const disjoint=BBReconcile.resolve('sponsored_brands',disjointFiles,cumulativeRows);
+  check('Periodi disgiunti conservati entrambi',disjoint.rows.length===2);
+  const partialFiles=[cumulativeFiles[0],{...cumulativeFiles[1],source:{...cumulativeFiles[1].source,period_start:'2026-10-01',period_end:'2026-12-01'}}];
+  let partialBlocked=false;
+  try{BBReconcile.resolve('sponsored_brands',partialFiles,cumulativeRows);}catch(e){partialBlocked=/sovrappost/.test(String(e.message));}
+  check('Sovrapposizione parziale bloccata',partialBlocked);
   const asin='B012345678';
   const data={business_report:[{'Child ASIN':asin,'Ordered Product Sales':'100','Units Ordered':'5','Sessions':'100'}],orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],profit_report:[{'ASIN':asin,'Vendite nette':'100','Unità nette vendute':'5','Totale: Ricavi netti':'30'}]};
   const rows=BBAnalytics.asinRows(data);
