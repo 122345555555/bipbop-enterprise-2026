@@ -289,6 +289,60 @@ window.BBReconcile = {
         const byDate=this.compareFiles(activeFileMap.get(String(a.file_id)),activeFileMap.get(String(b.file_id)));
         return byDate || Number(a.row_index||0)-Number(b.row_index||0);
       });
+    // Ads aggregati: scegliere un unico cumulato per identità, senza sommare
+    // periodi sovrapposti. Intervalli parzialmente sovrapposti non sono
+    // ricostruibili da CSV aggregati: segnaliamo il conflitto anziché inventare dati.
+    if(this.adTypes.has(type)){
+      const groups=new Map();
+      for(const record of ordered){
+        const file=activeFileMap.get(String(record.file_id));
+        const row={...(record.row_data||{})};
+        const source={...(file?.source||{}),...(record.source||{})};
+        const key=this.identity(type,row,source);
+        if(!groups.has(key)) groups.set(key,[]);
+        groups.get(key).push({record,file,row,source});
+      }
+      const resultRows=[];
+      const conflicts=[];
+      for(const [key,items] of groups){
+        const valid=items.every(x=>/^\\d{4}-\\d{2}-\\d{2}$/.test(x.source.period_start||"")&&/^\\d{4}-\\d{2}-\\d{2}$/.test(x.source.period_end||""));
+        if(!valid && items.length>1){
+          conflicts.push("Periodo mancante per "+key);
+          continue;
+        }
+        const ranked=items.slice().sort((a,b)=>{
+          const days=x=>Math.round((Date.parse(x.source.period_end)-Date.parse(x.source.period_start))/86400000);
+          return days(b)-days(a)||this.compareFiles(b.file,a.file);
+        });
+        const chosen=ranked[0];
+        for(const other of ranked.slice(1)){
+          const a=chosen.source,b=other.source;
+          if(!(a.period_start<=b.period_start&&a.period_end>=b.period_end) &&
+             !(b.period_end<a.period_start||b.period_start>a.period_end)){
+            conflicts.push("Periodi parzialmente sovrapposti per "+key);
+          }
+        }
+        if(conflicts.length) continue;
+        resultRows.push({...chosen.row,__file_id:chosen.record.file_id,__file_name:chosen.record.file_name,
+          __period_key:chosen.source.period_start+"_"+chosen.source.period_end,
+          __source:chosen.source,__imported_at:chosen.record.imported_at,__identity:key});
+        // Periodi disgiunti possono essere sommati soltanto se il modello
+        // aggrega righe separate; manteniamo ogni intervallo disgiunto.
+        for(const other of ranked.slice(1)){
+          const b=other.source,a=chosen.source;
+          if(b.period_end<a.period_start||b.period_start>a.period_end)
+            resultRows.push({...other.row,__file_id:other.record.file_id,__file_name:other.record.file_name,
+              __period_key:b.period_start+"_"+b.period_end,__source:other.source,
+              __imported_at:other.record.imported_at,__identity:key+"|"+b.period_start});
+        }
+      }
+      if(conflicts.length) throw new Error("Report Ads non riconciliabili: "+conflicts.slice(0,3).join("; ")+". Servono date e report giornalieri/mensili per periodi parzialmente sovrapposti.");
+      const contributingIds=new Set(resultRows.map(x=>String(x.__file_id)));
+      return {rows:resultRows,policy:"ads_period_safe",selectedLevel:active.selectedLevel,
+        activeFileIds:Array.from(contributingIds),consideredFileIds:Array.from(activeIds),
+        supersededFileIds:(files||[]).filter(f=>f.report_type===type&&!f.is_duplicate&&!contributingIds.has(String(f.id))).map(f=>String(f.id)),
+        rawRows:ordered.length,deduplicatedRows:Math.max(ordered.length-resultRows.length,0)};
+    }
     const byIdentity=new Map();
     ordered.forEach(record=>{
       const row={...(record.row_data||{})};
