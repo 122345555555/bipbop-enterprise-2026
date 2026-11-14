@@ -1,13 +1,23 @@
 window.BBStorage = {
+  testUrl: "https://oqiaenaaxozxkjatsxdr.supabase.co",
+  db: null,
   config(){
-    try { return JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.storageKey) || "{}"); }
+    try {
+      const cfg = JSON.parse(localStorage.getItem(window.BIPBOP_CONFIG.storageKey) || "{}");
+      return {url: this.testUrl, key: cfg?.url === this.testUrl ? cfg.key : ""};
+    }
     catch(e){ return {}; }
   },
   saveConfig(cfg){ localStorage.setItem(window.BIPBOP_CONFIG.storageKey, JSON.stringify(cfg || {})); },
   client(){
     const cfg=this.config();
     if(!cfg.url || !cfg.key || !window.supabase) return null;
-    return window.supabase.createClient(cfg.url,cfg.key);
+    if (!this.db) {
+      this.db = window.supabase.createClient(cfg.url, cfg.key, {
+        auth: {persistSession: false, detectSessionInUrl: false}
+      });
+    }
+    return this.db;
   },
   async insertFile(reportType,fileName,headers,rows,fingerprint,source,delimiter,options={}){
     const db=this.client();

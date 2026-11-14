@@ -58,7 +58,7 @@ async function importFiles(files){
       };
       // Anteprima sicura: senza Supabase configurato, analizza il CSV senza salvarlo.
       const cloud=BBStorage.config();
-      if(!cloud.url || !cloud.key){
+      if(!(await BBStorage.client()?.auth.getSession())?.data?.session){
         const sum=names=>parsed.rows.reduce((total,row)=>total+BBUtils.num(BBUtils.pick(row,names)),0);
         const isAds=["sponsored_brands","sponsored_products","sponsored_display"].includes(reportType);
         const metrics=isAds
@@ -105,6 +105,15 @@ async function refresh(){
     BBUtils.el("cloudBadge").textContent=cfg.url&&cfg.key?"Cloud configurato":"Cloud non collegato";
     BBUtils.el("cloudBadge").className="badge "+(cfg.url&&cfg.key?"ok":"bad");
     if(!cfg.url||!cfg.key){ BBRender.renderAll(); return; }
+
+    const {data, error} = await BBStorage.client().auth.getSession();
+    if(error) throw error;
+    if(!data.session){
+      BBUtils.el("cloudBadge").textContent="Accedi al database di test";
+      BBUtils.el("cloudBadge").className="badge bad";
+      BBRender.renderAll();
+      return;
+    }
 
     await BBCloudRules.load();
     const cloud=BBCloudRules.info();
@@ -454,9 +463,39 @@ function bind(){
   BBUtils.el("supabaseUrl").value=cfg.url||"";
   BBUtils.el("supabaseKey").value=cfg.key||"";
   BBUtils.el("saveSetup").addEventListener("click",()=>{
-    BBStorage.saveConfig({url:BBUtils.el("supabaseUrl").value.trim(),key:BBUtils.el("supabaseKey").value.trim()});
-    alert("Configurazione salvata");
-    refresh();
+    const key = BBUtils.el("supabaseKey").value.trim();
+    if (!key.startsWith("sb_publishable_")) {
+      BBUtils.el("testLoginStatus").textContent = "Inserisci la chiave pubblica del progetto di test.";
+      return;
+    }
+    BBStorage.saveConfig({url: BBStorage.testUrl, key});
+    window.location.reload();
+  });
+
+  BBUtils.el("testLogin").addEventListener("submit", async event => {
+    event.preventDefault();
+    const status = BBUtils.el("testLoginStatus");
+    const db = BBStorage.client();
+    if (!db) {
+      status.textContent = "Salva prima la chiave pubblica del progetto di test.";
+      return;
+    }
+    const password = BBUtils.el("testPassword");
+    try {
+      const {error} = await db.auth.signInWithPassword({
+        email: BBUtils.el("testEmail").value.trim(),
+        password: password.value
+      });
+      if (error) throw error;
+      const check = await db.from("bb100_report_files").select("id").limit(1);
+      if (check.error) throw check.error;
+      status.textContent = "Collegato al database di test.";
+      await refresh();
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      password.value = "";
+    }
   });
 
   // v1.4.0: nessuna migrazione/fallback locale. Supabase è l’unica fonte dati.

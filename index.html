@@ -306,10 +306,18 @@
       <div class="card">
         <h3>Setup Supabase</h3>
         <label>Project URL Supabase</label>
-        <input id="supabaseUrl" placeholder="https://xxxx.supabase.co">
+        <input id="supabaseUrl" readonly>
         <label>Publishable / Anon Key</label>
         <textarea id="supabaseKey" placeholder="sb_publishable... oppure anon key"></textarea>
         <button id="saveSetup">Salva configurazione</button>
+        <form id="testLogin">
+          <label for="testEmail">Email di test</label>
+          <input id="testEmail" type="email" autocomplete="username" required>
+          <label for="testPassword">Password Supabase di test</label>
+          <input id="testPassword" type="password" autocomplete="current-password" required>
+          <button type="submit">Accedi</button>
+          <p id="testLoginStatus" role="status"></p>
+        </form>
       </div>
       <div class="card">
         <h3>Archiviazione dati</h3>
@@ -371,12 +379,12 @@
   <script src="src/utils.js?v=5.28"></script>
   <script src="src/parser.js?v=5.37"></script>
   <script src="src/reconcile.js?v=5.37"></script>
-  <script src="src/storage.js?v=5.37"></script>
+  <script src="src/storage.js?v=5.38"></script>
   <script src="src/cloud-rules.js?v=6.1"></script>
   <script src="src/analytics.js?v=5.37"></script>
   <script src="src/fba-manager.js?v=5.27"></script>
   <script src="src/render.js?v=5.37"></script>
-  <script src="src/app.js?v=5.37"></script>
+  <script src="src/app.js?v=5.38"></script>
   <script src="layout.js?v=5.16"></script>
 </body>
 </html>
