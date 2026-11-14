@@ -132,7 +132,7 @@ async function refresh(){
     const {data, error} = await BBStorage.client().auth.getSession();
     if(error) throw error;
     if(!data.session){
-      BBUtils.el("cloudBadge").textContent="Accedi al database di test";
+      BBUtils.el("cloudBadge").textContent="Accedi al database Supabase";
       BBUtils.el("cloudBadge").className="badge bad";
       BBRender.renderAll();
       return;
@@ -486,13 +486,11 @@ function bind(){
   BBUtils.el("supabaseUrl").value=cfg.url||"";
   BBUtils.el("supabaseKey").value=cfg.key||"";
   BBUtils.el("saveSetup").addEventListener("click",()=>{
-    const key = BBUtils.el("supabaseKey").value.trim();
-    if (!key.startsWith("sb_publishable_")) {
-      BBUtils.el("testLoginStatus").textContent = "Inserisci la chiave pubblica del progetto di test.";
-      return;
-    }
-    BBStorage.saveConfig({url: BBStorage.testUrl, key});
-    window.location.reload();
+    const status=BBUtils.el("testLoginStatus");
+    try {
+      BBStorage.saveConfig({url:BBUtils.el("supabaseUrl").value,key:BBUtils.el("supabaseKey").value});
+      window.location.reload();
+    } catch(error) { status.textContent=error.message; }
   });
 
   BBUtils.el("testLogin").addEventListener("submit", async event => {
@@ -500,7 +498,7 @@ function bind(){
     const status = BBUtils.el("testLoginStatus");
     const db = BBStorage.client();
     if (!db) {
-      status.textContent = "Salva prima la chiave pubblica del progetto di test.";
+      status.textContent = "Configura prima URL e chiave pubblica Supabase.";
       return;
     }
     const password = BBUtils.el("testPassword");
@@ -512,7 +510,7 @@ function bind(){
       if (error) throw error;
       const check = await db.from("bb100_report_files").select("id").limit(1);
       if (check.error) throw check.error;
-      status.textContent = "Collegato al database di test.";
+      status.textContent = "Collegato al database Supabase.";
       await refresh();
     } catch (error) {
       status.textContent = error.message;
