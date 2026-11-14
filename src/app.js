@@ -56,6 +56,18 @@ async function importFiles(files){
         forced_type:forcedType || null,
         header_index:parsed.headerIndex
       };
+      // I report Ads aggregati non contengono necessariamente il periodo nelle righe.
+      // Senza date non possiamo distinguere cumulati sovrapposti da periodi disgiunti.
+      if(["sponsored_brands","sponsored_products","sponsored_display"].includes(reportType)){
+        const from=window.prompt("Periodo del report "+file.name+"\\nData INIZIO (AAAA-MM-GG). Annulla per non importare:");
+        if(from===null) throw new Error("Importazione annullata: periodo iniziale obbligatorio.");
+        const to=window.prompt("Periodo del report "+file.name+"\\nData FINE (AAAA-MM-GG). Annulla per non importare:");
+        if(to===null) throw new Error("Importazione annullata: periodo finale obbligatorio.");
+        const valid=d=>/^\\d{4}-\\d{2}-\\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;
+        if(!valid(from)||!valid(to)||from>to) throw new Error("Periodo non valido: usa AAAA-MM-GG e verifica che inizio preceda fine.");
+        source.period_start=from;
+        source.period_end=to;
+      }
       // Anteprima sicura: senza Supabase configurato, analizza il CSV senza salvarlo.
       const cloud=BBStorage.config();
       if(!(await BBStorage.client()?.auth.getSession())?.data?.session){
