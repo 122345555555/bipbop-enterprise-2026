@@ -306,37 +306,39 @@ window.BBReconcile = {
       const conflicts=[];
       for(const [key,items] of groups){
         const valid=items.every(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_start||"")&&/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_end||""));
-        if(!valid && items.length>1){
-          conflicts.push("Periodo mancante per "+key);
+        // File importati prima dell'introduzione delle date: non sommarli.
+        // Conserviamo il più recente come anteprima prudenziale.
+        if(!valid){
+          const latest=items.slice().sort((a,b)=>this.compareFiles(b.file,a.file))[0];
+          resultRows.push({...latest.row,__file_id:latest.record.file_id,__file_name:latest.record.file_name,
+            __period_key:"non-verificato",__source:latest.source,__imported_at:latest.record.imported_at,__identity:key});
           continue;
         }
-        const ranked=items.slice().sort((a,b)=>{
-          const days=x=>Math.round((Date.parse(x.source.period_end)-Date.parse(x.source.period_start))/86400000);
+        const sorted=items.slice().sort((a,b)=>{
+          const days=x=>(Date.parse(x.source.period_end)-Date.parse(x.source.period_start));
           return days(b)-days(a)||this.compareFiles(b.file,a.file);
         });
-        const chosen=ranked[0];
-        for(const other of ranked.slice(1)){
-          const a=chosen.source,b=other.source;
-          if(!(a.period_start<=b.period_start&&a.period_end>=b.period_end) &&
-             !(b.period_end<a.period_start||b.period_start>a.period_end)){
-            conflicts.push("Periodi parzialmente sovrapposti per "+key);
+        const selected=[];
+        for(const item of sorted){
+          const a=item.source;
+          if(a.period_start>a.period_end){conflicts.push("Intervallo invertito per "+key);continue;}
+          let covered=false,partial=false;
+          for(const existing of selected){
+            const b=existing.source;
+            if(a.period_start>=b.period_start&&a.period_end<=b.period_end){covered=true;break;}
+            if(!(a.period_end<b.period_start||a.period_start>b.period_end)){partial=true;break;}
           }
+          if(partial){conflicts.push("Periodi parzialmente sovrapposti per "+key);continue;}
+          if(!covered) selected.push(item);
         }
-        if(conflicts.length) continue;
-        resultRows.push({...chosen.row,__file_id:chosen.record.file_id,__file_name:chosen.record.file_name,
-          __period_key:chosen.source.period_start+"_"+chosen.source.period_end,
-          __source:chosen.source,__imported_at:chosen.record.imported_at,__identity:key});
-        // Periodi disgiunti possono essere sommati soltanto se il modello
-        // aggrega righe separate; manteniamo ogni intervallo disgiunto.
-        for(const other of ranked.slice(1)){
-          const b=other.source,a=chosen.source;
-          if(b.period_end<a.period_start||b.period_start>a.period_end)
-            resultRows.push({...other.row,__file_id:other.record.file_id,__file_name:other.record.file_name,
-              __period_key:b.period_start+"_"+b.period_end,__source:other.source,
-              __imported_at:other.record.imported_at,__identity:key+"|"+b.period_start});
+        for(const item of selected){
+          const a=item.source;
+          resultRows.push({...item.row,__file_id:item.record.file_id,__file_name:item.record.file_name,
+            __period_key:a.period_start+"_"+a.period_end,__source:a,
+            __imported_at:item.record.imported_at,__identity:key+"|"+a.period_start+"|"+a.period_end});
         }
       }
-      if(conflicts.length) throw new Error("Report Ads non riconciliabili: "+conflicts.slice(0,3).join("; ")+". Servono date e report giornalieri/mensili per periodi parzialmente sovrapposti.");
+      if(conflicts.length) throw new Error("Report Ads con periodi sovrapposti non ricostruibili: "+conflicts.slice(0,3).join("; ")+". Importa report giornalieri/mensili non sovrapposti.");
       const contributingIds=new Set(resultRows.map(x=>String(x.__file_id)));
       return {rows:resultRows,policy:"ads_period_safe",selectedLevel:active.selectedLevel,
         activeFileIds:Array.from(contributingIds),consideredFileIds:Array.from(activeIds),
