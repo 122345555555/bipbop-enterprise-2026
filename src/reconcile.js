@@ -59,13 +59,13 @@ window.BBReconcile = {
       dic:12,dicembre:12,dec:12,december:12
     };
     const monthName="(gen(?:naio)?|feb(?:braio|ruary)?|mar(?:zo|ch)?|apr(?:ile)?|mag(?:gio)?|may|giu(?:gno)?|jun(?:e)?|lug(?:lio)?|jul(?:y)?|ago(?:sto)?|aug(?:ust)?|set(?:tembre)?|sep(?:tember)?|ott(?:obre)?|oct(?:ober)?|nov(?:embre|ember)?|dic(?:embre)?|dec(?:ember)?)";
-    const namedMonthFirst=new RegExp(monthName+"[-_. ]+(\\d{1,2})[-_. ]+(20\\d{2})","gi");
+    const namedMonthFirst=new RegExp(monthName+"[-_. ]+(\d{1,2})[-_. ]+(20\d{2})","gi");
     while((match=namedMonthFirst.exec(name))){
       const month=monthNumbers[String(match[1]).toLowerCase()]||monthNumbers[String(match[1]).toLowerCase().slice(0,3)];
       const d=new Date(Date.UTC(Number(match[3]),month-1,Number(match[2])));
       if(month && !Number.isNaN(d.getTime())) dates.push(d);
     }
-    const namedDayFirst=new RegExp("(\\d{1,2})[-_. ]+"+monthName+"[-_. ]+(20\\d{2})","gi");
+    const namedDayFirst=new RegExp("(\d{1,2})[-_. ]+"+monthName+"[-_. ]+(20\d{2})","gi");
     while((match=namedDayFirst.exec(name))){
       const month=monthNumbers[String(match[2]).toLowerCase()]||monthNumbers[String(match[2]).toLowerCase().slice(0,3)];
       const d=new Date(Date.UTC(Number(match[3]),month-1,Number(match[1])));
@@ -305,7 +305,7 @@ window.BBReconcile = {
       const resultRows=[];
       const conflicts=[];
       for(const [key,items] of groups){
-        const valid=items.every(x=>/^\\d{4}-\\d{2}-\\d{2}$/.test(x.source.period_start||"")&&/^\\d{4}-\\d{2}-\\d{2}$/.test(x.source.period_end||""));
+        const valid=items.every(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_start||"")&&/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_end||""));
         if(!valid && items.length>1){
           conflicts.push("Periodo mancante per "+key);
           continue;
