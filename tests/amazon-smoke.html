@@ -30,6 +30,19 @@
   ]});
   check('Periodi uguali compatibili',samePeriod.adPeriodMismatch===false);
   check('ACOS calcolato su periodi uguali',Math.abs(samePeriod.acos-50)<0.001);
+  const unknownPeriod=BBAnalytics.calc({sponsored_brands:[
+    {'Start Date':'11/01/2026','End Date':'11/07/2026','Spend':'10','Sales':'20','__file_name':'SB-known.csv'},
+    {'Spend':'20','Sales':'40','__file_name':'SB-unknown.csv'}
+  ]});
+  check('Periodo sconosciuto rilevato',unknownPeriod.adPeriodMismatch===true);
+  check('ACOS bloccato con periodo sconosciuto',Number.isNaN(unknownPeriod.acos));
+  check('ROAS bloccato con periodo sconosciuto',Number.isNaN(unknownPeriod.roas));
+  const overlap=BBAnalytics.calc({sponsored_brands:[
+    {'Start Date':'11/01/2026','End Date':'11/07/2026','Spend':'10','Sales':'20','__file_name':'SB-week.csv'},
+    {'Start Date':'11/01/2026','End Date':'11/14/2026','Spend':'20','Sales':'40','__file_name':'SB-cumulative.csv'}
+  ]});
+  check('Periodo cumulativo sovrapposto rilevato',overlap.adPeriodMismatch===true);
+  check('ACOS bloccato con report cumulativo sovrapposto',Number.isNaN(overlap.acos));
   const asin='B012345678';
   const data={business_report:[{'Child ASIN':asin,'Ordered Product Sales':'100','Units Ordered':'5','Sessions':'100'}],orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],profit_report:[{'ASIN':asin,'Vendite nette':'100','Unità nette vendute':'5','Totale: Ricavi netti':'30'}]};
   const rows=BBAnalytics.asinRows(data);
