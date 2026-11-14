@@ -1662,7 +1662,7 @@ window.BBAnalytics = {
     const ensure=(asin,sku="",title="")=>{
       title=title||titles.get(asin)||"";
       const key=asin||sku||title||"N/D";
-      const o=map.get(key)||{asin:asin||"N/D",sku,title,sales:0,units:0,profit:0,margin:NaN,stock:null,status:"",source:new Set()};
+      const o=map.get(key)||{asin:asin||"N/D",sku,title,sales:0,units:0,profit:0,hasProfit:false,margin:NaN,stock:null,status:"",source:new Set()};
       if(sku && !o.sku) o.sku=sku;
       if(title && !o.title) o.title=title;
       map.set(key,o);
@@ -1689,7 +1689,12 @@ window.BBAnalytics = {
         o.sales+=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
         o.units+=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
       }
-      o.profit+=BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
+      const profitFields=["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"];
+      const profitRaw=BBUtils.pick(r,profitFields);
+      if(profitRaw!==undefined && profitRaw!==null && String(profitRaw).trim()!==""){
+        o.profit+=BBUtils.num(profitRaw);
+        o.hasProfit=true;
+      }
       o.source.add("Profit Report");
     });
 
@@ -1704,11 +1709,11 @@ window.BBAnalytics = {
     });
 
     return Array.from(map.values()).map(o=>{
-      o.margin=o.sales?o.profit/o.sales*100:NaN;
+      o.margin=o.hasProfit&&o.sales?o.profit/o.sales*100:NaN;
       let decision="watch", action="Monitora";
       if((o.stock!==null && o.stock<=0) && (o.sales>0 || o.units>0)){
         decision="stock"; action="Controlla stock prima di spingere";
-      }else if(o.profit<0){
+      }else if(o.hasProfit&&o.profit<0){
         decision="fix"; action="Correggi costi/prezzo/ads";
       }else if(o.sales>=100 && Number.isFinite(o.margin) && o.margin>=40 && (o.stock===null || o.stock>10)){
         decision="scale"; action="Spingi con keyword e budget";
@@ -1716,6 +1721,8 @@ window.BBAnalytics = {
         decision="protect"; action="Proteggi ranking e stock";
       }else if(o.sales>0 && Number.isFinite(o.margin) && o.margin<25){
         decision="fix"; action="Migliora margine o prezzo";
+      }else if(o.sales>0 && !o.hasProfit){
+        decision="watch"; action="Margine non disponibile: importa Profit Report";
       }
       o.decision=decision;
       o.action=action;
