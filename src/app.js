@@ -63,10 +63,21 @@ async function importFiles(files){
         if(from===null) throw new Error("Importazione annullata: periodo iniziale obbligatorio.");
         const to=window.prompt("Periodo del report "+file.name+"\\nData FINE (AAAA-MM-GG). Annulla per non importare:");
         if(to===null) throw new Error("Importazione annullata: periodo finale obbligatorio.");
-        const valid=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;
-        if(!valid(from)||!valid(to)||from>to) throw new Error("Periodo non valido: usa AAAA-MM-GG e verifica che inizio preceda fine.");
-        source.period_start=from;
-        source.period_end=to;
+        const normalizeDate=input=>{
+          const v=String(input||"").trim();
+          let m=v.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+          if(!m){
+            const it=v.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+            if(it) m=[v,it[3],it[2],it[1]];
+          }
+          if(!m) return "";
+          const date=m[1]+"-"+m[2].padStart(2,"0")+"-"+m[3].padStart(2,"0");
+          return !Number.isNaN(Date.parse(date))&&new Date(date).toISOString().slice(0,10)===date?date:"";
+        };
+        const start=normalizeDate(from),end=normalizeDate(to);
+        if(!start||!end||start>end) throw new Error("Periodo non valido: usa 2026-07-01 oppure 01/07/2026 e verifica l'ordine delle date.");
+        source.period_start=start;
+        source.period_end=end;
       }
       // Anteprima sicura: senza Supabase configurato, analizza il CSV senza salvarlo.
       const cloud=BBStorage.config();
