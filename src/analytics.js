@@ -98,7 +98,7 @@ window.BBAnalytics = {
     },0);
     const amazonFees=amazonFeesTX || -amazonFeesProfit;
     const adsInvoice=inv.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Importo pagato (convertito)","Paid Amount","Amount Paid","Totale","Total","Importo"])),0);
-    const adsSpend=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"])),0);
+    const adsSpend=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale","Costo totale (EUR)"])),0);
     const adsProfitReport=profitRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,[
       "Costo pubblicitario delle vendite: Totale",
       "Addebiti Sponsored Products: Totale",
@@ -106,7 +106,7 @@ window.BBAnalytics = {
       "Sponsored Products charges: Total",
       "Sponsored Products charges"
     ])),0);
-    const adsSales=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sales","Vendite","7 Day Total Sales","14 Day Total Sales"])),0);
+    const adsSales=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Sales","Vendite","Vendite (EUR)","7 Day Total Sales","14 Day Total Sales"])),0);
     const clicks=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Clicks","Clic","Click"])),0);
     const impressions=adsRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Impressions","Impressioni","Viewable impressions","Impressioni visualizzabili"])),0);
     const ads=adsInvoice||adsSpend;
@@ -141,10 +141,11 @@ window.BBAnalytics = {
       storeConversion:storeVisitors&&storeOrders?storeOrders/storeVisitors*100:NaN,
       storeSalesPerVisitor:storeVisitors?storeSales/storeVisitors:NaN,
       tacos:sales?ads/sales*100:NaN,
-      acos:adsSales?ads/adsSales*100:NaN,
-      roas:ads?adsSales/ads:NaN,
+      // ACOS usa soltanto spesa e vendite degli stessi report campagne; le fatture Ads possono coprire periodi diversi.
+      acos:adsSales?adsSpend/adsSales*100:NaN,
+      roas:adsSpend?adsSales/adsSpend:NaN,
       ctr:impressions?clicks/impressions*100:NaN,
-      cpc:clicks?ads/clicks:NaN,
+      cpc:clicks?adsSpend/clicks:NaN,
       margin:sales?profit/sales*100:NaN,
       conversion:sessions?units/sessions*100:NaN
     };
@@ -283,7 +284,7 @@ window.BBAnalytics = {
       };
       o.source.add(item.source);
       if(r.__period_key) o.periods.add(r.__period_key);
-      o.spend+=BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"]));
+      o.spend+=BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale","Costo totale (EUR)"]));
       o.sales+=BBUtils.num(BBUtils.pick(r,["Sales","Vendite","7 Day Total Sales","14 Day Total Sales","7 Day Total Sales (€)"]));
       o.clicks+=BBUtils.num(BBUtils.pick(r,["Clicks","Clic","Click"]));
       o.impressions+=BBUtils.num(BBUtils.pick(r,["Impressions","Impressioni","Viewable impressions","Impressioni visualizzabili"]));
@@ -555,7 +556,7 @@ window.BBAnalytics = {
       "Advertised ASIN","ASIN pubblicizzato","ASIN pubblicizzata","ASIN",
       "Purchased ASIN","ASIN acquistato","ASIN acquistata","Child ASIN","ASIN figlio"
     ];
-    const spendFields=["Spend","Spesa","Cost","Costo","Costo totale"];
+    const spendFields=["Spend","Spesa","Cost","Costo","Costo totale","Costo totale (EUR)"];
     const salesFields=["Sales","Vendite","7 Day Total Sales","14 Day Total Sales","7 Day Total Sales (€)","14 Day Total Sales (€)"];
     const orderFields=["Orders","Ordini","7 Day Total Orders","14 Day Total Orders","Purchases","Acquisti"];
     const clickFields=["Clicks","Clic","Click"];
@@ -890,7 +891,7 @@ window.BBAnalytics = {
     const adRows=[...(samples.sponsored_products||[]),...(samples.sponsored_brands||[]),...(samples.sponsored_display||[])];
     const adPeriod=this.reportPeriod(adRows,false);
     const samePeriod=!!(period&&adPeriod&&Math.abs(period.start-adPeriod.start)<=86400000&&Math.abs(period.end-adPeriod.end)<=86400000);
-    const matchedExternalAds=samePeriod?adRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale"])),0):null;
+    const matchedExternalAds=samePeriod?adRows.reduce((a,r)=>a+BBUtils.num(BBUtils.pick(r,["Spend","Spesa","Cost","Costo","Costo totale","Costo totale (EUR)"])),0):null;
     const includedAds=Math.abs(c.adsProfitReport||0);
     const extraAds=matchedExternalAds===null?null:Math.max(matchedExternalAds-includedAds,0);
     const rules=BBUtils.rules();
