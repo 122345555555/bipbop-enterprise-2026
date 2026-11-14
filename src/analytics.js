@@ -180,52 +180,35 @@ window.BBAnalytics = {
     return out;
   },
   asinRows(samples){
-    const br=samples.business_report||[], tx=samples.transactions||[], orders=samples.orders||[], profitRows=samples.profit_report||[], map=new Map();
-    br.forEach(r=>{
-      const asin=BBUtils.pick(r,["ASIN","Parent ASIN","Child ASIN"])||"N/D";
-      const title=BBUtils.pick(r,["Title","Titolo","Product Name","Nome prodotto"])||"";
-      const o=map.get(asin)||{asin,title,sales:0,units:0,sessions:0,cr:0};
-      o.sales+=BBUtils.num(BBUtils.pick(r,[
-        "Ordered Product Sales","Vendite di prodotti ordinati","Sales","Vendite prodotto ordinate","Vendite"
-      ]));
-      o.units+=BBUtils.num(BBUtils.pick(r,["Units Ordered","Unità ordinate","Units","Quantità"]));
-      o.sessions+=BBUtils.num(BBUtils.pick(r,["Sessions","Sessioni"]));
-      o.cr=Math.max(o.cr,BBUtils.num(BBUtils.pick(r,["Unit Session Percentage","Conversion Rate","Tasso conversione"])));
-      map.set(asin,o);
-    });
-    tx.forEach(r=>{
-      const d=BBUtils.pick(r,["Dettagli prodotto","Product Details","Title"])||"";
-      const m=String(d).match(/B0[A-Z0-9]{8}/);
-      const asin=m?m[0]:"N/D";
-      const o=map.get(asin)||{asin,title:d,sales:0,units:0,sessions:0,cr:0};
-      o.sales+=Math.max(BBUtils.num(BBUtils.pick(r,[
-        "Totale costo prodotti","Product charges","(totale) (EUR)","Totale (EUR)","Total (EUR)","Totale"
-      ])),0);
-      map.set(asin,o);
-    });
-    orders.forEach(r=>{
-      const asin=BBUtils.pick(r,["asin","ASIN","product-id","Product ID"])||"N/D";
-      const title=BBUtils.pick(r,["product-name","Product Name","item-name","Titolo","Title"])||"";
-      const o=map.get(asin)||{asin,title,sales:0,units:0,sessions:0,cr:0};
-      o.title=o.title||title;
-      o.sales+=BBUtils.num(BBUtils.pick(r,[
-        "item-price","Item Price","Prezzo articolo","Prezzo dell'articolo",
-        "product-sales","Product Sales","Vendite prodotto","order-item-value"
-      ]));
-      o.units+=BBUtils.num(BBUtils.pick(r,["quantity-purchased","Quantity","Quantità","quantity"]));
-      map.set(asin,o);
-    });
-    profitRows.forEach(r=>{
-      const asin=BBUtils.pick(r,["ASIN","asin"])||"N/D";
-      const title=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
-      const o=map.get(asin)||{asin,title,sales:0,units:0,sessions:0,cr:0};
-      o.title=o.title||title;
-      o.sales+=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
-      o.units+=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
-      o.netProfit=(o.netProfit||0)+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
-      map.set(asin,o);
-    });
-    return Array.from(map.values()).sort((a,b)=>b.sales-a.sales).slice(0,100);
+    // Le fonti coprono spesso lo stesso periodo: mai sommare Business Report,
+    // ordini, transazioni e Profit Report per lo stesso ASIN.
+    const map=new Map();
+    const sources=[
+      {key:"business_report",priority:4,rows:samples.business_report||[],asin:["Child ASIN","ASIN","Parent ASIN"],title:["Title","Titolo","Product Name","Nome prodotto"],sales:["Ordered Product Sales","Vendite di prodotti ordinati","Vendite prodotto ordinate","Vendite"],units:["Units Ordered","Unità ordinate","Units","Quantità"],sessions:["Sessions","Sessioni"]},
+      {key:"orders",priority:3,rows:samples.orders||[],asin:["asin","ASIN","product-id","Product ID"],title:["product-name","Product Name","item-name","Titolo","Title"],sales:["item-price","Item Price","Prezzo articolo","Prezzo dell'articolo","product-sales","Product Sales"],units:["quantity-purchased","Quantity","Quantità","quantity"]},
+      {key:"profit_report",priority:2,rows:samples.profit_report||[],asin:["ASIN","asin"],title:["MSKU","sku","SKU"],sales:["Vendite nette","Net sales","Sales","Vendite"],units:["Unità nette vendute","Unità vendute","Units sold","Net units sold"]}
+    ];
+    sources.forEach(src=>src.rows.forEach(r=>{
+      const asin=String(BBUtils.pick(r,src.asin)||"").trim();
+      if(!/^B0[A-Z0-9]{8}$/i.test(asin)) return;
+      const key=asin.toUpperCase();
+      const current=map.get(key);
+      if(current && current.priority>src.priority) return;
+      const o=current && current.priority===src.priority?current:{asin:key,title:"",sales:0,units:0,sessions:0,cr:NaN,source:src.key,priority:src.priority};
+      o.title=o.title||String(BBUtils.pick(r,src.title)||"");
+      o.sales+=BBUtils.num(BBUtils.pick(r,src.sales));
+      o.units+=BBUtils.num(BBUtils.pick(r,src.units));
+      if(src.sessions) o.sessions+=BBUtils.num(BBUtils.pick(r,src.sessions));
+      if(src.key==="profit_report") o.netProfit=(o.netProfit||0)+BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
+      map.set(key,o);
+    }));
+    return Array.from(map.values()).map(o=>{
+      // Calcolare la conversione sulle sessioni totali evita il massimo
+      // artificiale delle percentuali delle singole righe.
+      o.cr=o.sessions>0?o.units/o.sessions*100:NaN;
+      delete o.priority;
+      return o;
+    }).sort((a,b)=>b.sales-a.sales).slice(0,100);
   },
   productTitleMap(samples){
     const map=new Map();
