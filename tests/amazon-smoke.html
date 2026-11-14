@@ -3,7 +3,7 @@
  const results=[];const check=(name,condition,details='')=>results.push((condition?'PASS':'FAIL')+' — '+name+(details?' ('+details+')':''));
  try {
   const filename='Sponsored_Brands_AdGroup_Nov_11_2026.csv';
-  const csv='Nome campagna;Nome del gruppo di annunci;Impressioni;Clic;Costo totale (EUR);Vendite (EUR)\\nCampagna prova;Gruppo A;1000;20;12,50;25,00\\nCampagna prova;Gruppo B;2000;30;17,50;35,00';
+  const csv='Nome campagna;Nome del gruppo di annunci;Impressioni;Clic;Costo totale (EUR);Vendite (EUR)\nCampagna prova;Gruppo A;1000;20;12,50;25,00\nCampagna prova;Gruppo B;2000;30;17,50;35,00';
   const parsed=BBParser.parse(csv);
   check('Due righe CSV',parsed.rows.length===2,String(parsed.rows.length));
   check('Separatore punto e virgola',parsed.delimiter===';');
@@ -25,6 +25,6 @@
   check('Decisioni: vendite non duplicate',decisions.length===1&&Math.abs(decisions[0].sales-100)<0.001);
  }catch(e){results.push('ERRORE — '+(e.stack||e.message||e));}
  const passed=results.filter(x=>x.startsWith('PASS')).length;
- document.getElementById('results').textContent=passed+'/'+results.length+' test superati\\n\\n'+results.join('\\n');
+ document.getElementById('results').textContent=passed+'/'+results.length+' test superati\n\n'+results.join('\n');
 })();
 </script></html>
