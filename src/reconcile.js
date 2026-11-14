@@ -190,7 +190,7 @@ window.BBReconcile = {
       return "ads|"+[
         source.level||"file",
         v(["Campaign ID","ID campagna"]),
-        v(["Campaign Name","Nome campagna"]),
+        v(["Campaign Name","Nome campagna","Nome della campagna"]),
         v(["Ad Group ID","ID gruppo di annunci"]),
         v(["Ad Group Name","Nome del gruppo di annunci"]),
         v(["Ad ID","ID annuncio"]),
