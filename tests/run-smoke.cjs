@@ -13,7 +13,7 @@ for(const name of ['utils','parser','reconcile','analytics']){
   const filename=path.join(root,'src',name+'.js');
   vm.runInContext(fs.readFileSync(filename,'utf8'),sandbox,{filename,timeout:15000});
 }
-const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].filter(match=>match[1].trim().length>0);
 if(scripts.length!==1)throw Error('Expected one inline test script; found '+scripts.length);
 vm.runInContext(scripts[0][1],sandbox,{filename:'tests/amazon-smoke.html',timeout:15000});
 const result=output.textContent;
