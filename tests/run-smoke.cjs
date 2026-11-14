@@ -6,6 +6,8 @@ const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'tests/amazon-smoke.html'),'utf8');
 const output={textContent:''};
 const sandbox={console,document:{getElementById(id){if(id!=='results')throw Error('Unexpected DOM id '+id);return output;}}};
+// I moduli applicativi espongono le API su window; in Node creiamo un alias isolato.
+sandbox.window=sandbox;
 vm.createContext(sandbox);
 for(const name of ['utils','parser','reconcile','analytics']){
   const filename=path.join(root,'src',name+'.js');
