@@ -1,0 +1,30 @@
+<!doctype html><html lang="it"><meta charset="utf-8"><title>Test import Amazon — ramo di prova</title><style>body{font:16px system-ui;max-width:850px;margin:40px auto;padding:0 16px}pre{white-space:pre-wrap;background:#f4f6f8;padding:16px;border-radius:8px}</style><h1>Test automatici Amazon (dati sintetici)</h1><p>Nessuna connessione al database. Nessun dato reale.</p><pre id="results">Esecuzione...</pre><script src="../src/utils.js"></script><script src="../src/parser.js"></script><script src="../src/reconcile.js"></script><script src="../src/analytics.js"></script><script>
+(function(){
+ const results=[];const check=(name,condition,details='')=>results.push((condition?'PASS':'FAIL')+' — '+name+(details?' ('+details+')':''));
+ try {
+  const filename='Sponsored_Brands_AdGroup_Nov_11_2026.csv';
+  const csv='Nome campagna;Nome del gruppo di annunci;Impressioni;Clic;Costo totale (EUR);Vendite (EUR)\\nCampagna prova;Gruppo A;1000;20;12,50;25,00\\nCampagna prova;Gruppo B;2000;30;17,50;35,00';
+  const parsed=BBParser.parse(csv);
+  check('Due righe CSV',parsed.rows.length===2,String(parsed.rows.length));
+  check('Separatore punto e virgola',parsed.delimiter===';');
+  check('Riconoscimento Sponsored Brands',BBParser.detectReport(parsed.headers,filename)==='sponsored_brands');
+  check('Riconoscimento AdGroup',BBParser.sourceFrom('sponsored_brands',filename,parsed.headers).level==='ad_group');
+  const source=BBParser.sourceFrom('sponsored_brands',filename,parsed.headers);
+  check('Identità distinte per gruppi',BBReconcile.identity('sponsored_brands',parsed.rows[0],source)!==BBReconcile.identity('sponsored_brands',parsed.rows[1],source));
+  const c=BBAnalytics.calc({sponsored_brands:parsed.rows});
+  check('Spesa totale 30 EUR',Math.abs(c.adsSpend-30)<0.001,String(c.adsSpend));
+  check('Vendite attribuite 60 EUR',Math.abs(c.adsSales-60)<0.001,String(c.adsSales));
+  check('ACOS 50%',Math.abs(c.acos-50)<0.001,String(c.acos));
+  check('ROAS 2',Math.abs(c.roas-2)<0.001,String(c.roas));
+  const asin='B012345678';
+  const data={business_report:[{'Child ASIN':asin,'Ordered Product Sales':'100','Units Ordered':'5','Sessions':'100'}],orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],profit_report:[{'ASIN':asin,'Vendite nette':'100','Unità nette vendute':'5','Totale: Ricavi netti':'30'}]};
+  const rows=BBAnalytics.asinRows(data);
+  check('ASIN: vendite non triplicate',rows.length===1&&Math.abs(rows[0].sales-100)<0.001,JSON.stringify(rows));
+  check('ASIN: conversione 5%',rows.length===1&&Math.abs(rows[0].cr-5)<0.001);
+  const decisions=BBAnalytics.asinDecisionRows(data);
+  check('Decisioni: vendite non duplicate',decisions.length===1&&Math.abs(decisions[0].sales-100)<0.001);
+ }catch(e){results.push('ERRORE — '+(e.stack||e.message||e));}
+ const passed=results.filter(x=>x.startsWith('PASS')).length;
+ document.getElementById('results').textContent=passed+'/'+results.length+' test superati\\n\\n'+results.join('\\n');
+})();
+</script></html>
