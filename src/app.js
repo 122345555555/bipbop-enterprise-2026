@@ -63,7 +63,7 @@ async function importFiles(files){
         if(from===null) throw new Error("Importazione annullata: periodo iniziale obbligatorio.");
         const to=window.prompt("Periodo del report "+file.name+"\\nData FINE (AAAA-MM-GG). Annulla per non importare:");
         if(to===null) throw new Error("Importazione annullata: periodo finale obbligatorio.");
-        const valid=d=>/^\\d{4}-\\d{2}-\\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;
+        const valid=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d))&&new Date(d).toISOString().slice(0,10)===d;
         if(!valid(from)||!valid(to)||from>to) throw new Error("Periodo non valido: usa AAAA-MM-GG e verifica che inizio preceda fine.");
         source.period_start=from;
         source.period_end=to;
