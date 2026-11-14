@@ -73,6 +73,27 @@
   check('Profitto negativo: segnalazione correzione',loss.length===1&&loss[0].decision==='fix');
   const noStock=BBAnalytics.asinDecisionRows({orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],inventory:[{'ASIN':asin,'quantity':'0'}]});
   check('Stock zero: priorità disponibilità',noStock.length===1&&noStock[0].decision==='stock');
+  // Ulteriori casi limite in un unico collaudo completo.
+  const comma=BBParser.parse('Nome campagna;Costo totale (EUR);Vendite (EUR)\\nProva;1.234,56;2.469,12');
+  check('Importi italiani con migliaia e decimali',comma.rows.length===1&&Math.abs(BBUtils.num(comma.rows[0]['Costo totale (EUR)'])-1234.56)<0.001);
+  const quoted=BBParser.parse('Nome campagna;Costo totale (EUR)\\n"Campagna; speciale";12,50');
+  check('CSV con separatore dentro virgolette',quoted.rows.length===1&&quoted.rows[0]['Nome campagna']==='Campagna; speciale');
+  const empty=BBParser.parse('Nome campagna;Costo totale (EUR)');
+  check('CSV con sole intestazioni non crea righe',empty.rows.length===0);
+  const zeroSpend=BBAnalytics.calc({sponsored_brands:[{'Spend':'0','Sales':'0','Clicks':'0'}]});
+  check('Spesa zero non produce ACOS fittizio',Number.isNaN(zeroSpend.acos));
+  check('Spesa zero non produce ROAS fittizio',Number.isNaN(zeroSpend.roas));
+  const multiAsin=BBAnalytics.asinRows({business_report:[
+    {'Child ASIN':'B012345678','Ordered Product Sales':'100','Units Ordered':'5','Sessions':'100'},
+    {'Child ASIN':'B087654321','Ordered Product Sales':'50','Units Ordered':'2','Sessions':'80'}
+  ]});
+  check('Due ASIN distinti restano separati',multiAsin.length===2&&multiAsin[0].asin!==multiAsin[1].asin);
+  const noProfitZero=BBAnalytics.asinDecisionRows({orders:[{'asin':asin,'item-price':'100','quantity-purchased':'5'}],profit_report:[{'ASIN':asin,'Totale: Ricavi netti':'0'}]});
+  check('Profitto zero esplicito riconosciuto',noProfitZero.length===1&&noProfitZero[0].hasProfit===true);
+  const oneFile=BBAnalytics.calc({sponsored_brands:[{'Spend':'10','Sales':'20','__file_name':'single.csv'}]});
+  check('Singolo report senza periodo: ACOS calcolabile',Math.abs(oneFile.acos-50)<0.001);
+  const twoUnknown=BBAnalytics.calc({sponsored_brands:[{'Spend':'10','Sales':'20','__file_name':'a.csv'},{'Spend':'20','Sales':'40','__file_name':'b.csv'}]});
+  check('Due report senza periodo: ACOS bloccato',Number.isNaN(twoUnknown.acos));
   const decisions=BBAnalytics.asinDecisionRows(data);
   check('Decisioni: vendite non duplicate',decisions.length===1&&Math.abs(decisions[0].sales-100)<0.001);
  }catch(e){results.push('ERRORE — '+(e.stack||e.message||e));}
