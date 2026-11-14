@@ -1683,8 +1683,12 @@ window.BBAnalytics = {
       const asin=BBUtils.pick(r,["ASIN","asin"])||"N/D";
       const sku=BBUtils.pick(r,["MSKU","sku","SKU"])||"";
       const o=ensure(asin,sku,titles.get(asin)||"");
-      o.sales+=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
-      o.units+=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
+      // Se esistono ordini per questo ASIN, le vendite del Profit Report
+      // sono un riepilogo alternativo e non devono essere sommate.
+      if(!o.source.has("Ordini")){
+        o.sales+=BBUtils.num(BBUtils.pick(r,["Vendite nette","Vendite","Net sales","Sales"]));
+        o.units+=BBUtils.num(BBUtils.pick(r,["Unità nette vendute","Unità vendute","Units sold","Net units sold"]));
+      }
       o.profit+=BBUtils.num(BBUtils.pick(r,["Totale: Ricavi netti","Ricavi netti","Utile netto","Profitto netto","Net profit","Profit"]));
       o.source.add("Profit Report");
     });
