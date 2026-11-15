@@ -493,29 +493,39 @@ function bind(){
     } catch(error) { status.textContent=error.message; }
   });
 
-  BBUtils.el("testLogin").addEventListener("submit", async event => {
+  const loginForm=BBUtils.el("testLogin");
+  const loginStatus=BBUtils.el("testLoginStatus");
+  // Browser validation may block submit before its handler runs.
+  // Always provide visible feedback without displaying secrets.
+  loginForm.querySelector('button[type="submit"]').addEventListener("click",()=>{
+    loginStatus.textContent="Verifica dei campi di accesso...";
+    const email=BBUtils.el("testEmail"), password=BBUtils.el("testPassword");
+    if(!email.value.trim()) loginStatus.textContent="Inserisci l'email dell'utente Supabase.";
+    else if(!email.validity.valid) loginStatus.textContent="Controlla il formato dell'email.";
+    else if(!password.value) loginStatus.textContent="Inserisci la password dell'utente Supabase.";
+  });
+  loginForm.addEventListener("submit", async event => {
     event.preventDefault();
-    const status = BBUtils.el("testLoginStatus");
-    const db = BBStorage.client();
-    if (!db) {
-      status.textContent = "Configura prima URL e chiave pubblica Supabase.";
-      return;
-    }
-    const password = BBUtils.el("testPassword");
+    const status=loginStatus;
+    status.textContent="Connessione a Supabase in corso...";
+    const password=BBUtils.el("testPassword");
     try {
-      const {error} = await db.auth.signInWithPassword({
-        email: BBUtils.el("testEmail").value.trim(),
-        password: password.value
+      const db=BBStorage.client();
+      if(!db) throw new Error("Configurazione mancante: salva URL e chiave pubblica del database di test.");
+      const {error}=await db.auth.signInWithPassword({
+        email:BBUtils.el("testEmail").value.trim(),
+        password:password.value
       });
-      if (error) throw error;
-      const check = await db.from("bb100_report_files").select("id").limit(1);
-      if (check.error) throw check.error;
-      status.textContent = "Collegato al database Supabase.";
+      if(error) throw error;
+      status.textContent="Accesso riuscito. Verifica dei permessi database...";
+      const check=await db.from("bb100_report_files").select("id").limit(1);
+      if(check.error) throw check.error;
+      status.textContent="Collegato al database Supabase.";
       await refresh();
-    } catch (error) {
-      status.textContent = error.message;
+    } catch(error) {
+      status.textContent="Accesso non riuscito: "+String(error?.message||error);
     } finally {
-      password.value = "";
+      password.value="";
     }
   });
 

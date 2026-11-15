@@ -483,6 +483,26 @@ window.BBRender = {
     const adFiles=s.files.filter(x=>["sponsored_products","sponsored_brands","sponsored_display"].includes(x.report_type)&&this.activeFileIds(x.report_type).has(String(x.id)));
     BBUtils.el("adsFilesBox").innerHTML=adFiles.length?'<h3>File Ads attivi</h3><table><tr><th>Tipo</th><th>File</th><th>Righe</th></tr>'+adFiles.map(f=>'<tr><td>'+h(BBAnalytics.label(f.report_type))+'</td><td>'+h(f.file_name)+'</td><td>'+h(f.row_count)+'</td></tr>').join("")+'</table>':'';
 
+    // Diagnostica non distruttiva: distingue fatture Ads, spesa campagne e periodi verificabili.
+    const periodText=f=>{
+      const start=f.source?.period_start, end=f.source?.period_end;
+      return start&&end ? h(String(start))+" → "+h(String(end)) : "Non disponibile";
+    };
+    const adPeriodRows=adFiles.map(f=>'<tr><td>'+h(f.file_name)+'</td><td>'+periodText(f)+'</td></tr>').join("");
+    const periodValues=adFiles.map(f=>f.source?.period_start&&f.source?.period_end?String(f.source.period_start)+"|"+String(f.source.period_end):null);
+    const knownPeriods=periodValues.filter(Boolean);
+    const periodStatus=!adFiles.length?"Nessun report campagna attivo":knownPeriods.length!==adFiles.length
+      ?"Periodo incompleto: ACOS e ROAS aggregati non verificabili"
+      :new Set(knownPeriods).size>1
+        ?"Periodi differenti: ACOS e ROAS aggregati non confrontabili"
+        :"Periodi dichiarati uguali: verificare comunque eventuali righe duplicate";
+    BBUtils.el("adsFilesBox").insertAdjacentHTML("beforeend",
+      '<h3>Verifica attendibilità Ads</h3><p class="hint">'+h(periodStatus)+
+      '. Spesa campagne: <strong>'+BBUtils.euro(c.adsSpend)+
+      '</strong>; fatture Ads: <strong>'+BBUtils.euro(c.adsInvoice)+
+      '</strong>; spesa usata nei KPI generali: <strong>'+BBUtils.euro(c.ads)+
+      '</strong>. Le fatture non vanno divise per le vendite attribuite per calcolare ACOS.</p>'+
+      (adFiles.length?'<table><tr><th>File attivo</th><th>Periodo dichiarato</th></tr>'+adPeriodRows+'</table>':''));
     const adr=BBAnalytics.asinDecisionRows ? BBAnalytics.asinDecisionRows(scopedSamples) : [];
     const adf=this.filteredAsinDecisionRows(adr);
     const asinCount=key=>adr.filter(r=>r.decision===key).length;
