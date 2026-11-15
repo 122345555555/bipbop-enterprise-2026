@@ -187,26 +187,22 @@ window.BBReconcile = {
     }
 
     if(this.adTypes.has(type)){
-      return "ads|"+[
-        source.level||"file",
-        v(["Campaign ID","ID campagna"]),
-        v(["Campaign Name","Nome campagna","Nome della campagna"]),
-        v(["Ad Group ID","ID gruppo di annunci"]),
-        v(["Ad Group Name","Nome del gruppo di annunci"]),
-        v(["Ad ID","ID annuncio"]),
-        v(["Ad Name","Nome dell'annuncio"]),
-        v(["Keyword ID","ID parola chiave"]),
-        v(["Keyword","Parole chiave"]),
-        v(["Target","Targeting","Targeting expression"]),
-        v(["Customer Search Term","Termine di ricerca del cliente","Search term"]),
-        v(["Match Type","Tipo di corrispondenza"]),
-        v(["Advertised ASIN","ASIN pubblicizzato","ASIN"]),
-        v(["SKU","Advertised SKU","SKU pubblicizzato"]),
-        v(["Placement","Posizionamento"]),
-        v(["Start Date","Data di inizio"]),
-        v(["End Date","Data di fine"]),
-        date
-      ].join("|");
+      // Identità coerente con il livello del report. Amazon esporta colonne
+      // aggiuntive (es. Nome dell'annuncio) anche nei report Ad Group:
+      // non devono trasformare lo stesso gruppo in campagne diverse.
+      const level=source.level||"file";
+      const campaign=v(["Campaign ID","ID campagna","Campaign Name","Nome campagna","Nome della campagna"]);
+      const group=v(["Ad Group ID","ID gruppo di annunci","Ad Group Name","Nome del gruppo di annunci","Gruppo di annunci","Nome gruppo annunci"]);
+      const parts=[level,campaign,group];
+      if(["ad","keyword","target","search_term"].includes(level))
+        parts.push(v(["Ad ID","ID annuncio","Ad Name","Nome dell'annuncio"]));
+      if(["keyword","target","search_term"].includes(level))
+        parts.push(v(["Keyword ID","ID parola chiave","Keyword","Parole chiave","Target","Targeting","Targeting expression","Match Type","Tipo di corrispondenza"]));
+      if(level==="search_term")
+        parts.push(v(["Customer Search Term","Termine di ricerca del cliente","Search term"]));
+      if(level==="file" || (!campaign&&!group))
+        parts.push(this.canonicalRow(row));
+      return "ads|"+parts.join("|");
     }
 
     if(type==="search_terms"){
@@ -306,10 +302,13 @@ window.BBReconcile = {
       const conflicts=[];
       for(const [key,items] of groups){
         const valid=items.every(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_start||"")&&/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_end||""));
-        // File importati prima dell'introduzione delle date: non sommarli.
-        // Conserviamo il più recente come anteprima prudenziale.
+        // Quando esiste un cumulativo verificato per la stessa identità,
+        // preferirlo ai legacy senza periodo: questi restano archiviati,
+        // ma non possono essere sommati in sicurezza.
         if(!valid){
-          const latest=items.slice().sort((a,b)=>this.compareFiles(b.file,a.file))[0];
+          const dated=items.filter(x=>/^\\d{4}-\\d{2}-\\d{2}$/.test(x.source.period_start||"")&&/^\\d{4}-\\d{2}-\\d{2}$/.test(x.source.period_end||""));
+          const pool=dated.length?dated:items;
+          const latest=pool.slice().sort((a,b)=>this.compareFiles(b.file,a.file))[0];
           resultRows.push({...latest.row,__file_id:latest.record.file_id,__file_name:latest.record.file_name,
             __period_key:"non-verificato",__source:latest.source,__imported_at:latest.record.imported_at,__identity:key});
           continue;
