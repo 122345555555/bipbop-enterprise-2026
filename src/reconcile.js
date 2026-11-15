@@ -301,19 +301,17 @@ window.BBReconcile = {
       const resultRows=[];
       const conflicts=[];
       for(const [key,items] of groups){
-        const valid=items.every(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_start||"")&&/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_end||""));
-        // Quando esiste un cumulativo verificato per la stessa identità,
-        // preferirlo ai legacy senza periodo: questi restano archiviati,
-        // ma non possono essere sommati in sicurezza.
-        if(!valid){
-          const dated=items.filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_start||"")&&/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_end||""));
-          const pool=dated.length?dated:items;
-          const latest=pool.slice().sort((a,b)=>this.compareFiles(b.file,a.file))[0];
+        // I legacy senza date non possono contribuire quando esiste un
+        // cumulativo verificato per lo stesso gruppo. Con più cumulativi
+        // datati continuiamo a controllare coperture e sovrapposizioni.
+        const dated=items.filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_start||"")&&/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_end||""));
+        if(!dated.length){
+          const latest=items.slice().sort((a,b)=>this.compareFiles(b.file,a.file))[0];
           resultRows.push({...latest.row,__file_id:latest.record.file_id,__file_name:latest.record.file_name,
-            __period_key:dated.length?latest.source.period_start+"_"+latest.source.period_end:"non-verificato",__source:latest.source,__imported_at:latest.record.imported_at,__identity:key});
+            __period_key:"non-verificato",__source:latest.source,__imported_at:latest.record.imported_at,__identity:key});
           continue;
         }
-        const sorted=items.slice().sort((a,b)=>{
+        const sorted=dated.slice().sort((a,b)=>{
           const days=x=>(Date.parse(x.source.period_end)-Date.parse(x.source.period_start));
           return days(b)-days(a)||this.compareFiles(b.file,a.file);
         });
