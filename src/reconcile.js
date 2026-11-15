@@ -306,11 +306,11 @@ window.BBReconcile = {
         // preferirlo ai legacy senza periodo: questi restano archiviati,
         // ma non possono essere sommati in sicurezza.
         if(!valid){
-          const dated=items.filter(x=>/^\\d{4}-\\d{2}-\\d{2}$/.test(x.source.period_start||"")&&/^\\d{4}-\\d{2}-\\d{2}$/.test(x.source.period_end||""));
+          const dated=items.filter(x=>/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_start||"")&&/^\d{4}-\d{2}-\d{2}$/.test(x.source.period_end||""));
           const pool=dated.length?dated:items;
           const latest=pool.slice().sort((a,b)=>this.compareFiles(b.file,a.file))[0];
           resultRows.push({...latest.row,__file_id:latest.record.file_id,__file_name:latest.record.file_name,
-            __period_key:"non-verificato",__source:latest.source,__imported_at:latest.record.imported_at,__identity:key});
+            __period_key:dated.length?latest.source.period_start+"_"+latest.source.period_end:"non-verificato",__source:latest.source,__imported_at:latest.record.imported_at,__identity:key});
           continue;
         }
         const sorted=items.slice().sort((a,b)=>{
